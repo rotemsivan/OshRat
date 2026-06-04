@@ -1,32 +1,33 @@
-//
-//  OshRatApp.swift
-//  OshRat
-//
-//  Created by Rotem Sivan on 04/06/2026.
-//
-
 import SwiftUI
 import SwiftData
 
 @main
 struct OshRatApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+    /// The SwiftData container — this is our on-device database.
+    /// Every @Model type the app uses must be listed here.
+    let container: ModelContainer
 
+    init() {
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            container = try ModelContainer(
+                for: UserProfile.self, Account.self, Category.self,
+                    Transaction.self, BudgetItem.self, Goal.self
+            )
+            // Populate default Hebrew categories on the very first launch.
+            SeedData.seedDefaultCategoriesIfNeeded(in: container.mainContext)
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            fatalError("Could not create the SwiftData container: \(error)")
         }
-    }()
+    }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
+                // Force right-to-left for this Hebrew-only app so RTL works
+                // immediately. Later, when we add a Hebrew localization, the
+                // system can mirror the layout automatically and this can go.
+                .environment(\.layoutDirection, .rightToLeft)
         }
-        .modelContainer(sharedModelContainer)
+        .modelContainer(container)
     }
 }

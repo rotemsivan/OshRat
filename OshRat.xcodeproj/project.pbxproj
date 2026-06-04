@@ -6,6 +6,34 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		5E31E5402FD16ABE00FF83C8 /* CLAUDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 5E31E53F2FD16ABE00FF83C8 /* CLAUDE.md */; };
+		5E31E54B2FD16B6D00FF83C8 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E54A2FD16B6D00FF83C8 /* UserProfile.swift */; };
+		5E31E54C2FD16B6D00FF83C8 /* BudgetItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5432FD16B6D00FF83C8 /* BudgetItem.swift */; };
+		5E31E54D2FD16B6D00FF83C8 /* Goal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5452FD16B6D00FF83C8 /* Goal.swift */; };
+		5E31E54F2FD16B6D00FF83C8 /* SharedEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5482FD16B6D00FF83C8 /* SharedEnums.swift */; };
+		5E31E5502FD16B6D00FF83C8 /* Category.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5442FD16B6D00FF83C8 /* Category.swift */; };
+		5E31E5512FD16B6D00FF83C8 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5492FD16B6D00FF83C8 /* Transaction.swift */; };
+		5E31E5522FD16B6D00FF83C8 /* SeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5472FD16B6D00FF83C8 /* SeedData.swift */; };
+		5E31E5532FD16B6D00FF83C8 /* Account.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5422FD16B6D00FF83C8 /* Account.swift */; };
+		5E31E5542FD16B6D00FF83C8 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E54A2FD16B6D00FF83C8 /* UserProfile.swift */; };
+		5E31E5552FD16B6D00FF83C8 /* BudgetItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5432FD16B6D00FF83C8 /* BudgetItem.swift */; };
+		5E31E5562FD16B6D00FF83C8 /* Goal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5452FD16B6D00FF83C8 /* Goal.swift */; };
+		5E31E5582FD16B6D00FF83C8 /* SharedEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5482FD16B6D00FF83C8 /* SharedEnums.swift */; };
+		5E31E5592FD16B6D00FF83C8 /* Category.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5442FD16B6D00FF83C8 /* Category.swift */; };
+		5E31E55A2FD16B6D00FF83C8 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5492FD16B6D00FF83C8 /* Transaction.swift */; };
+		5E31E55B2FD16B6D00FF83C8 /* SeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5472FD16B6D00FF83C8 /* SeedData.swift */; };
+		5E31E55C2FD16B6D00FF83C8 /* Account.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5422FD16B6D00FF83C8 /* Account.swift */; };
+		5E31E55D2FD16B6D00FF83C8 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E54A2FD16B6D00FF83C8 /* UserProfile.swift */; };
+		5E31E55E2FD16B6D00FF83C8 /* BudgetItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5432FD16B6D00FF83C8 /* BudgetItem.swift */; };
+		5E31E55F2FD16B6D00FF83C8 /* Goal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5452FD16B6D00FF83C8 /* Goal.swift */; };
+		5E31E5612FD16B6D00FF83C8 /* SharedEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5482FD16B6D00FF83C8 /* SharedEnums.swift */; };
+		5E31E5622FD16B6D00FF83C8 /* Category.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5442FD16B6D00FF83C8 /* Category.swift */; };
+		5E31E5632FD16B6D00FF83C8 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5492FD16B6D00FF83C8 /* Transaction.swift */; };
+		5E31E5642FD16B6D00FF83C8 /* SeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5472FD16B6D00FF83C8 /* SeedData.swift */; };
+		5E31E5652FD16B6D00FF83C8 /* Account.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5422FD16B6D00FF83C8 /* Account.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		5E31E5222FD16A0200FF83C8 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,9 +52,19 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		5E2626BE2FD1716600180F49 /* OshRat.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = OshRat.xctestplan; sourceTree = "<group>"; };
 		5E31E5102FD16A0100FF83C8 /* OshRat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OshRat.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5E31E5212FD16A0200FF83C8 /* OshRatTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OshRatTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5E31E52B2FD16A0200FF83C8 /* OshRatUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OshRatUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5E31E53F2FD16ABE00FF83C8 /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
+		5E31E5422FD16B6D00FF83C8 /* Account.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Account.swift; sourceTree = "<group>"; };
+		5E31E5432FD16B6D00FF83C8 /* BudgetItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetItem.swift; sourceTree = "<group>"; };
+		5E31E5442FD16B6D00FF83C8 /* Category.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Category.swift; sourceTree = "<group>"; };
+		5E31E5452FD16B6D00FF83C8 /* Goal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Goal.swift; sourceTree = "<group>"; };
+		5E31E5472FD16B6D00FF83C8 /* SeedData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedData.swift; sourceTree = "<group>"; };
+		5E31E5482FD16B6D00FF83C8 /* SharedEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedEnums.swift; sourceTree = "<group>"; };
+		5E31E5492FD16B6D00FF83C8 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
+		5E31E54A2FD16B6D00FF83C8 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -88,6 +126,9 @@
 		5E31E5072FD16A0100FF83C8 = {
 			isa = PBXGroup;
 			children = (
+				5E2626BE2FD1716600180F49 /* OshRat.xctestplan */,
+				5E31E5412FD16B4400FF83C8 /* Models */,
+				5E31E53F2FD16ABE00FF83C8 /* CLAUDE.md */,
 				5E31E5122FD16A0100FF83C8 /* OshRat */,
 				5E31E5242FD16A0200FF83C8 /* OshRatTests */,
 				5E31E52E2FD16A0200FF83C8 /* OshRatUITests */,
@@ -103,6 +144,21 @@
 				5E31E52B2FD16A0200FF83C8 /* OshRatUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		5E31E5412FD16B4400FF83C8 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				5E31E5422FD16B6D00FF83C8 /* Account.swift */,
+				5E31E5432FD16B6D00FF83C8 /* BudgetItem.swift */,
+				5E31E5442FD16B6D00FF83C8 /* Category.swift */,
+				5E31E5452FD16B6D00FF83C8 /* Goal.swift */,
+				5E31E5472FD16B6D00FF83C8 /* SeedData.swift */,
+				5E31E5482FD16B6D00FF83C8 /* SharedEnums.swift */,
+				5E31E5492FD16B6D00FF83C8 /* Transaction.swift */,
+				5E31E54A2FD16B6D00FF83C8 /* UserProfile.swift */,
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -225,6 +281,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5E31E5402FD16ABE00FF83C8 /* CLAUDE.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -249,6 +306,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5E31E54B2FD16B6D00FF83C8 /* UserProfile.swift in Sources */,
+				5E31E54C2FD16B6D00FF83C8 /* BudgetItem.swift in Sources */,
+				5E31E54D2FD16B6D00FF83C8 /* Goal.swift in Sources */,
+				5E31E54F2FD16B6D00FF83C8 /* SharedEnums.swift in Sources */,
+				5E31E5502FD16B6D00FF83C8 /* Category.swift in Sources */,
+				5E31E5512FD16B6D00FF83C8 /* Transaction.swift in Sources */,
+				5E31E5522FD16B6D00FF83C8 /* SeedData.swift in Sources */,
+				5E31E5532FD16B6D00FF83C8 /* Account.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -256,6 +321,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5E31E55D2FD16B6D00FF83C8 /* UserProfile.swift in Sources */,
+				5E31E55E2FD16B6D00FF83C8 /* BudgetItem.swift in Sources */,
+				5E31E55F2FD16B6D00FF83C8 /* Goal.swift in Sources */,
+				5E31E5612FD16B6D00FF83C8 /* SharedEnums.swift in Sources */,
+				5E31E5622FD16B6D00FF83C8 /* Category.swift in Sources */,
+				5E31E5632FD16B6D00FF83C8 /* Transaction.swift in Sources */,
+				5E31E5642FD16B6D00FF83C8 /* SeedData.swift in Sources */,
+				5E31E5652FD16B6D00FF83C8 /* Account.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -263,6 +336,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5E31E5542FD16B6D00FF83C8 /* UserProfile.swift in Sources */,
+				5E31E5552FD16B6D00FF83C8 /* BudgetItem.swift in Sources */,
+				5E31E5562FD16B6D00FF83C8 /* Goal.swift in Sources */,
+				5E31E5582FD16B6D00FF83C8 /* SharedEnums.swift in Sources */,
+				5E31E5592FD16B6D00FF83C8 /* Category.swift in Sources */,
+				5E31E55A2FD16B6D00FF83C8 /* Transaction.swift in Sources */,
+				5E31E55B2FD16B6D00FF83C8 /* SeedData.swift in Sources */,
+				5E31E55C2FD16B6D00FF83C8 /* Account.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -294,6 +375,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = OshRat/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "עכבר עו״ש";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -328,6 +411,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = OshRat/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "עכבר עו״ש";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

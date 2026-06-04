@@ -1,0 +1,38 @@
+{
+  "configurations" : [
+    {
+      "id" : "566948A4-309C-49BF-B7EC-9F698D630156",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:OshRat.xcodeproj",
+      "identifier" : "5E31E50F2FD16A0100FF83C8",
+      "name" : "OshRat"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:OshRat.xcodeproj",
+        "identifier" : "5E31E5202FD16A0200FF83C8",
+        "name" : "OshRatTests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:OshRat.xcodeproj",
+        "identifier" : "5E31E52A2FD16A0200FF83C8",
+        "name" : "OshRatUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
