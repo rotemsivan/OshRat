@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5E2626C82FD1846400180F49 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2626C32FD1824A00180F49 /* WelcomeView.swift */; };
+		5E2626C92FD1846400180F49 /* AccountsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2626C62FD1829C00180F49 /* AccountsStepView.swift */; };
+		5E2626CA2FD1846400180F49 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2626C72FD182BF00180F49 /* OnboardingFlowView.swift */; };
+		5E2626CB2FD1846400180F49 /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2626C02FD1821F00180F49 /* OnboardingViewModel.swift */; };
+		5E2626CC2FD1846400180F49 /* PersonalDetailsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2626C42FD1826600180F49 /* PersonalDetailsStepView.swift */; };
+		5E2626CD2FD1846400180F49 /* AccountEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2626C52FD1828300180F49 /* AccountEditorSheet.swift */; };
 		5E31E5402FD16ABE00FF83C8 /* CLAUDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 5E31E53F2FD16ABE00FF83C8 /* CLAUDE.md */; };
 		5E31E54B2FD16B6D00FF83C8 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E54A2FD16B6D00FF83C8 /* UserProfile.swift */; };
 		5E31E54C2FD16B6D00FF83C8 /* BudgetItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5432FD16B6D00FF83C8 /* BudgetItem.swift */; };
@@ -53,6 +59,12 @@
 
 /* Begin PBXFileReference section */
 		5E2626BE2FD1716600180F49 /* OshRat.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = OshRat.xctestplan; sourceTree = "<group>"; };
+		5E2626C02FD1821F00180F49 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
+		5E2626C32FD1824A00180F49 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
+		5E2626C42FD1826600180F49 /* PersonalDetailsStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalDetailsStepView.swift; sourceTree = "<group>"; };
+		5E2626C52FD1828300180F49 /* AccountEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountEditorSheet.swift; sourceTree = "<group>"; };
+		5E2626C62FD1829C00180F49 /* AccountsStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountsStepView.swift; sourceTree = "<group>"; };
+		5E2626C72FD182BF00180F49 /* OnboardingFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingFlowView.swift; sourceTree = "<group>"; };
 		5E31E5102FD16A0100FF83C8 /* OshRat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OshRat.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5E31E5212FD16A0200FF83C8 /* OshRatTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OshRatTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5E31E52B2FD16A0200FF83C8 /* OshRatUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OshRatUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -123,6 +135,34 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		5E2626BF2FD1821F00180F49 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				5E2626C02FD1821F00180F49 /* OnboardingViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		5E2626C12FD1823B00180F49 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				5E2626C22FD1823E00180F49 /* Onboarding */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		5E2626C22FD1823E00180F49 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				5E2626C32FD1824A00180F49 /* WelcomeView.swift */,
+				5E2626C42FD1826600180F49 /* PersonalDetailsStepView.swift */,
+				5E2626C52FD1828300180F49 /* AccountEditorSheet.swift */,
+				5E2626C62FD1829C00180F49 /* AccountsStepView.swift */,
+				5E2626C72FD182BF00180F49 /* OnboardingFlowView.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
 		5E31E5072FD16A0100FF83C8 = {
 			isa = PBXGroup;
 			children = (
@@ -133,6 +173,8 @@
 				5E31E5242FD16A0200FF83C8 /* OshRatTests */,
 				5E31E52E2FD16A0200FF83C8 /* OshRatUITests */,
 				5E31E5112FD16A0100FF83C8 /* Products */,
+				5E2626BF2FD1821F00180F49 /* ViewModels */,
+				5E2626C12FD1823B00180F49 /* Views */,
 			);
 			sourceTree = "<group>";
 		};
@@ -310,6 +352,12 @@
 				5E31E54C2FD16B6D00FF83C8 /* BudgetItem.swift in Sources */,
 				5E31E54D2FD16B6D00FF83C8 /* Goal.swift in Sources */,
 				5E31E54F2FD16B6D00FF83C8 /* SharedEnums.swift in Sources */,
+				5E2626C82FD1846400180F49 /* WelcomeView.swift in Sources */,
+				5E2626C92FD1846400180F49 /* AccountsStepView.swift in Sources */,
+				5E2626CA2FD1846400180F49 /* OnboardingFlowView.swift in Sources */,
+				5E2626CB2FD1846400180F49 /* OnboardingViewModel.swift in Sources */,
+				5E2626CC2FD1846400180F49 /* PersonalDetailsStepView.swift in Sources */,
+				5E2626CD2FD1846400180F49 /* AccountEditorSheet.swift in Sources */,
 				5E31E5502FD16B6D00FF83C8 /* Category.swift in Sources */,
 				5E31E5512FD16B6D00FF83C8 /* Transaction.swift in Sources */,
 				5E31E5522FD16B6D00FF83C8 /* SeedData.swift in Sources */,
