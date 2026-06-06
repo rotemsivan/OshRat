@@ -20,10 +20,12 @@ struct PersonalDetailsStepView: View {
                 TextField("שם", text: $viewModel.name)
                     .textContentType(.name)
                     .submitLabel(.next)
+                    .multilineTextAlignment(.trailing)
 
                 TextField("מקצוע", text: $viewModel.profession)
                     .textContentType(.jobTitle)
                     .submitLabel(.next)
+                    .multilineTextAlignment(.trailing)
             } header: {
                 Text("פרטים אישיים")
             } footer: {
@@ -40,6 +42,7 @@ struct PersonalDetailsStepView: View {
                     axis: .vertical
                 )
                 .lineLimit(3...6)
+                .multilineTextAlignment(.trailing)
             } header: {
                 Text("המטרות שלי")
             } footer: {
@@ -56,6 +59,11 @@ struct PersonalDetailsStepView: View {
                 Text("זה המטבע שייבחר כברירת מחדל לחשבונות ולעסקאות חדשים.")
             }
         }
+        // Let the form blend with the brand background instead of using
+        // the default system grouped fill. Inputs still read as inputs
+        // thanks to per-section row backgrounds.
+        .scrollContentBackground(.hidden)
+        .background(Theme.Colors.background)
     }
 
     /// Human-friendly label for the currency picker — currency code first

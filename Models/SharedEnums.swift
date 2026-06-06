@@ -40,3 +40,43 @@ enum AccountType: String, Codable, CaseIterable, Identifiable {
         }
     }
 }
+
+/// Whether a spending category is a "need" or a "want". Lets the budget
+/// builder visually group planned expenses and lets the dashboard tell
+/// the user "you allocate X to needs and Y to wants".
+///
+/// `neutral` is the default for income categories and for anything the
+/// user creates manually later — we never want to silently mislabel.
+enum CategoryNature: String, Codable, CaseIterable, Identifiable {
+    case need      // צרכים
+    case want      // רצונות
+    case neutral   // לא מסווג / הכנסה
+
+    var id: String { rawValue }
+
+    var hebrewLabel: String {
+        switch self {
+        case .need:    return "צרכים"
+        case .want:    return "רצונות"
+        case .neutral: return "אחר"
+        }
+    }
+}
+
+/// How often a planned expense recurs. `monthly` is by far the common
+/// case (rent, subscriptions, bills). `everyXWeeks` covers things like
+/// "barber every 3 weeks" — the dashboard converts these to a monthly
+/// equivalent so totals line up.
+enum BudgetFrequencyKind: String, Codable, CaseIterable, Identifiable {
+    case monthly       // חודשי
+    case everyXWeeks   // כל X שבועות
+
+    var id: String { rawValue }
+
+    var hebrewLabel: String {
+        switch self {
+        case .monthly:     return "חודשי"
+        case .everyXWeeks: return "כל כמה שבועות"
+        }
+    }
+}

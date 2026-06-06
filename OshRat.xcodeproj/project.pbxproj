@@ -38,6 +38,25 @@
 		5E31E5632FD16B6D00FF83C8 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5492FD16B6D00FF83C8 /* Transaction.swift */; };
 		5E31E5642FD16B6D00FF83C8 /* SeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5472FD16B6D00FF83C8 /* SeedData.swift */; };
 		5E31E5652FD16B6D00FF83C8 /* Account.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5422FD16B6D00FF83C8 /* Account.swift */; };
+		5E47939E2FD2014100568427 /* IncomeSourceEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E47939D2FD2014100568427 /* IncomeSourceEditorSheet.swift */; };
+		5E4793A02FD2017300568427 /* PlannedExpenseEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E47939F2FD2017300568427 /* PlannedExpenseEditorSheet.swift */; };
+		5E4793A22FD201AC00568427 /* BudgetStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E4793A12FD201AC00568427 /* BudgetStepView.swift */; };
+		5E4793A42FD2021F00568427 /* BudgetSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E4793A32FD2021F00568427 /* BudgetSummaryCard.swift */; };
+		5E8EB3A32FD2F5060037E1F3 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E4793A62FD207EA00568427 /* Theme.swift */; };
+		5E8EB3A52FD2F8E70037E1F3 /* FXRateSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8EB3A42FD2F8E70037E1F3 /* FXRateSnapshot.swift */; };
+		5E8EB3A62FD2F8E70037E1F3 /* FXRateSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8EB3A42FD2F8E70037E1F3 /* FXRateSnapshot.swift */; };
+		5E8EB3A72FD2F8E70037E1F3 /* FXRateSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8EB3A42FD2F8E70037E1F3 /* FXRateSnapshot.swift */; };
+		5E8EB3AB2FD2F9B30037E1F3 /* FXRatesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8EB3A92FD2F9070037E1F3 /* FXRatesService.swift */; };
+		5E8EB3AC2FD2F9B30037E1F3 /* CurrencyConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8EB3AA2FD2F9240037E1F3 /* CurrencyConverter.swift */; };
+		5ED3E0E82FD1BB4D003083F0 /* Holding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0E72FD1BB4D003083F0 /* Holding.swift */; };
+		5ED3E0E92FD1BB4D003083F0 /* Holding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0E72FD1BB4D003083F0 /* Holding.swift */; };
+		5ED3E0EA2FD1BB4D003083F0 /* Holding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0E72FD1BB4D003083F0 /* Holding.swift */; };
+		5ED3E0EC2FD1BB9D003083F0 /* HoldingEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0EB2FD1BB9D003083F0 /* HoldingEditorView.swift */; };
+		5ED3E0EF2FD1BE69003083F0 /* GreetingHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0EE2FD1BE69003083F0 /* GreetingHeaderView.swift */; };
+		5ED3E0F12FD1BE8C003083F0 /* AssetsSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0F02FD1BE8C003083F0 /* AssetsSummaryCard.swift */; };
+		5ED3E0F32FD1BEB4003083F0 /* MonthlySummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0F22FD1BEB4003083F0 /* MonthlySummaryCard.swift */; };
+		5ED3E0F52FD1BECE003083F0 /* HomeBottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0F42FD1BECE003083F0 /* HomeBottomBar.swift */; };
+		5ED3E0F72FD1BEE2003083F0 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0F62FD1BEE2003083F0 /* HomeView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -77,6 +96,21 @@
 		5E31E5482FD16B6D00FF83C8 /* SharedEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedEnums.swift; sourceTree = "<group>"; };
 		5E31E5492FD16B6D00FF83C8 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
 		5E31E54A2FD16B6D00FF83C8 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
+		5E47939D2FD2014100568427 /* IncomeSourceEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomeSourceEditorSheet.swift; sourceTree = "<group>"; };
+		5E47939F2FD2017300568427 /* PlannedExpenseEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannedExpenseEditorSheet.swift; sourceTree = "<group>"; };
+		5E4793A12FD201AC00568427 /* BudgetStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetStepView.swift; sourceTree = "<group>"; };
+		5E4793A32FD2021F00568427 /* BudgetSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetSummaryCard.swift; sourceTree = "<group>"; };
+		5E4793A62FD207EA00568427 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		5E8EB3A42FD2F8E70037E1F3 /* FXRateSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FXRateSnapshot.swift; sourceTree = "<group>"; };
+		5E8EB3A92FD2F9070037E1F3 /* FXRatesService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FXRatesService.swift; sourceTree = "<group>"; };
+		5E8EB3AA2FD2F9240037E1F3 /* CurrencyConverter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyConverter.swift; sourceTree = "<group>"; };
+		5ED3E0E72FD1BB4D003083F0 /* Holding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Holding.swift; sourceTree = "<group>"; };
+		5ED3E0EB2FD1BB9D003083F0 /* HoldingEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoldingEditorView.swift; sourceTree = "<group>"; };
+		5ED3E0EE2FD1BE69003083F0 /* GreetingHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreetingHeaderView.swift; sourceTree = "<group>"; };
+		5ED3E0F02FD1BE8C003083F0 /* AssetsSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssetsSummaryCard.swift; sourceTree = "<group>"; };
+		5ED3E0F22FD1BEB4003083F0 /* MonthlySummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthlySummaryCard.swift; sourceTree = "<group>"; };
+		5ED3E0F42FD1BECE003083F0 /* HomeBottomBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeBottomBar.swift; sourceTree = "<group>"; };
+		5ED3E0F62FD1BEE2003083F0 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -147,6 +181,7 @@
 			isa = PBXGroup;
 			children = (
 				5E2626C22FD1823E00180F49 /* Onboarding */,
+				5ED3E0ED2FD1BE5C003083F0 /* Home */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -159,6 +194,10 @@
 				5E2626C52FD1828300180F49 /* AccountEditorSheet.swift */,
 				5E2626C62FD1829C00180F49 /* AccountsStepView.swift */,
 				5E2626C72FD182BF00180F49 /* OnboardingFlowView.swift */,
+				5ED3E0EB2FD1BB9D003083F0 /* HoldingEditorView.swift */,
+				5E47939D2FD2014100568427 /* IncomeSourceEditorSheet.swift */,
+				5E47939F2FD2017300568427 /* PlannedExpenseEditorSheet.swift */,
+				5E4793A12FD201AC00568427 /* BudgetStepView.swift */,
 			);
 			path = Onboarding;
 			sourceTree = "<group>";
@@ -166,6 +205,7 @@
 		5E31E5072FD16A0100FF83C8 = {
 			isa = PBXGroup;
 			children = (
+				5E4793A52FD2075F00568427 /* DesignSystem */,
 				5E2626BE2FD1716600180F49 /* OshRat.xctestplan */,
 				5E31E5412FD16B4400FF83C8 /* Models */,
 				5E31E53F2FD16ABE00FF83C8 /* CLAUDE.md */,
@@ -175,6 +215,7 @@
 				5E31E5112FD16A0100FF83C8 /* Products */,
 				5E2626BF2FD1821F00180F49 /* ViewModels */,
 				5E2626C12FD1823B00180F49 /* Views */,
+				5E8EB3A82FD2F9070037E1F3 /* Services */,
 			);
 			sourceTree = "<group>";
 		};
@@ -199,8 +240,40 @@
 				5E31E5482FD16B6D00FF83C8 /* SharedEnums.swift */,
 				5E31E5492FD16B6D00FF83C8 /* Transaction.swift */,
 				5E31E54A2FD16B6D00FF83C8 /* UserProfile.swift */,
+				5ED3E0E72FD1BB4D003083F0 /* Holding.swift */,
+				5E8EB3A42FD2F8E70037E1F3 /* FXRateSnapshot.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		5E4793A52FD2075F00568427 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				5E4793A62FD207EA00568427 /* Theme.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		5E8EB3A82FD2F9070037E1F3 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				5E8EB3A92FD2F9070037E1F3 /* FXRatesService.swift */,
+				5E8EB3AA2FD2F9240037E1F3 /* CurrencyConverter.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		5ED3E0ED2FD1BE5C003083F0 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				5ED3E0EE2FD1BE69003083F0 /* GreetingHeaderView.swift */,
+				5ED3E0F02FD1BE8C003083F0 /* AssetsSummaryCard.swift */,
+				5ED3E0F22FD1BEB4003083F0 /* MonthlySummaryCard.swift */,
+				5ED3E0F42FD1BECE003083F0 /* HomeBottomBar.swift */,
+				5ED3E0F62FD1BEE2003083F0 /* HomeView.swift */,
+				5E4793A32FD2021F00568427 /* BudgetSummaryCard.swift */,
+			);
+			path = Home;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -349,18 +422,33 @@
 			buildActionMask = 2147483647;
 			files = (
 				5E31E54B2FD16B6D00FF83C8 /* UserProfile.swift in Sources */,
+				5ED3E0F12FD1BE8C003083F0 /* AssetsSummaryCard.swift in Sources */,
+				5E4793A02FD2017300568427 /* PlannedExpenseEditorSheet.swift in Sources */,
 				5E31E54C2FD16B6D00FF83C8 /* BudgetItem.swift in Sources */,
 				5E31E54D2FD16B6D00FF83C8 /* Goal.swift in Sources */,
+				5E47939E2FD2014100568427 /* IncomeSourceEditorSheet.swift in Sources */,
+				5ED3E0E82FD1BB4D003083F0 /* Holding.swift in Sources */,
 				5E31E54F2FD16B6D00FF83C8 /* SharedEnums.swift in Sources */,
 				5E2626C82FD1846400180F49 /* WelcomeView.swift in Sources */,
 				5E2626C92FD1846400180F49 /* AccountsStepView.swift in Sources */,
+				5E4793A42FD2021F00568427 /* BudgetSummaryCard.swift in Sources */,
+				5E8EB3A32FD2F5060037E1F3 /* Theme.swift in Sources */,
+				5ED3E0EF2FD1BE69003083F0 /* GreetingHeaderView.swift in Sources */,
+				5ED3E0F52FD1BECE003083F0 /* HomeBottomBar.swift in Sources */,
 				5E2626CA2FD1846400180F49 /* OnboardingFlowView.swift in Sources */,
 				5E2626CB2FD1846400180F49 /* OnboardingViewModel.swift in Sources */,
 				5E2626CC2FD1846400180F49 /* PersonalDetailsStepView.swift in Sources */,
+				5ED3E0F32FD1BEB4003083F0 /* MonthlySummaryCard.swift in Sources */,
 				5E2626CD2FD1846400180F49 /* AccountEditorSheet.swift in Sources */,
 				5E31E5502FD16B6D00FF83C8 /* Category.swift in Sources */,
 				5E31E5512FD16B6D00FF83C8 /* Transaction.swift in Sources */,
+				5E8EB3A72FD2F8E70037E1F3 /* FXRateSnapshot.swift in Sources */,
+				5E4793A22FD201AC00568427 /* BudgetStepView.swift in Sources */,
+				5ED3E0EC2FD1BB9D003083F0 /* HoldingEditorView.swift in Sources */,
 				5E31E5522FD16B6D00FF83C8 /* SeedData.swift in Sources */,
+				5ED3E0F72FD1BEE2003083F0 /* HomeView.swift in Sources */,
+				5E8EB3AB2FD2F9B30037E1F3 /* FXRatesService.swift in Sources */,
+				5E8EB3AC2FD2F9B30037E1F3 /* CurrencyConverter.swift in Sources */,
 				5E31E5532FD16B6D00FF83C8 /* Account.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -370,11 +458,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				5E31E55D2FD16B6D00FF83C8 /* UserProfile.swift in Sources */,
+				5ED3E0E92FD1BB4D003083F0 /* Holding.swift in Sources */,
 				5E31E55E2FD16B6D00FF83C8 /* BudgetItem.swift in Sources */,
 				5E31E55F2FD16B6D00FF83C8 /* Goal.swift in Sources */,
 				5E31E5612FD16B6D00FF83C8 /* SharedEnums.swift in Sources */,
 				5E31E5622FD16B6D00FF83C8 /* Category.swift in Sources */,
 				5E31E5632FD16B6D00FF83C8 /* Transaction.swift in Sources */,
+				5E8EB3A62FD2F8E70037E1F3 /* FXRateSnapshot.swift in Sources */,
 				5E31E5642FD16B6D00FF83C8 /* SeedData.swift in Sources */,
 				5E31E5652FD16B6D00FF83C8 /* Account.swift in Sources */,
 			);
@@ -385,11 +475,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				5E31E5542FD16B6D00FF83C8 /* UserProfile.swift in Sources */,
+				5ED3E0EA2FD1BB4D003083F0 /* Holding.swift in Sources */,
 				5E31E5552FD16B6D00FF83C8 /* BudgetItem.swift in Sources */,
 				5E31E5562FD16B6D00FF83C8 /* Goal.swift in Sources */,
 				5E31E5582FD16B6D00FF83C8 /* SharedEnums.swift in Sources */,
 				5E31E5592FD16B6D00FF83C8 /* Category.swift in Sources */,
 				5E31E55A2FD16B6D00FF83C8 /* Transaction.swift in Sources */,
+				5E8EB3A52FD2F8E70037E1F3 /* FXRateSnapshot.swift in Sources */,
 				5E31E55B2FD16B6D00FF83C8 /* SeedData.swift in Sources */,
 				5E31E55C2FD16B6D00FF83C8 /* Account.swift in Sources */,
 			);

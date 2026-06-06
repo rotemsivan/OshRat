@@ -18,11 +18,21 @@ This is also a **learning project**: the developer is new to iOS development. Pr
 
 - iOS only. Deployment target: iOS 17.0 or later (so we can use SwiftData).
 - UI: SwiftUI.
-- Persistence: SwiftData, local and on-device. No backend, no server, no network calls in the MVP.
+- Persistence: SwiftData, local and on-device. No backend, no server, no network calls in the MVP — with **one explicit exception**: see *FX rates* below.
 - Architecture: MVVM — SwiftUI views → view models → services → SwiftData models.
 - Charts: Swift Charts (Apple's native framework).
 - Language & layout: Hebrew, right-to-left. Use a String Catalog / localization for all user-facing text; never hard-code Hebrew strings inside views. Let SwiftUI mirror layouts for RTL automatically.
 - Multi-currency: every account, transaction, and goal carries its own ISO currency code (e.g. `ILS`, `USD`). For now the dashboard groups and totals **per currency**; combined cross-currency conversion is a later enhancement.
+
+## FX rates (network exception)
+
+The app pulls daily reference exchange rates from **Frankfurter.dev** (`https://api.frankfurter.dev/v1/latest`) so the dashboard can roll multi-currency totals into the user's preferred currency. This is the *only* network call the MVP makes.
+
+Rules of the exception:
+- **Public reference data only.** Frankfurter publishes ECB rates. No auth, no API key, no user identifiers in the request.
+- **Cached aggressively.** Rates are stored in a `FXRateSnapshot` SwiftData row and refreshed at most once per 24h.
+- **Graceful fallback.** If the fetch fails (or the cache is empty), the dashboard falls back to per-currency totals with a small "FX unavailable" note. Nothing in the rest of the app depends on a successful fetch.
+- **Don't expand this exception** without updating this section. Anything that sends user data over the network — bank, brokerage, market-data, analytics, telemetry — needs a separate, deliberate decision.
 
 ## Money & data rules
 

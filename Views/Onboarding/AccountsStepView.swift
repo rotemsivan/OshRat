@@ -8,23 +8,16 @@ import SwiftUI
 struct AccountsStepView: View {
     @Bindable var viewModel: OnboardingViewModel
 
-    /// Which draft (if any) is currently being edited in the sheet.
-    /// `nil` when no sheet is showing.
     @State private var editingDraft: AccountDraft?
-
-    /// True when the editor sheet is presenting a *new* draft, false when
-    /// editing an existing row. Used only to title the sheet.
     @State private var isEditingNewDraft: Bool = false
 
     var body: some View {
         List {
             Section {
                 if viewModel.accountDrafts.isEmpty {
-                    // An empty list is a perfectly valid in-progress state;
-                    // a row that says "tap + to add" is more inviting than
-                    // a totally blank screen.
                     Text("עדיין לא הוספת חשבונות. הוסיפו לפחות חשבון אחד כדי להמשיך.")
-                        .foregroundStyle(.secondary)
+                        .font(Theme.Typography.body)
+                        .foregroundStyle(Theme.Colors.textSecondary)
                 } else {
                     ForEach(viewModel.accountDrafts) { draft in
                         Button {
@@ -49,9 +42,12 @@ struct AccountsStepView: View {
                     editingDraft = AccountDraft(currencyCode: viewModel.preferredCurrencyCode)
                 } label: {
                     Label("הוספת חשבון", systemImage: "plus.circle.fill")
+                        .foregroundStyle(Theme.Colors.accent)
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.Colors.background)
         .sheet(item: $editingDraft) { draft in
             AccountEditorSheet(
                 draft: draft,
@@ -69,33 +65,49 @@ struct AccountsStepView: View {
     }
 }
 
-/// One row in the accounts list — name on top, type + formatted balance
-/// underneath. Kept as a small private view so the parent stays tidy.
+/// One row in the accounts list. Name on top, type + holdings count
+/// underneath, total (cash + holdings for investment accounts) on the
+/// trailing side. All colours/fonts come from the design system.
 private struct AccountDraftRow: View {
     let draft: AccountDraft
 
     var body: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Text(draft.name.isEmpty ? "ללא שם" : draft.name)
-                    .font(.headline)
-                Text(draft.type.hebrewLabel)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(Theme.Typography.sectionTitle)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                Text(subtitle)
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colors.textSecondary)
             }
             Spacer()
-            Text(formattedBalance)
-                .font(.body.monospacedDigit())
-                .foregroundStyle(.secondary)
+            Text(formattedTotal)
+                .font(Theme.Typography.amount)
+                .foregroundStyle(Theme.Colors.textPrimary)
+                .monospacedDigit()
         }
-        .contentShape(Rectangle())
+        .contentShape(.rect)
     }
 
-    /// Formatted using the *account's own* currency code, since the app
-    /// is multi-currency. Falls back to a plain decimal if the locale
-    /// can't produce a currency string for the code.
-    private var formattedBalance: String {
-        draft.balance.formatted(.currency(code: draft.currencyCode))
+    private var subtitle: String {
+        if draft.type == .investment, !draft.holdings.isEmpty {
+            return "\(draft.type.hebrewLabel) • \(draft.holdings.count) נכסים"
+        }
+        return draft.type.hebrewLabel
+    }
+
+    /// For most accounts, just the balance. For investment accounts we
+    /// also add the sum of same-currency holdings — mixed-currency
+    /// holdings need real FX, which is a later milestone.
+    private var formattedTotal: String {
+        var total = draft.balance
+        if draft.type == .investment {
+            for holding in draft.holdings where holding.currencyCode == draft.currencyCode {
+                total += holding.marketValue
+            }
+        }
+        return total.formatted(.currency(code: draft.currencyCode))
     }
 }
 

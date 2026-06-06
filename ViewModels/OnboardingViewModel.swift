@@ -6,8 +6,8 @@ import SwiftData
 /// While the user is filling things in we keep everything as plain values
 /// (a "draft"). Nothing touches SwiftData until the user finishes the last
 /// step and we call `commit(into:)`. That way, abandoning the wizard
-/// half-way leaves the database clean — no orphan `UserProfile` or `Account`
-/// rows to clean up later.
+/// half-way leaves the database clean — no orphan `UserProfile`, `Account`
+/// or `BudgetItem` rows to clean up later.
 @Observable
 final class OnboardingViewModel {
 
@@ -21,6 +21,18 @@ final class OnboardingViewModel {
     // MARK: - Financial accounts (step 2)
 
     var accountDrafts: [AccountDraft] = []
+
+    // MARK: - Budget (step 3)
+
+    /// Planned monthly income lines: salary, side gigs, etc. The user
+    /// names each one freely so the dashboard can show them by name
+    /// rather than forcing a generic "income" category.
+    var incomeDrafts: [IncomeSourceDraft] = []
+
+    /// Planned expenses, each tied to a category (which knows whether
+    /// it's a need or a want). Includes a frequency so a barber every
+    /// three weeks can be tracked alongside monthly rent.
+    var plannedExpenseDrafts: [PlannedExpenseDraft] = []
 
     // MARK: - Wizard state
 
@@ -39,6 +51,11 @@ final class OnboardingViewModel {
             // We want the dashboard to have *something* to show, so require
             // at least one account. A zero-balance account is fine.
             return !accountDrafts.isEmpty
+        case .budget:
+            // At least one income source is required so the dashboard's
+            // planned-vs-actual has a denominator. Planned expenses are
+            // optional — some users only plan income at first.
+            return !incomeDrafts.isEmpty
         }
     }
 
@@ -84,6 +101,40 @@ final class OnboardingViewModel {
         }
     }
 
+    // MARK: - Income draft helpers
+
+    func addIncome(_ draft: IncomeSourceDraft) {
+        incomeDrafts.append(draft)
+    }
+
+    func update(_ draft: IncomeSourceDraft) {
+        guard let index = incomeDrafts.firstIndex(where: { $0.id == draft.id }) else { return }
+        incomeDrafts[index] = draft
+    }
+
+    func deleteIncome(at offsets: IndexSet) {
+        for index in offsets.sorted(by: >) {
+            incomeDrafts.remove(at: index)
+        }
+    }
+
+    // MARK: - Planned-expense draft helpers
+
+    func addExpense(_ draft: PlannedExpenseDraft) {
+        plannedExpenseDrafts.append(draft)
+    }
+
+    func update(_ draft: PlannedExpenseDraft) {
+        guard let index = plannedExpenseDrafts.firstIndex(where: { $0.id == draft.id }) else { return }
+        plannedExpenseDrafts[index] = draft
+    }
+
+    func deleteExpenses(at offsets: IndexSet) {
+        for index in offsets.sorted(by: >) {
+            plannedExpenseDrafts.remove(at: index)
+        }
+    }
+
     // MARK: - Persistence
 
     /// Turns the in-memory drafts into real SwiftData rows. Called once,
@@ -106,6 +157,59 @@ final class OnboardingViewModel {
                 lastUpdated: .now
             )
             context.insert(account)
+
+            // Holdings only make sense for investment accounts. If the
+            // user typed some and then switched the account type away
+            // from .investment, we silently drop them — they were never
+            // persisted, so nothing to clean up.
+            if draft.type == .investment {
+                for holdingDraft in draft.holdings {
+                    let holding = Holding(
+                        symbol: holdingDraft.symbol.trimmingCharacters(in: .whitespacesAndNewlines),
+                        name: holdingDraft.name.trimmingCharacters(in: .whitespacesAndNewlines),
+                        quantity: holdingDraft.quantity,
+                        marketValue: holdingDraft.marketValue,
+                        currencyCode: holdingDraft.currencyCode,
+                        lastUpdated: .now
+                    )
+                    // Setting the inverse keeps Account.holdings in sync
+                    // automatically — no need to also append it ourselves.
+                    holding.account = account
+                    context.insert(holding)
+                }
+            }
+        }
+
+        // Income sources — stored as BudgetItem rows with kind=.income
+        // and no category (the name carries the source label).
+        for draft in incomeDrafts {
+            let item = BudgetItem(
+                name: draft.name.trimmingCharacters(in: .whitespacesAndNewlines),
+                plannedAmount: draft.plannedAmount,
+                kind: .income,
+                currencyCode: draft.currencyCode,
+                frequencyKind: .monthly,
+                frequencyWeeks: 1,
+                category: nil
+            )
+            context.insert(item)
+        }
+
+        // Planned expenses — stored as BudgetItem rows with kind=.expense
+        // and a category. Drop drafts whose category got nilled out (the
+        // editor sheet requires one to save, so this is defensive).
+        for draft in plannedExpenseDrafts {
+            guard let category = draft.category else { continue }
+            let item = BudgetItem(
+                name: draft.note.trimmingCharacters(in: .whitespacesAndNewlines),
+                plannedAmount: draft.plannedAmount,
+                kind: .expense,
+                currencyCode: draft.currencyCode,
+                frequencyKind: draft.frequencyKind,
+                frequencyWeeks: max(draft.frequencyWeeks, 1),
+                category: category
+            )
+            context.insert(item)
         }
 
         // Save explicitly so the gating @Query in ContentView re-fires
@@ -118,29 +222,196 @@ final class OnboardingViewModel {
 enum OnboardingStep: CaseIterable {
     case personalDetails
     case financialAccounts
+    case budget
 }
+
+// MARK: - Account & Holding drafts
 
 /// A draft account being built up in the wizard. We keep this as a plain
 /// `struct` (not a SwiftData `@Model`) so that abandoning onboarding
 /// doesn't leave half-filled rows in the database.
+///
+/// For `.investment` accounts, `balance` is treated as the *liquid cash*
+/// component, and `holdings` lists the stocks/ETFs/other assets the user
+/// holds in that same account. For every other account type, `balance`
+/// is the whole account and `holdings` stays empty.
 struct AccountDraft: Identifiable, Hashable {
     let id: UUID
     var name: String
     var type: AccountType
     var balance: Decimal
     var currencyCode: String
+    var holdings: [HoldingDraft]
 
     init(
         id: UUID = UUID(),
         name: String = "",
         type: AccountType = .current,
         balance: Decimal = 0,
-        currencyCode: String = "ILS"
+        currencyCode: String = "ILS",
+        holdings: [HoldingDraft] = []
     ) {
         self.id = id
         self.name = name
         self.type = type
         self.balance = balance
         self.currencyCode = currencyCode
+        self.holdings = holdings
+    }
+}
+
+extension AccountDraft {
+    /// Build a draft populated from a persisted Account, so the same
+    /// `AccountEditorSheet` can be used to edit an existing account
+    /// after onboarding. The draft's `id` is a fresh UUID — it's only
+    /// used for SwiftUI list identity, not for matching back to the
+    /// persisted account.
+    init(from account: Account) {
+        self.init(
+            name: account.name,
+            type: account.type,
+            balance: account.balance,
+            currencyCode: account.currencyCode,
+            holdings: account.holdings.map(HoldingDraft.init(from:))
+        )
+    }
+
+    /// Writes this draft back into a persisted Account. Used by the
+    /// dashboard's edit-account flow.
+    ///
+    /// Holdings strategy: **delete-and-recreate**. We don't track which
+    /// `HoldingDraft` came from which `Holding`, so the simplest correct
+    /// move is to wipe the existing holdings and recreate from the draft.
+    /// Downside: every saved edit resets `Holding.lastUpdated`. Worth
+    /// switching to a diff-by-persistent-ID strategy once features hang
+    /// history (buy/sell logs, etc.) off individual holdings.
+    func apply(to account: Account, in context: ModelContext) {
+        account.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        account.type = type
+        account.balance = balance
+        account.currencyCode = currencyCode
+        account.lastUpdated = .now
+
+        for existing in account.holdings {
+            context.delete(existing)
+        }
+
+        if type == .investment {
+            for hd in holdings {
+                let holding = Holding(
+                    symbol: hd.symbol.trimmingCharacters(in: .whitespacesAndNewlines),
+                    name: hd.name.trimmingCharacters(in: .whitespacesAndNewlines),
+                    quantity: hd.quantity,
+                    marketValue: hd.marketValue,
+                    currencyCode: hd.currencyCode,
+                    lastUpdated: .now
+                )
+                holding.account = account
+                context.insert(holding)
+            }
+        }
+
+        try? context.save()
+    }
+}
+
+/// A draft holding inside an investment account, edited inline during
+/// onboarding and turned into a real `Holding` row at commit time.
+struct HoldingDraft: Identifiable, Hashable {
+    let id: UUID
+    var symbol: String
+    var name: String
+    var quantity: Decimal
+    var marketValue: Decimal
+    var currencyCode: String
+
+    init(
+        id: UUID = UUID(),
+        symbol: String = "",
+        name: String = "",
+        quantity: Decimal = 0,
+        marketValue: Decimal = 0,
+        currencyCode: String = "ILS"
+    ) {
+        self.id = id
+        self.symbol = symbol
+        self.name = name
+        self.quantity = quantity
+        self.marketValue = marketValue
+        self.currencyCode = currencyCode
+    }
+}
+
+extension HoldingDraft {
+    init(from holding: Holding) {
+        self.init(
+            symbol: holding.symbol,
+            name: holding.name,
+            quantity: holding.quantity,
+            marketValue: holding.marketValue,
+            currencyCode: holding.currencyCode
+        )
+    }
+}
+
+// MARK: - Budget drafts
+
+/// A single income source line being entered during onboarding. The
+/// user names each one freely (e.g. "משכורת", "עבודה צדדית") so the
+/// dashboard can report them by name rather than as anonymous totals.
+struct IncomeSourceDraft: Identifiable, Hashable {
+    let id: UUID
+    var name: String
+    var plannedAmount: Decimal
+    var currencyCode: String
+
+    init(
+        id: UUID = UUID(),
+        name: String = "",
+        plannedAmount: Decimal = 0,
+        currencyCode: String = "ILS"
+    ) {
+        self.id = id
+        self.name = name
+        self.plannedAmount = plannedAmount
+        self.currencyCode = currencyCode
+    }
+}
+
+/// A single planned expense line. Tied to a `Category` (which carries
+/// its own need/want nature), plus an optional free-text `note` (e.g.
+/// "ספר" for a barber under the "טיפוח" category) and a frequency so
+/// non-monthly cadences are first-class.
+struct PlannedExpenseDraft: Identifiable, Hashable {
+    let id: UUID
+    /// Reference to the seeded Category. SwiftData @Model classes are
+    /// Hashable by identity, so this works inside our Hashable struct.
+    /// `nil` only briefly while a brand-new draft is being filled in —
+    /// the editor sheet won't allow saving without one.
+    var category: Category?
+    var note: String
+    /// Amount per occurrence (per visit for `everyXWeeks`, per month
+    /// for `monthly`). Roll-up to monthly happens on the dashboard.
+    var plannedAmount: Decimal
+    var currencyCode: String
+    var frequencyKind: BudgetFrequencyKind
+    var frequencyWeeks: Int
+
+    init(
+        id: UUID = UUID(),
+        category: Category? = nil,
+        note: String = "",
+        plannedAmount: Decimal = 0,
+        currencyCode: String = "ILS",
+        frequencyKind: BudgetFrequencyKind = .monthly,
+        frequencyWeeks: Int = 3
+    ) {
+        self.id = id
+        self.category = category
+        self.note = note
+        self.plannedAmount = plannedAmount
+        self.currencyCode = currencyCode
+        self.frequencyKind = frequencyKind
+        self.frequencyWeeks = frequencyWeeks
     }
 }

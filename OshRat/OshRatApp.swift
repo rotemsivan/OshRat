@@ -10,8 +10,8 @@ struct OshRatApp: App {
     init() {
         do {
             container = try ModelContainer(
-                for: UserProfile.self, Account.self, Category.self,
-                    Transaction.self, BudgetItem.self, Goal.self
+                for: UserProfile.self, Account.self, Holding.self, Category.self,
+                    Transaction.self, BudgetItem.self, Goal.self, FXRateSnapshot.self
             )
             // Populate default Hebrew categories on the very first launch.
             SeedData.seedDefaultCategoriesIfNeeded(in: container.mainContext)

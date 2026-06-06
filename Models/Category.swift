@@ -3,6 +3,11 @@ import SwiftData
 
 /// A grouping for transactions, e.g. "מזון", "שכר דירה", "משכורת".
 /// Each category is either an income or an expense category.
+///
+/// `nature` distinguishes "need" categories (rent, bills…) from "want"
+/// categories (going out, gifts…). Income categories use `.neutral`.
+/// The split powers the wants-vs-needs visualisation on the dashboard
+/// and the budget builder during onboarding.
 @Model
 final class Category {
     var name: String = ""
@@ -12,6 +17,12 @@ final class Category {
     /// An SF Symbol name for the icon, e.g. "cart" or "house".
     var symbolName: String = "tag"
 
+    /// Stored as the enum's rawValue so SwiftData can persist it. The
+    /// computed `nature` property below is what callers should use.
+    /// Default of "neutral" means manually-created categories don't get
+    /// silently labelled as a "need" or "want" unless the user asks.
+    var natureRaw: String = CategoryNature.neutral.rawValue
+
     @Relationship(deleteRule: .nullify, inverse: \Transaction.category)
     var transactions: [Transaction] = []
 
@@ -19,11 +30,20 @@ final class Category {
         name: String = "",
         kind: TransactionKind = .expense,
         colorHex: String = "#9E9E9E",
-        symbolName: String = "tag"
+        symbolName: String = "tag",
+        nature: CategoryNature = .neutral
     ) {
         self.name = name
         self.kind = kind
         self.colorHex = colorHex
         self.symbolName = symbolName
+        self.natureRaw = nature.rawValue
+    }
+
+    /// Bridges the stored raw value to the typed enum. The fallback to
+    /// `.neutral` covers old rows from before this field existed.
+    var nature: CategoryNature {
+        get { CategoryNature(rawValue: natureRaw) ?? .neutral }
+        set { natureRaw = newValue.rawValue }
     }
 }

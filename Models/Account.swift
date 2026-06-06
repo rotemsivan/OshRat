@@ -22,6 +22,15 @@ final class Account {
     @Relationship(deleteRule: .nullify, inverse: \Transaction.account)
     var transactions: [Transaction] = []
 
+    /// Holdings (stocks, ETFs, etc.) inside an investment-type account.
+    /// Non-investment accounts simply leave this empty. Deleting the
+    /// account cascades into its holdings — they don't make sense on
+    /// their own. For non-investment accounts `balance` is the whole
+    /// account; for investment accounts it's the liquid-cash component
+    /// and the holdings are summed on top.
+    @Relationship(deleteRule: .cascade, inverse: \Holding.account)
+    var holdings: [Holding] = []
+
     init(
         name: String = "",
         type: AccountType = .current,
