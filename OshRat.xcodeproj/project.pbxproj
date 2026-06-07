@@ -7,6 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5E13B18B2FD5ADF900C87118 /* Heebo-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B1882FD5ADF900C87118 /* Heebo-SemiBold.ttf */; };
+		5E13B18C2FD5ADF900C87118 /* Heebo-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B1852FD5ADF900C87118 /* Heebo-Light.ttf */; };
+		5E13B18D2FD5ADF900C87118 /* Heebo-VariableFont_wght.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B18A2FD5ADF900C87118 /* Heebo-VariableFont_wght.ttf */; };
+		5E13B18E2FD5ADF900C87118 /* Heebo-ExtraLight.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B1842FD5ADF900C87118 /* Heebo-ExtraLight.ttf */; };
+		5E13B18F2FD5ADF900C87118 /* Heebo-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B1872FD5ADF900C87118 /* Heebo-Regular.ttf */; };
+		5E13B1902FD5ADF900C87118 /* Heebo-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B1832FD5ADF900C87118 /* Heebo-ExtraBold.ttf */; };
+		5E13B1912FD5ADF900C87118 /* Heebo-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B1862FD5ADF900C87118 /* Heebo-Medium.ttf */; };
+		5E13B1922FD5ADF900C87118 /* Heebo-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B1822FD5ADF900C87118 /* Heebo-Bold.ttf */; };
+		5E13B1932FD5ADF900C87118 /* Heebo-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B1812FD5ADF900C87118 /* Heebo-Black.ttf */; };
+		5E13B1942FD5ADF900C87118 /* Heebo-Thin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B1892FD5ADF900C87118 /* Heebo-Thin.ttf */; };
 		5E2626C82FD1846400180F49 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2626C32FD1824A00180F49 /* WelcomeView.swift */; };
 		5E2626C92FD1846400180F49 /* AccountsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2626C62FD1829C00180F49 /* AccountsStepView.swift */; };
 		5E2626CA2FD1846400180F49 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2626C72FD182BF00180F49 /* OnboardingFlowView.swift */; };
@@ -77,6 +87,16 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		5E13B1812FD5ADF900C87118 /* Heebo-Black.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-Black.ttf"; sourceTree = "<group>"; };
+		5E13B1822FD5ADF900C87118 /* Heebo-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-Bold.ttf"; sourceTree = "<group>"; };
+		5E13B1832FD5ADF900C87118 /* Heebo-ExtraBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-ExtraBold.ttf"; sourceTree = "<group>"; };
+		5E13B1842FD5ADF900C87118 /* Heebo-ExtraLight.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-ExtraLight.ttf"; sourceTree = "<group>"; };
+		5E13B1852FD5ADF900C87118 /* Heebo-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-Light.ttf"; sourceTree = "<group>"; };
+		5E13B1862FD5ADF900C87118 /* Heebo-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-Medium.ttf"; sourceTree = "<group>"; };
+		5E13B1872FD5ADF900C87118 /* Heebo-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-Regular.ttf"; sourceTree = "<group>"; };
+		5E13B1882FD5ADF900C87118 /* Heebo-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-SemiBold.ttf"; sourceTree = "<group>"; };
+		5E13B1892FD5ADF900C87118 /* Heebo-Thin.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-Thin.ttf"; sourceTree = "<group>"; };
+		5E13B18A2FD5ADF900C87118 /* Heebo-VariableFont_wght.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-VariableFont_wght.ttf"; sourceTree = "<group>"; };
 		5E2626BE2FD1716600180F49 /* OshRat.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = OshRat.xctestplan; sourceTree = "<group>"; };
 		5E2626C02FD1821F00180F49 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
 		5E2626C32FD1824A00180F49 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
@@ -205,11 +225,12 @@
 		5E31E5072FD16A0100FF83C8 = {
 			isa = PBXGroup;
 			children = (
+				5EB0F14F2FD57DFB0022B03B /* Fonts */,
+				5E31E5122FD16A0100FF83C8 /* OshRat */,
 				5E4793A52FD2075F00568427 /* DesignSystem */,
 				5E2626BE2FD1716600180F49 /* OshRat.xctestplan */,
 				5E31E5412FD16B4400FF83C8 /* Models */,
 				5E31E53F2FD16ABE00FF83C8 /* CLAUDE.md */,
-				5E31E5122FD16A0100FF83C8 /* OshRat */,
 				5E31E5242FD16A0200FF83C8 /* OshRatTests */,
 				5E31E52E2FD16A0200FF83C8 /* OshRatUITests */,
 				5E31E5112FD16A0100FF83C8 /* Products */,
@@ -261,6 +282,23 @@
 				5E8EB3AA2FD2F9240037E1F3 /* CurrencyConverter.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		5EB0F14F2FD57DFB0022B03B /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				5E13B1812FD5ADF900C87118 /* Heebo-Black.ttf */,
+				5E13B1822FD5ADF900C87118 /* Heebo-Bold.ttf */,
+				5E13B1832FD5ADF900C87118 /* Heebo-ExtraBold.ttf */,
+				5E13B1842FD5ADF900C87118 /* Heebo-ExtraLight.ttf */,
+				5E13B1852FD5ADF900C87118 /* Heebo-Light.ttf */,
+				5E13B1862FD5ADF900C87118 /* Heebo-Medium.ttf */,
+				5E13B1872FD5ADF900C87118 /* Heebo-Regular.ttf */,
+				5E13B1882FD5ADF900C87118 /* Heebo-SemiBold.ttf */,
+				5E13B1892FD5ADF900C87118 /* Heebo-Thin.ttf */,
+				5E13B18A2FD5ADF900C87118 /* Heebo-VariableFont_wght.ttf */,
+			);
+			path = Fonts;
 			sourceTree = "<group>";
 		};
 		5ED3E0ED2FD1BE5C003083F0 /* Home */ = {
@@ -371,11 +409,12 @@
 				};
 			};
 			buildConfigurationList = 5E31E50B2FD16A0100FF83C8 /* Build configuration list for PBXProject "OshRat" */;
-			developmentRegion = en;
+			developmentRegion = he;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
+				he,
 			);
 			mainGroup = 5E31E5072FD16A0100FF83C8;
 			minimizedProjectReferenceProxies = 1;
@@ -396,6 +435,16 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5E13B18B2FD5ADF900C87118 /* Heebo-SemiBold.ttf in Resources */,
+				5E13B18C2FD5ADF900C87118 /* Heebo-Light.ttf in Resources */,
+				5E13B18D2FD5ADF900C87118 /* Heebo-VariableFont_wght.ttf in Resources */,
+				5E13B18E2FD5ADF900C87118 /* Heebo-ExtraLight.ttf in Resources */,
+				5E13B18F2FD5ADF900C87118 /* Heebo-Regular.ttf in Resources */,
+				5E13B1902FD5ADF900C87118 /* Heebo-ExtraBold.ttf in Resources */,
+				5E13B1912FD5ADF900C87118 /* Heebo-Medium.ttf in Resources */,
+				5E13B1922FD5ADF900C87118 /* Heebo-Bold.ttf in Resources */,
+				5E13B1932FD5ADF900C87118 /* Heebo-Black.ttf in Resources */,
+				5E13B1942FD5ADF900C87118 /* Heebo-Thin.ttf in Resources */,
 				5E31E5402FD16ABE00FF83C8 /* CLAUDE.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

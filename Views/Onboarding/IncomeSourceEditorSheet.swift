@@ -32,7 +32,6 @@ struct IncomeSourceEditorSheet: View {
                 Section {
                     TextField("שם מקור ההכנסה", text: $draft.name)
                         .submitLabel(.next)
-                        .multilineTextAlignment(.trailing)
                 } footer: {
                     Text("למשל: משכורת, עבודה צדדית, השכרת דירה.")
                 }
@@ -40,11 +39,13 @@ struct IncomeSourceEditorSheet: View {
                 Section {
                     TextField(
                         "סכום חודשי מתוכנן",
-                        value: $draft.plannedAmount,
+                        value: Binding<Decimal?>(
+                            get: { draft.plannedAmount == 0 ? nil : draft.plannedAmount },
+                            set: { draft.plannedAmount = $0 ?? 0 }
+                        ),
                         format: .number
                     )
                     .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
 
                     Picker("מטבע", selection: $draft.currencyCode) {
                         ForEach(supportedCurrencies, id: \.self) { code in
@@ -57,6 +58,7 @@ struct IncomeSourceEditorSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(Theme.Colors.background)
+            .font(Theme.Typography.body)
             .navigationTitle(isNew ? Text("מקור הכנסה חדש") : Text("עריכת מקור הכנסה"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -86,5 +88,4 @@ struct IncomeSourceEditorSheet: View {
         onSave: { _ in },
         onCancel: {}
     )
-    .environment(\.layoutDirection, .rightToLeft)
 }

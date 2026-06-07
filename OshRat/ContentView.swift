@@ -31,5 +31,4 @@ struct ContentView: View {
 #Preview {
     ContentView()
         .modelContainer(for: [UserProfile.self, Account.self, Holding.self, Category.self, Transaction.self, BudgetItem.self, Goal.self, FXRateSnapshot.self], inMemory: true)
-        .environment(\.layoutDirection, .rightToLeft)
 }

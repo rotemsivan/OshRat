@@ -8,6 +8,11 @@ struct OshRatApp: App {
     let container: ModelContainer
 
     init() {
+        // Push our Heebo font into the UIKit-backed UI chrome (nav bars,
+        // tab bars, text fields, etc.). Must run before any of those views
+        // are constructed, so we do it here in `init` rather than in `body`.
+        Theme.applyGlobalAppearance()
+
         do {
             container = try ModelContainer(
                 for: UserProfile.self, Account.self, Holding.self, Category.self,
@@ -23,10 +28,9 @@ struct OshRatApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                // Force right-to-left for this Hebrew-only app so RTL works
-                // immediately. Later, when we add a Hebrew localization, the
-                // system can mirror the layout automatically and this can go.
-                .environment(\.layoutDirection, .rightToLeft)
+                // App-wide default font. Any `Text(...)` that doesn't set
+                // an explicit `.font(...)` will inherit Heebo from here.
+                .font(Theme.Typography.body)
         }
         .modelContainer(container)
     }

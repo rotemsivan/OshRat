@@ -16,7 +16,7 @@ struct AccountsStepView: View {
             Section {
                 if viewModel.accountDrafts.isEmpty {
                     Text("עדיין לא הוספת חשבונות. הוסיפו לפחות חשבון אחד כדי להמשיך.")
-                        .font(Theme.Typography.body)
+                        //.font(Theme.Typography.body)
                         .foregroundStyle(Theme.Colors.textSecondary)
                 } else {
                     ForEach(viewModel.accountDrafts) { draft in
@@ -120,5 +120,4 @@ private struct AccountDraftRow: View {
         ]
         return vm
     }())
-    .environment(\.layoutDirection, .rightToLeft)
 }

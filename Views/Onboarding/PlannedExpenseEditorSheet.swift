@@ -48,6 +48,7 @@ struct PlannedExpenseEditorSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(Theme.Colors.background)
+            .font(Theme.Typography.body)
             .navigationTitle(isNew ? Text("הוצאה חדשה") : Text("עריכת הוצאה"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -117,7 +118,6 @@ struct PlannedExpenseEditorSheet: View {
         Section {
             TextField("הערה (לא חובה)", text: $draft.note)
                 .submitLabel(.next)
-                .multilineTextAlignment(.trailing)
         } footer: {
             Text("מקום לפירוט נקודתי, למשל ‘ספר’ או ‘חדר כושר’ בתוך הקטגוריה.")
         }
@@ -127,11 +127,13 @@ struct PlannedExpenseEditorSheet: View {
         Section {
             TextField(
                 "סכום",
-                value: $draft.plannedAmount,
+                value: Binding<Decimal?>(
+                    get: { draft.plannedAmount == 0 ? nil : draft.plannedAmount },
+                    set: { draft.plannedAmount = $0 ?? 0 }
+                ),
                 format: .number
             )
             .keyboardType(.decimalPad)
-            .multilineTextAlignment(.trailing)
 
             Picker("מטבע", selection: $draft.currencyCode) {
                 ForEach(supportedCurrencies, id: \.self) { code in
@@ -209,5 +211,4 @@ struct PlannedExpenseEditorSheet: View {
         onSave: { _ in },
         onCancel: {}
     )
-    .environment(\.layoutDirection, .rightToLeft)
 }

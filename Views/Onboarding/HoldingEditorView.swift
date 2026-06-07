@@ -37,11 +37,9 @@ struct HoldingEditorView: View {
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled(true)
                     .submitLabel(.next)
-                    .multilineTextAlignment(.trailing)
 
                 TextField("שם הנכס", text: $draft.name)
                     .submitLabel(.next)
-                    .multilineTextAlignment(.trailing)
             } header: {
                 Text("פרטי הנכס")
             } footer: {
@@ -51,19 +49,23 @@ struct HoldingEditorView: View {
             Section {
                 TextField(
                     "כמות יחידות",
-                    value: $draft.quantity,
+                    value: Binding<Decimal?>(
+                        get: { draft.quantity == 0 ? nil : draft.quantity },
+                        set: { draft.quantity = $0 ?? 0 }
+                    ),
                     format: .number
                 )
                 .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
 
                 TextField(
                     "שווי שוק נוכחי",
-                    value: $draft.marketValue,
+                    value: Binding<Decimal?>(
+                        get: { draft.marketValue == 0 ? nil : draft.marketValue },
+                        set: { draft.marketValue = $0 ?? 0 }
+                    ),
                     format: .number
                 )
                 .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
 
                 Picker("מטבע", selection: $draft.currencyCode) {
                     ForEach(supportedCurrencies, id: \.self) { code in
@@ -78,6 +80,7 @@ struct HoldingEditorView: View {
         }
         .scrollContentBackground(.hidden)
         .background(Theme.Colors.background)
+        .font(Theme.Typography.body)
         .navigationTitle(isNew ? Text("נכס חדש") : Text("עריכת נכס"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -109,5 +112,4 @@ struct HoldingEditorView: View {
             onSave: { _ in }
         )
     }
-    .environment(\.layoutDirection, .rightToLeft)
 }

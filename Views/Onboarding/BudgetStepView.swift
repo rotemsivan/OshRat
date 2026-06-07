@@ -28,6 +28,7 @@ struct BudgetStepView: View {
         }
         .scrollContentBackground(.hidden)
         .background(Theme.Colors.background)
+        .font(Theme.Typography.body)
         .sheet(item: $editingIncome) { draft in
             IncomeSourceEditorSheet(
                 draft: draft,
@@ -236,5 +237,4 @@ private struct PlannedExpenseRow: View {
 #Preview {
     BudgetStepView(viewModel: OnboardingViewModel())
         .modelContainer(for: [UserProfile.self, Account.self, Holding.self, Category.self, Transaction.self, BudgetItem.self, Goal.self, FXRateSnapshot.self], inMemory: true)
-        .environment(\.layoutDirection, .rightToLeft)
 }

@@ -24,12 +24,14 @@ struct OnboardingFlowView: View {
         Group {
             if hasStarted {
                 wizard
+                    .transition(.opacity)
             } else {
                 WelcomeView {
-                    withAnimation(.easeInOut) {
+                    withAnimation(.easeInOut(duration: 0.4)) {
                         hasStarted = true
                     }
                 }
+                .transition(.opacity)
             }
         }
         // Brand-tint everything below this point.
@@ -151,5 +153,4 @@ private struct StepProgressIndicator: View {
 #Preview {
     OnboardingFlowView()
         .modelContainer(for: [UserProfile.self, Account.self, Holding.self, Category.self, Transaction.self, BudgetItem.self, Goal.self, FXRateSnapshot.self], inMemory: true)
-        .environment(\.layoutDirection, .rightToLeft)
 }

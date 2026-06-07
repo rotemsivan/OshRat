@@ -10,23 +10,35 @@ struct GreetingHeaderView: View {
     let name: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-            (greetingText + Text(verbatim: name.isEmpty ? "" : ","))
-                .font(Theme.Typography.caption)
-                .foregroundStyle(Theme.Colors.textSecondary)
+        // HStack auto-mirrors in RTL: in Hebrew the mascot ends up on
+        // the right (where the eye lands first) and the greeting text
+        // flows to its left.
+        HStack(alignment: .center, spacing: Theme.Spacing.md) {
+            Image("rat-mascot-coin")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(width: 64, height: 84)
+                .accessibilityLabel(Text("עכבר עו״ש מקבל את פניך"))
 
-            if !name.isEmpty {
-                Text(name)
-                    .font(Theme.Typography.sectionTitle)
-                    .foregroundStyle(Theme.Colors.textPrimary)
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                Text("\(greetingText)\(name.isEmpty ? "" : ",")")
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+
+                if !name.isEmpty {
+                    Text(name)
+                        .font(Theme.Typography.sectionTitle)
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .font(.largeTitle)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// Hebrew greetings keyed to a coarse part-of-day split. Returned as
     /// a `Text` (not a `String`) so the literal stays a localisation key
-    /// and the `+` operator above works without losing that property.
+    /// when interpolated into the composite greeting above.
     private var greetingText: Text {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
@@ -42,5 +54,4 @@ struct GreetingHeaderView: View {
     GreetingHeaderView(name: "רותם")
         .padding(Theme.Spacing.lg)
         .background(Theme.Colors.background)
-        .environment(\.layoutDirection, .rightToLeft)
 }

@@ -69,5 +69,4 @@ private struct HomeBarButton: View {
                 .padding(Theme.Spacing.md)
         }
     }
-    .environment(\.layoutDirection, .rightToLeft)
 }

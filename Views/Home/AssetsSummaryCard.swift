@@ -18,14 +18,14 @@ struct AssetsSummaryCard: View {
     let onEditAccount: (Account) -> Void
 
     var body: some View {
-        VStack(alignment: .trailing, spacing: Theme.Spacing.md) {
+        VStack(alignment: .leading, spacing: Theme.Spacing.md) {
             sectionHeader
 
             if accounts.isEmpty {
                 Text("עדיין לא הוספת חשבונות.")
                     .font(Theme.Typography.body)
                     .foregroundStyle(Theme.Colors.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 heroTotal
                 separator
@@ -43,7 +43,7 @@ struct AssetsSummaryCard: View {
             .font(Theme.Typography.caption)
             .foregroundStyle(Theme.Colors.textSecondary)
             .textCase(.uppercase)
-            .frame(maxWidth: .infinity, alignment: .trailing)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Hero
@@ -167,17 +167,27 @@ private struct AccountSummaryRow: View {
                 Text(account.name.isEmpty ? "ללא שם" : account.name)
                     .font(Theme.Typography.body)
                     .foregroundStyle(Theme.Colors.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                 Text(subtitle)
                     .font(Theme.Typography.caption)
                     .foregroundStyle(Theme.Colors.textSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
 
-            Spacer()
+            Spacer(minLength: Theme.Spacing.sm)
 
+            // Long balances (e.g. high-value investment accounts) must
+            // stay on one line and shrink to fit instead of wrapping or
+            // pushing the pencil button off the row.
             Text(displayTotal.formatted(.currency(code: account.currencyCode)))
                 .font(Theme.Typography.amount)
                 .foregroundStyle(Theme.Colors.textPrimary)
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .layoutPriority(1)
 
             Button(action: onEdit) {
                 Image(systemName: "pencil")
@@ -233,5 +243,4 @@ private struct AccountSummaryRow: View {
         )
         .padding(Theme.Spacing.lg)
     }
-    .environment(\.layoutDirection, .rightToLeft)
 }

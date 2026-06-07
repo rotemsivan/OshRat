@@ -26,13 +26,13 @@ struct BudgetSummaryCard: View {
                 .font(Theme.Typography.caption)
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .textCase(.uppercase)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             if budgetItems.isEmpty {
                 Text("עדיין לא הוגדר תקציב.")
                     .font(Theme.Typography.body)
                     .foregroundStyle(Theme.Colors.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 content
             }
@@ -55,7 +55,7 @@ struct BudgetSummaryCard: View {
             netRow(net: totals.income - totals.needs - totals.wants)
 
             fxFootnote
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -190,5 +190,4 @@ private struct ProportionBar: View {
         BudgetSummaryCard(budgetItems: [], preferredCurrencyCode: "ILS", fxSnapshot: nil)
             .padding(Theme.Spacing.lg)
     }
-    .environment(\.layoutDirection, .rightToLeft)
 }

@@ -40,8 +40,12 @@ enum Theme {
         static let graphite      = Color(light: Color(hex: "3B3B45"), dark: Color(hex: "C9C9D2"))
 
         /// Semantic money colours.
+        /// `expense` doubles as the "needs" badge colour in the budget
+        /// breakdown, so it's tuned to a true warm orange that stays
+        /// clearly distinct from the dark-blue `accent` ("wants") next
+        /// to it on the same row.
         static let income        = Color(light: Color(hex: "2FA36B"), dark: Color(hex: "46C088"))
-        static let expense       = Color(light: Color(hex: "E0654B"), dark: Color(hex: "F0775C"))
+        static let expense       = Color(light: Color(hex: "F58220"), dark: Color(hex: "F89F47"))
     }
 
     // MARK: Spacing (use these instead of magic numbers)
@@ -60,15 +64,94 @@ enum Theme {
     }
 
     // MARK: Typography
-    // Built on the system font with Dynamic Type, so it scales with the user's
-    // accessibility text-size settings. The rounded design gives a friendly,
-    // minimal feel — especially nice for the money figures.
+    // The app's primary typeface is Heebo — a Hebrew-first humanist sans that
+    // pairs naturally with Latin text. The font files live in the app bundle
+    // (Fonts/) and are registered automatically by iOS via the `UIAppFonts`
+    // entry in Info.plist. Sizes are paired with the standard Dynamic Type
+    // text styles via `relativeTo:` so they still scale with the user's
+    // accessibility text-size settings.
     enum Typography {
-        static let screenTitle  = Font.system(.largeTitle, design: .rounded).weight(.bold)
-        static let sectionTitle = Font.system(.headline,   design: .rounded)
-        static let amount       = Font.system(.title2,     design: .rounded).weight(.semibold)
-        static let body         = Font.system(.body)
-        static let caption      = Font.system(.caption)
+        static let screenTitle  = Font.custom(Fonts.bold,    size: 28, relativeTo: .largeTitle)
+        static let sectionTitle = Font.custom(Fonts.bold,    size: 22, relativeTo: .headline)
+        static let amount       = Font.custom(Fonts.bold,    size: 16, relativeTo: .title2)
+        static let body         = Font.custom(Fonts.regular, size: 14, relativeTo: .body)
+        static let caption      = Font.custom(Fonts.regular, size: 12, relativeTo: .caption)
+    }
+
+    // MARK: Fonts
+    // PostScript names for the Heebo family. SwiftUI's `Font.custom` looks
+    // fonts up by PostScript name, not by file name — these match the
+    // PostScript names baked into the .ttf files in `Fonts/`.
+    enum Fonts {
+        static let regular = "Heebo-Regular"
+        static let bold    = "Heebo-Bold"
+
+        /// UIFont helpers, used by the UIKit appearance proxies below.
+        /// Falls back to the system font if the custom font fails to load,
+        /// so the app never ships with empty rectangles.
+        static func uiRegular(_ size: CGFloat) -> UIFont {
+            UIFont(name: regular, size: size) ?? .systemFont(ofSize: size)
+        }
+        static func uiBold(_ size: CGFloat) -> UIFont {
+            UIFont(name: bold, size: size) ?? .boldSystemFont(ofSize: size)
+        }
+    }
+
+    // MARK: Global UIKit appearance
+    // SwiftUI's `.font(...)` modifier propagates to most `Text` views but
+    // *doesn't* reach into UIKit-backed chrome — navigation bars, tab bars,
+    // text fields, segmented pickers, alert buttons, etc. Those pull their
+    // font from UIKit appearance proxies, so we set them here once at launch.
+    static func applyGlobalAppearance() {
+        // Navigation bar: large title + inline title + back-button text.
+        let navAppearance = UINavigationBarAppearance()
+        navAppearance.configureWithDefaultBackground()
+        navAppearance.titleTextAttributes = [
+            .font: Fonts.uiBold(17)
+        ]
+        navAppearance.largeTitleTextAttributes = [
+            .font: Fonts.uiBold(34)
+        ]
+        let navBar = UINavigationBar.appearance()
+        navBar.standardAppearance   = navAppearance
+        navBar.scrollEdgeAppearance = navAppearance
+        navBar.compactAppearance    = navAppearance
+
+        // Bar button items (toolbar buttons, nav-bar buttons).
+        let barButton = UIBarButtonItem.appearance()
+        let buttonFont: [NSAttributedString.Key: Any] = [.font: Fonts.uiRegular(17)]
+        barButton.setTitleTextAttributes(buttonFont, for: .normal)
+        barButton.setTitleTextAttributes(buttonFont, for: .highlighted)
+        barButton.setTitleTextAttributes(buttonFont, for: .disabled)
+
+        // Tab bar item labels.
+        let tabAppearance = UITabBarAppearance()
+        tabAppearance.configureWithDefaultBackground()
+        let tabItemFont: [NSAttributedString.Key: Any] = [.font: Fonts.uiRegular(10)]
+        tabAppearance.stackedLayoutAppearance.normal.titleTextAttributes   = tabItemFont
+        tabAppearance.stackedLayoutAppearance.selected.titleTextAttributes = tabItemFont
+        tabAppearance.inlineLayoutAppearance.normal.titleTextAttributes    = tabItemFont
+        tabAppearance.inlineLayoutAppearance.selected.titleTextAttributes  = tabItemFont
+        tabAppearance.compactInlineLayoutAppearance.normal.titleTextAttributes   = tabItemFont
+        tabAppearance.compactInlineLayoutAppearance.selected.titleTextAttributes = tabItemFont
+        let tabBar = UITabBar.appearance()
+        tabBar.standardAppearance   = tabAppearance
+        tabBar.scrollEdgeAppearance = tabAppearance
+
+        // Note: we deliberately do *not* set `UITextField.appearance().font`.
+        // Pushing a font through the UITextField appearance proxy interferes
+        // with SwiftUI's `TextField` rendering inside `Form` — characters
+        // typed by the user stop showing up live. SwiftUI's environment
+        // `.font(...)` on the root view already propagates Heebo to every
+        // `TextField` / `SecureField`, which is enough.
+
+        // Segmented `Picker`.
+        UISegmentedControl.appearance().setTitleTextAttributes(
+            [.font: Fonts.uiRegular(13)], for: .normal
+        )
+        UISegmentedControl.appearance().setTitleTextAttributes(
+            [.font: Fonts.uiRegular(13)], for: .selected
+        )
     }
 }
 
@@ -146,6 +229,4 @@ extension Color {
         }
         .padding(Theme.Spacing.lg)
     }
-    // Preview in Hebrew right-to-left, like the real app.
-    .environment(\.layoutDirection, .rightToLeft)
 }

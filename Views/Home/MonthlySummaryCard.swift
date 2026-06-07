@@ -30,7 +30,7 @@ struct MonthlySummaryCard: View {
                 Text("עדיין לא נרשמו עסקאות החודש.")
                     .font(Theme.Typography.body)
                     .foregroundStyle(Theme.Colors.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 content
             }
@@ -185,5 +185,4 @@ private struct ProportionBar: View {
         MonthlySummaryCard(transactions: [], preferredCurrencyCode: "ILS", fxSnapshot: nil)
             .padding(Theme.Spacing.lg)
     }
-    .environment(\.layoutDirection, .rightToLeft)
 }

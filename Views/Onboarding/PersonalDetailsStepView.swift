@@ -19,13 +19,14 @@ struct PersonalDetailsStepView: View {
             Section {
                 TextField("שם", text: $viewModel.name)
                     .textContentType(.name)
+                    .autocapitalization(.words)
                     .submitLabel(.next)
-                    .multilineTextAlignment(.trailing)
-
+                
                 TextField("מקצוע", text: $viewModel.profession)
                     .textContentType(.jobTitle)
+                    //.frame(maxWidth: .infinity, alignment: .leading)
                     .submitLabel(.next)
-                    .multilineTextAlignment(.trailing)
+
             } header: {
                 Text("פרטים אישיים")
             } footer: {
@@ -42,7 +43,6 @@ struct PersonalDetailsStepView: View {
                     axis: .vertical
                 )
                 .lineLimit(3...6)
-                .multilineTextAlignment(.trailing)
             } header: {
                 Text("המטרות שלי")
             } footer: {
@@ -64,6 +64,7 @@ struct PersonalDetailsStepView: View {
         // thanks to per-section row backgrounds.
         .scrollContentBackground(.hidden)
         .background(Theme.Colors.background)
+        .font(Theme.Typography.body)
     }
 
     /// Human-friendly label for the currency picker — currency code first
@@ -77,5 +78,4 @@ struct PersonalDetailsStepView: View {
 
 #Preview {
     PersonalDetailsStepView(viewModel: OnboardingViewModel())
-        .environment(\.layoutDirection, .rightToLeft)
 }

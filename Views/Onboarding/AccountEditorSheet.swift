@@ -38,9 +38,9 @@ struct AccountEditorSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("שם החשבון", text: $draft.name)
+                    TextField("שם החשבון", text: $draft.name, axis: .vertical)
                         .submitLabel(.next)
-                        .multilineTextAlignment(.trailing)
+                        .lineLimit(1)
                 } footer: {
                     Text("למשל: עו״ש בנק הפועלים, חיסכון, תיק השקעות.")
                 }
@@ -61,6 +61,11 @@ struct AccountEditorSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(Theme.Colors.background)
+            // Force Heebo on the whole Form. SwiftUI's environment `.font`
+            // from the app root doesn't always reach `TextField`, `Picker`
+            // labels, and section headers inside `Form` — particularly in
+            // sheets — so we re-apply it here.
+            .font(Theme.Typography.body)
             .navigationTitle(isNew ? Text("חשבון חדש") : Text("עריכת חשבון"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -88,11 +93,13 @@ struct AccountEditorSheet: View {
         Section {
             TextField(
                 draft.type == .investment ? "יתרה במזומן (נזיל)" : "יתרה",
-                value: $draft.balance,
+                value: Binding<Decimal?>(
+                    get: { draft.balance == 0 ? nil : draft.balance },
+                    set: { draft.balance = $0 ?? 0 }
+                ),
                 format: .number
             )
             .keyboardType(.decimalPad)
-            .multilineTextAlignment(.trailing)
 
             Picker("מטבע", selection: $draft.currencyCode) {
                 ForEach(supportedCurrencies, id: \.self) { code in
@@ -214,7 +221,6 @@ private struct HoldingDraftRow: View {
         onSave: { _ in },
         onCancel: {}
     )
-    .environment(\.layoutDirection, .rightToLeft)
 }
 
 #Preview("Investment") {
@@ -233,5 +239,4 @@ private struct HoldingDraftRow: View {
         onSave: { _ in },
         onCancel: {}
     )
-    .environment(\.layoutDirection, .rightToLeft)
 }
