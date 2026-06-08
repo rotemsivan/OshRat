@@ -8,7 +8,7 @@ import SwiftData
 ///     least one is required to continue.
 ///   * **Planned expenses** — optional, grouped visually by needs vs
 ///     wants via the design-system colours
-///     (`Theme.Colors.expense` for needs, `Theme.Colors.accent` for
+///     (`Theme.Colors.expense` for needs, `Theme.Colors.wants` for
 ///     wants — matches the dashboard).
 struct BudgetStepView: View {
     @Bindable var viewModel: OnboardingViewModel
@@ -125,8 +125,6 @@ struct BudgetStepView: View {
             }
         } header: {
             Text("הוצאות מתוכננות")
-        } footer: {
-            Text("עיגול אדום = צרכים (חובה), עיגול זהב = רצונות (בחירה). תדירות יכולה להיות חודשית או 'כל X שבועות' (למשל ספר כל 3 שבועות).")
         }
     }
 }
@@ -157,7 +155,7 @@ private struct IncomeDraftRow: View {
 }
 
 /// Row for a planned expense. Leading dot uses the design system's
-/// semantic money colours — expense red for needs, accent gold for
+/// semantic money colours — expense red for needs, wants orange for
 /// wants — to match the dashboard's budget card.
 private struct PlannedExpenseRow: View {
     let draft: PlannedExpenseDraft
@@ -205,7 +203,7 @@ private struct PlannedExpenseRow: View {
     private var badgeColor: Color {
         switch draft.category?.nature {
         case .need:    return Theme.Colors.expense
-        case .want:    return Theme.Colors.accent
+        case .want:    return Theme.Colors.wants
         case .neutral: return Theme.Colors.separator
         case .none:    return Theme.Colors.separator
         }

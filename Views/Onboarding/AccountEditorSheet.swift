@@ -20,7 +20,7 @@ struct AccountEditorSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    private let supportedCurrencies: [String] = ["ILS", "USD", "EUR", "GBP"]
+    private let supportedCurrencies: [String] = ["ILS", "USD", "EUR"]
 
     init(
         draft: AccountDraft,
@@ -44,13 +44,16 @@ struct AccountEditorSheet: View {
                 } footer: {
                     Text("למשל: עו״ש בנק הפועלים, חיסכון, תיק השקעות.")
                 }
-
-                Section {
+                HStack {
+                    Text("סוג")
                     Picker("סוג", selection: $draft.type) {
                         ForEach(AccountType.allCases) { type in
                             Text(type.hebrewLabel).tag(type)
                         }
                     }
+                    .pickerStyle(.segmented)
+                    .fixedSize()
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                 }
 
                 balanceSection
@@ -91,15 +94,10 @@ struct AccountEditorSheet: View {
 
     private var balanceSection: some View {
         Section {
-            TextField(
-                draft.type == .investment ? "יתרה במזומן (נזיל)" : "יתרה",
-                value: Binding<Decimal?>(
-                    get: { draft.balance == 0 ? nil : draft.balance },
-                    set: { draft.balance = $0 ?? 0 }
-                ),
-                format: .number
+            DecimalField(
+                placeholder: draft.type == .investment ? "יתרה במזומן (נזיל)" : "יתרה",
+                value: $draft.balance
             )
-            .keyboardType(.decimalPad)
 
             Picker("מטבע", selection: $draft.currencyCode) {
                 ForEach(supportedCurrencies, id: \.self) { code in

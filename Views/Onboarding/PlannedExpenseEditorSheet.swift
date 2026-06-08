@@ -22,7 +22,7 @@ struct PlannedExpenseEditorSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    private let supportedCurrencies: [String] = ["ILS", "USD", "EUR", "GBP"]
+    private let supportedCurrencies: [String] = ["ILS", "USD", "EUR"]
 
     init(
         categories: [Category],
@@ -125,15 +125,10 @@ struct PlannedExpenseEditorSheet: View {
 
     private var amountSection: some View {
         Section {
-            TextField(
-                "סכום",
-                value: Binding<Decimal?>(
-                    get: { draft.plannedAmount == 0 ? nil : draft.plannedAmount },
-                    set: { draft.plannedAmount = $0 ?? 0 }
-                ),
-                format: .number
+            DecimalField(
+                placeholder: "סכום",
+                value: $draft.plannedAmount
             )
-            .keyboardType(.decimalPad)
 
             Picker("מטבע", selection: $draft.currencyCode) {
                 ForEach(supportedCurrencies, id: \.self) { code in
@@ -166,6 +161,8 @@ struct PlannedExpenseEditorSheet: View {
                         Text("שבועות")
                     }
                 }
+                .contentTransition(.numericText(value: Double(draft.frequencyWeeks)))
+                .animation(.spring(response: 0.35, dampingFraction: 0.8), value: draft.frequencyWeeks) // Triggers the motion
             }
 
             if draft.frequencyKind == .everyXWeeks {
@@ -175,8 +172,6 @@ struct PlannedExpenseEditorSheet: View {
                         .foregroundStyle(.secondary)
                 }
             }
-        } header: {
-            Text("תדירות")
         } footer: {
             Text("דוגמה: ‘ספר כל 3 שבועות’ — נחושב ממוצע חודשי שיופיע בדשבורד.")
         }

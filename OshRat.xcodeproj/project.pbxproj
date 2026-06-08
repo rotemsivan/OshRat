@@ -17,6 +17,7 @@
 		5E13B1922FD5ADF900C87118 /* Heebo-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B1822FD5ADF900C87118 /* Heebo-Bold.ttf */; };
 		5E13B1932FD5ADF900C87118 /* Heebo-Black.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B1812FD5ADF900C87118 /* Heebo-Black.ttf */; };
 		5E13B1942FD5ADF900C87118 /* Heebo-Thin.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B1892FD5ADF900C87118 /* Heebo-Thin.ttf */; };
+		5E13B1962FD5BD0700C87118 /* DecimalField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E13B1952FD5BD0700C87118 /* DecimalField.swift */; };
 		5E2626C82FD1846400180F49 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2626C32FD1824A00180F49 /* WelcomeView.swift */; };
 		5E2626C92FD1846400180F49 /* AccountsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2626C62FD1829C00180F49 /* AccountsStepView.swift */; };
 		5E2626CA2FD1846400180F49 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2626C72FD182BF00180F49 /* OnboardingFlowView.swift */; };
@@ -97,6 +98,7 @@
 		5E13B1882FD5ADF900C87118 /* Heebo-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-SemiBold.ttf"; sourceTree = "<group>"; };
 		5E13B1892FD5ADF900C87118 /* Heebo-Thin.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-Thin.ttf"; sourceTree = "<group>"; };
 		5E13B18A2FD5ADF900C87118 /* Heebo-VariableFont_wght.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-VariableFont_wght.ttf"; sourceTree = "<group>"; };
+		5E13B1952FD5BD0700C87118 /* DecimalField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecimalField.swift; sourceTree = "<group>"; };
 		5E2626BE2FD1716600180F49 /* OshRat.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = OshRat.xctestplan; sourceTree = "<group>"; };
 		5E2626C02FD1821F00180F49 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
 		5E2626C32FD1824A00180F49 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
@@ -234,7 +236,6 @@
 				5E31E5242FD16A0200FF83C8 /* OshRatTests */,
 				5E31E52E2FD16A0200FF83C8 /* OshRatUITests */,
 				5E31E5112FD16A0100FF83C8 /* Products */,
-				5E2626BF2FD1821F00180F49 /* ViewModels */,
 				5E2626C12FD1823B00180F49 /* Views */,
 				5E8EB3A82FD2F9070037E1F3 /* Services */,
 			);
@@ -245,6 +246,7 @@
 			children = (
 				5E31E5102FD16A0100FF83C8 /* OshRat.app */,
 				5E31E5212FD16A0200FF83C8 /* OshRatTests.xctest */,
+				5E2626BF2FD1821F00180F49 /* ViewModels */,
 				5E31E52B2FD16A0200FF83C8 /* OshRatUITests.xctest */,
 			);
 			name = Products;
@@ -271,6 +273,7 @@
 			isa = PBXGroup;
 			children = (
 				5E4793A62FD207EA00568427 /* Theme.swift */,
+				5E13B1952FD5BD0700C87118 /* DecimalField.swift */,
 			);
 			path = DesignSystem;
 			sourceTree = "<group>";
@@ -470,6 +473,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5E13B1962FD5BD0700C87118 /* DecimalField.swift in Sources */,
 				5E31E54B2FD16B6D00FF83C8 /* UserProfile.swift in Sources */,
 				5ED3E0F12FD1BE8C003083F0 /* AssetsSummaryCard.swift in Sources */,
 				5E4793A02FD2017300568427 /* PlannedExpenseEditorSheet.swift in Sources */,

@@ -37,15 +37,10 @@ struct IncomeSourceEditorSheet: View {
                 }
 
                 Section {
-                    TextField(
-                        "סכום חודשי מתוכנן",
-                        value: Binding<Decimal?>(
-                            get: { draft.plannedAmount == 0 ? nil : draft.plannedAmount },
-                            set: { draft.plannedAmount = $0 ?? 0 }
-                        ),
-                        format: .number
+                    DecimalField(
+                        placeholder: "סכום חודשי מתוכנן",
+                        value: $draft.plannedAmount
                     )
-                    .keyboardType(.decimalPad)
 
                     Picker("מטבע", selection: $draft.currencyCode) {
                         ForEach(supportedCurrencies, id: \.self) { code in

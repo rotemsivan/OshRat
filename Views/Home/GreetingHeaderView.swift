@@ -13,26 +13,25 @@ struct GreetingHeaderView: View {
         // HStack auto-mirrors in RTL: in Hebrew the mascot ends up on
         // the right (where the eye lands first) and the greeting text
         // flows to its left.
-        HStack(alignment: .center, spacing: Theme.Spacing.md) {
-            Image("rat-mascot-coin")
+        HStack(alignment: .center, spacing: Theme.Spacing.xxs) {
+            Image("rat-mascot-wave")
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 64, height: 84)
+                .frame(width: 96, height: 126)
                 .accessibilityLabel(Text("עכבר עו״ש מקבל את פניך"))
 
-            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            VStack(alignment: .leading) {
                 Text("\(greetingText)\(name.isEmpty ? "" : ",")")
-                    .font(Theme.Typography.caption)
+                    .font(Theme.Typography.sectionTitle)
                     .foregroundStyle(Theme.Colors.textSecondary)
 
                 if !name.isEmpty {
                     Text(name)
-                        .font(Theme.Typography.sectionTitle)
+                        .font(Theme.Typography.screenTitle)
                         .foregroundStyle(Theme.Colors.textPrimary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .font(.largeTitle)
         }
     }
 

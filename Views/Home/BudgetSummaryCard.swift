@@ -6,7 +6,7 @@ import SwiftUI
 /// Layout (one block, no more per-currency stacks):
 ///   * planned income (green)
 ///   * needs (red — required spending)
-///   * wants (gold — discretionary spending)
+///   * wants (orange — discretionary spending)
 ///   * a thin proportion bar showing the wants/needs split
 ///   * net (income − total expense) coloured by sign
 ///
@@ -48,7 +48,7 @@ struct BudgetSummaryCard: View {
         return VStack(alignment: .trailing, spacing: Theme.Spacing.sm) {
             row(title: "הכנסות מתוכננות", amount: totals.income, color: Theme.Colors.income)
             row(title: "צרכים",            amount: totals.needs,  color: Theme.Colors.expense)
-            row(title: "רצונות",           amount: totals.wants,  color: Theme.Colors.accent)
+            row(title: "רצונות",           amount: totals.wants,  color: Theme.Colors.wants)
 
             ProportionBar(needs: totals.needs, wants: totals.wants)
 
@@ -151,7 +151,7 @@ struct BudgetSummaryCard: View {
 }
 
 /// Two-segment proportional bar: needs (expense colour) vs wants
-/// (accent colour). Purely visual — numeric labels live in the rows.
+/// (wants colour). Purely visual — numeric labels live in the rows.
 private struct ProportionBar: View {
     let needs: Decimal
     let wants: Decimal
@@ -163,7 +163,7 @@ private struct ProportionBar: View {
                     .fill(Theme.Colors.expense)
                     .frame(width: geo.size.width * needsShare)
                 Rectangle()
-                    .fill(Theme.Colors.accent)
+                    .fill(Theme.Colors.wants)
                     .frame(width: geo.size.width * wantsShare)
             }
             .clipShape(.capsule)

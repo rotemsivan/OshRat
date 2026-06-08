@@ -40,16 +40,21 @@ enum Theme {
         static let graphite      = Color(light: Color(hex: "3B3B45"), dark: Color(hex: "C9C9D2"))
 
         /// Semantic money colours.
-        /// `expense` doubles as the "needs" badge colour in the budget
-        /// breakdown, so it's tuned to a true warm orange that stays
-        /// clearly distinct from the dark-blue `accent` ("wants") next
-        /// to it on the same row.
+        ///
+        /// `expense` is the warm-red "out of pocket" colour, used for
+        /// expense totals on the monthly summary *and* for the "needs"
+        /// row in the budget breakdown — the things you *have* to pay
+        /// every month. `wants` is a separate, calmer orange used only
+        /// for the discretionary "wants" row, so needs and wants read
+        /// as two distinct categories on the same screen.
         static let income        = Color(light: Color(hex: "2FA36B"), dark: Color(hex: "46C088"))
-        static let expense       = Color(light: Color(hex: "F58220"), dark: Color(hex: "F89F47"))
+        static let expense       = Color(light: Color(hex: "E0654B"), dark: Color(hex: "F0775C"))
+        static let wants         = Color(light: Color(hex: "F58220"), dark: Color(hex: "F89F47"))
     }
 
     // MARK: Spacing (use these instead of magic numbers)
     enum Spacing {
+        static let xxs: CGFloat = 1
         static let xs: CGFloat = 4
         static let sm: CGFloat = 8
         static let md: CGFloat = 16

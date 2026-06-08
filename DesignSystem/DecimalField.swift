@@ -24,14 +24,14 @@ struct DecimalField: UIViewRepresentable {
         field.placeholder = placeholder
         field.keyboardType = .decimalPad
         field.borderStyle = .none
-        field.font = UIFont(name: Theme.Fonts.regular, size: 17)
-            ?? .systemFont(ofSize: 17)
+        field.font = UIFont(name: Theme.Fonts.regular, size: 14)
+            ?? .systemFont(ofSize: 14)
         field.textColor = .label
         // Numbers are inherently left-to-right. The surrounding form
         // is RTL Hebrew, but forcing the field itself to LTR keeps the
         // caret and typed digits anchored to the leading edge of the
         // field (the left), where the user expects them.
-        field.textAlignment = .left
+        field.textAlignment = .right
         field.semanticContentAttribute = .forceLeftToRight
 
         field.addTarget(

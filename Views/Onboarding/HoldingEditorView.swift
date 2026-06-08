@@ -47,25 +47,15 @@ struct HoldingEditorView: View {
             }
 
             Section {
-                TextField(
-                    "כמות יחידות",
-                    value: Binding<Decimal?>(
-                        get: { draft.quantity == 0 ? nil : draft.quantity },
-                        set: { draft.quantity = $0 ?? 0 }
-                    ),
-                    format: .number
+                DecimalField(
+                    placeholder: "כמות יחידות",
+                    value: $draft.quantity
                 )
-                .keyboardType(.decimalPad)
 
-                TextField(
-                    "שווי שוק נוכחי",
-                    value: Binding<Decimal?>(
-                        get: { draft.marketValue == 0 ? nil : draft.marketValue },
-                        set: { draft.marketValue = $0 ?? 0 }
-                    ),
-                    format: .number
+                DecimalField(
+                    placeholder: "שווי שוק נוכחי",
+                    value: $draft.marketValue
                 )
-                .keyboardType(.decimalPad)
 
                 Picker("מטבע", selection: $draft.currencyCode) {
                     ForEach(supportedCurrencies, id: \.self) { code in

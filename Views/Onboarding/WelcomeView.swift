@@ -21,7 +21,7 @@ struct WelcomeView: View {
             VStack(spacing: Theme.Spacing.xl) {
                 Spacer()
 
-                Image("rat-mascot-wave")
+                Image("rat-mascot-coin")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(maxWidth: 280, maxHeight: 360)
