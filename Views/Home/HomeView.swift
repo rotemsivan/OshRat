@@ -43,6 +43,19 @@ struct HomeView: View {
                         fxSnapshot: fxSnapshots.first,
                         onEditAccount: { account in
                             editingAccount = account
+                        },
+                        onDeleteAccount: { account in
+                            // `withAnimation` wraps the SwiftData mutation
+                            // so the @Query refire animates the row out
+                            // (collapse + fade) instead of a hard cut.
+                            // The cascade rule on `Account.holdings`
+                            // takes care of nested deletes; transactions
+                            // pointing at this account get their link
+                            // nullified.
+                            withAnimation {
+                                modelContext.delete(account)
+                                try? modelContext.save()
+                            }
                         }
                     )
 

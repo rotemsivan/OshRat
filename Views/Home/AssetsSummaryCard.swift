@@ -8,6 +8,12 @@ import SwiftUI
 /// user can see how fresh the FX data is. Per-account rows below that
 /// still display in each account's *own* currency — that's where you
 /// look when you want a per-account read.
+///
+/// Each account row supports two swipe actions on the trailing edge:
+///   * **עריכה** — opens the same `AccountEditorSheet` as the pencil
+///   * **מחיקה** — pops a confirmation alert; on confirm, the parent
+///     deletes via SwiftData inside a `withAnimation` block so the
+///     row collapses smoothly.
 struct AssetsSummaryCard: View {
     let accounts: [Account]
     let preferredCurrencyCode: String
@@ -16,6 +22,14 @@ struct AssetsSummaryCard: View {
     /// same-currency items into the preferred-currency total.
     let fxSnapshot: FXRateSnapshot?
     let onEditAccount: (Account) -> Void
+    /// Parent owns the actual deletion (SwiftData write + animation
+    /// wrapping). The card only collects the user's intent.
+    let onDeleteAccount: (Account) -> Void
+
+    /// Set when the user taps "מחיקה" on a swipe action. Drives the
+    /// confirmation alert below — never persists between renders, so
+    /// `@State` (not `@Binding`) is the right ownership.
+    @State private var accountPendingDelete: Account?
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
@@ -34,6 +48,18 @@ struct AssetsSummaryCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
         .cardStyle()
+        .alert(
+            Text("מחיקת חשבון"),
+            isPresented: deleteAlertBinding,
+            presenting: accountPendingDelete
+        ) { account in
+            Button("מחיקה", role: .destructive) {
+                onDeleteAccount(account)
+            }
+            Button("ביטול", role: .cancel) {}
+        } message: { _ in
+            Text("אתה בטוח שברצונך למחוק את החשבון?")
+        }
     }
 
     // MARK: - Header
@@ -53,10 +79,6 @@ struct AssetsSummaryCard: View {
     /// preferred-currency-only sum and the footer flips to a warning.
     private var heroTotal: some View {
         VStack(alignment: .trailing, spacing: Theme.Spacing.xs) {
-            Text("יתרה כוללת")
-                .font(Theme.Typography.caption)
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .frame(maxWidth: .infinity, alignment: .trailing)
 
             Text(combinedTotal.formatted(.currency(code: preferredCurrencyCode)))
                 .font(Theme.Typography.screenTitle)
@@ -64,7 +86,7 @@ struct AssetsSummaryCard: View {
                 .monospacedDigit()
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .center)
 
             fxFootnote
                 .frame(maxWidth: .infinity, alignment: .trailing)
@@ -95,14 +117,66 @@ struct AssetsSummaryCard: View {
 
     // MARK: - Per-account rows
 
+    /// We use a `List` (not a `VStack`) because `.swipeActions` is
+    /// `List`-only. Every piece of `List` chrome — background,
+    /// separators, default insets — is suppressed so the result looks
+    /// like the previous vstack inside the card. Scrolling is disabled
+    /// so the outer dashboard `ScrollView` stays the single scroller;
+    /// height is sized to the row count to keep the embedded list
+    /// from claiming all available space.
     private var accountRows: some View {
-        VStack(spacing: Theme.Spacing.sm) {
+        List {
             ForEach(accounts) { account in
-                AccountSummaryRow(account: account) {
-                    onEditAccount(account)
+                AccountSummaryRow(account: account)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(
+                        top: 0,
+                        leading: 0,
+                        bottom: Theme.Spacing.sm,
+                        trailing: 0
+                    ))
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    // Order matters: SwiftUI lays the first item out
+                    // closest to the swipe edge. Putting Delete first
+                    // means it sits at the trailing edge — the
+                    // "destructive" position users expect.
+                    Button(role: .destructive) {
+                        accountPendingDelete = account
+                    } label: {
+                        Label("מחיקה", systemImage: "trash")
+                    }
+
+                    Button {
+                        onEditAccount(account)
+                    } label: {
+                        Label("עריכה", systemImage: "pencil")
+                    }
+                    .tint(Theme.Colors.accent)
                 }
             }
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .scrollDisabled(true)
+        // Fixed per-row height so the embedded list sizes to content.
+        // Tuned to fit the body+caption stack with breathing room; if
+        // we add a third line to the row, bump this value to match.
+        .frame(height: CGFloat(accounts.count) * Self.estimatedRowHeight)
+    }
+
+    private static let estimatedRowHeight: CGFloat = 56
+
+    // MARK: - Alert plumbing
+
+    /// `.alert(presenting:)` needs a `Binding<Bool>` for `isPresented`;
+    /// we bridge it through the optional `accountPendingDelete` so the
+    /// "dismiss" path clears the pending account in one place.
+    private var deleteAlertBinding: Binding<Bool> {
+        Binding(
+            get: { accountPendingDelete != nil },
+            set: { if !$0 { accountPendingDelete = nil } }
+        )
     }
 
     // MARK: - Computed data
@@ -150,12 +224,12 @@ struct AssetsSummaryCard: View {
     }
 }
 
-/// One account row — minimalist by design. Icon, name, total, pencil.
-/// The total is in the *account's own* currency: this is the per-
-/// account read, separate from the unified hero above.
+/// One account row — icon, name, total. The total is in the
+/// *account's own* currency: this is the per-account read, separate
+/// from the unified hero above. Edit and delete are reached via the
+/// trailing swipe actions wired up by the parent.
 private struct AccountSummaryRow: View {
     let account: Account
-    let onEdit: () -> Void
 
     var body: some View {
         HStack(spacing: Theme.Spacing.sm) {
@@ -179,8 +253,7 @@ private struct AccountSummaryRow: View {
             Spacer(minLength: Theme.Spacing.sm)
 
             // Long balances (e.g. high-value investment accounts) must
-            // stay on one line and shrink to fit instead of wrapping or
-            // pushing the pencil button off the row.
+            // stay on one line and shrink to fit instead of wrapping.
             Text(displayTotal.formatted(.currency(code: account.currencyCode)))
                 .font(Theme.Typography.amount)
                 .foregroundStyle(Theme.Colors.textPrimary)
@@ -188,15 +261,6 @@ private struct AccountSummaryRow: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 .layoutPriority(1)
-
-            Button(action: onEdit) {
-                Image(systemName: "pencil")
-                    .foregroundStyle(Theme.Colors.accent)
-                    .padding(Theme.Spacing.xs)
-                    .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text("עריכת חשבון"))
         }
     }
 
@@ -239,7 +303,8 @@ private struct AccountSummaryRow: View {
             accounts: [],
             preferredCurrencyCode: "ILS",
             fxSnapshot: nil,
-            onEditAccount: { _ in }
+            onEditAccount: { _ in },
+            onDeleteAccount: { _ in }
         )
         .padding(Theme.Spacing.lg)
     }
