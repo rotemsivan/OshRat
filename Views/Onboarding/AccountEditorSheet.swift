@@ -38,9 +38,7 @@ struct AccountEditorSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("שם החשבון", text: $draft.name, axis: .vertical)
-                        .submitLabel(.next)
-                        .lineLimit(1)
+                    HebrewTextField("שם החשבון", text: $draft.name, submitLabel: .next)
                 } footer: {
                     Text("למשל: עו״ש בנק הפועלים, חיסכון, תיק השקעות.")
                 }
@@ -57,6 +55,8 @@ struct AccountEditorSheet: View {
                 }
 
                 balanceSection
+
+                favouriteSection
 
                 if draft.type == .investment {
                     holdingsSection
@@ -106,6 +106,22 @@ struct AccountEditorSheet: View {
             }
         } footer: {
             Text(balanceFooter)
+        }
+    }
+
+    /// Single-account "default" flag. The "תנועה חדשה" sheet pre-selects
+    /// this account so the common-case income/expense entry is one tap.
+    /// Only one account can be the favourite at a time — the parent save
+    /// handler clears the flag off the others.
+    private var favouriteSection: some View {
+        Section {
+            Toggle(isOn: $draft.isFavorite) {
+                Label("חשבון מועדף", systemImage: "star.fill")
+                    .foregroundStyle(Theme.Colors.textPrimary)
+            }
+            .tint(Theme.Colors.accent)
+        } footer: {
+            Text("ייבחר כברירת מחדל במסך ‘תנועה חדשה’. אפשר להחליף בכל עת — רק חשבון אחד יכול להיות מועדף.")
         }
     }
 

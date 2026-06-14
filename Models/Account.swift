@@ -16,6 +16,11 @@ final class Account {
     var currencyCode: String = "ILS"
     /// When the user last updated this balance, so the dashboard can flag stale values.
     var lastUpdated: Date = Date.now
+    /// Marks the user's go-to account. The "new transaction" sheet uses
+    /// this as the default account so the common case is one tap. At
+    /// most one account should carry this flag at a time; the editor
+    /// flow clears it off the others when a new favourite is picked.
+    var isFavorite: Bool = false
 
     /// Transactions linked to this account. Deleting the account just nullifies
     /// the link on its transactions rather than deleting them.
@@ -36,12 +41,14 @@ final class Account {
         type: AccountType = .current,
         balance: Decimal = 0,
         currencyCode: String = "ILS",
-        lastUpdated: Date = .now
+        lastUpdated: Date = .now,
+        isFavorite: Bool = false
     ) {
         self.name = name
         self.type = type
         self.balance = balance
         self.currencyCode = currencyCode
         self.lastUpdated = lastUpdated
+        self.isFavorite = isFavorite
     }
 }

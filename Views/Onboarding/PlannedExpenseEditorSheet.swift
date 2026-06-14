@@ -116,8 +116,7 @@ struct PlannedExpenseEditorSheet: View {
 
     private var noteSection: some View {
         Section {
-            TextField("הערה (לא חובה)", text: $draft.note)
-                .submitLabel(.next)
+            HebrewTextField("הערה (לא חובה)", text: $draft.note, submitLabel: .next)
         } footer: {
             Text("מקום לפירוט נקודתי, למשל ‘ספר’ או ‘חדר כושר’ בתוך הקטגוריה.")
         }
@@ -180,8 +179,10 @@ struct PlannedExpenseEditorSheet: View {
     // MARK: - Helpers
 
     /// Expense-only subset of the categories the parent passed in.
+    /// Collapsed by `(name, kind, nature)` so the picker never shows
+    /// the same category twice even if the store still has duplicates.
     private var expenseCategories: [Category] {
-        categories.filter { $0.kind == .expense }
+        categories.filter { $0.kind == .expense }.semanticallyUnique
     }
 
     /// Live preview of what this expense rolls up to per month — uses

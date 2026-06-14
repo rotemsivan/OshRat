@@ -17,16 +17,20 @@ struct PersonalDetailsStepView: View {
     var body: some View {
         Form {
             Section {
-                TextField("שם", text: $viewModel.name)
-                    .textContentType(.name)
-                    .autocapitalization(.words)
-                    .submitLabel(.next)
-                
-                TextField("מקצוע", text: $viewModel.profession)
-                    .textContentType(.jobTitle)
-                    //.frame(maxWidth: .infinity, alignment: .leading)
-                    .submitLabel(.next)
+                HebrewTextField(
+                    "שם",
+                    text: $viewModel.name,
+                    submitLabel: .next,
+                    textContentType: .name,
+                    autocapitalizationType: .words
+                )
 
+                HebrewTextField(
+                    "מקצוע",
+                    text: $viewModel.profession,
+                    submitLabel: .next,
+                    textContentType: .jobTitle
+                )
             } header: {
                 Text("פרטים אישיים")
             } footer: {
@@ -34,15 +38,14 @@ struct PersonalDetailsStepView: View {
             }
 
             Section {
-                // axis: .vertical turns this into a multi-line text editor
-                // that grows with the content — better than a single line
-                // for free-form aspirations.
-                TextField(
+                // Multi-line free-form aspirations. The Hebrew editor
+                // grows with content (no internal scroll) and forces
+                // the keyboard to default to Hebrew on first focus.
+                HebrewTextEditor(
                     "למשל: לחסוך לדירה, להחזיר הלוואה, נסיעה גדולה…",
                     text: $viewModel.goalsText,
-                    axis: .vertical
+                    minHeight: 90
                 )
-                .lineLimit(3...6)
             } header: {
                 Text("המטרות שלי")
             } footer: {

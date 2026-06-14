@@ -89,6 +89,13 @@ struct BudgetSummaryCard: View {
                 .font(Theme.Typography.amount)
                 .foregroundStyle(net >= 0 ? Theme.Colors.income : Theme.Colors.expense)
                 .monospacedDigit()
+                // Force LTR on just this Text. The "+/-" prefix is a
+                // bidi-neutral character; sitting inside an RTL view
+                // it inherits RTL direction and ends up on the visual
+                // right of the number. Pinning the text to LTR keeps
+                // the sign on the visual left where it reads as a
+                // mathematical sign.
+                .environment(\.layoutDirection, .rightToLeft)
         }
     }
 
@@ -102,8 +109,24 @@ struct BudgetSummaryCard: View {
     }
 
     private func formattedNet(_ net: Decimal) -> String {
-        let formatted = net.formatted(.currency(code: preferredCurrencyCode))
-        return net > 0 ? "+\(formatted)" : formatted
+        // Format the *absolute* value and prepend our own sign so the
+        // sign placement is ours, not the formatter's. The currency
+        // formatter's negative output is locale-dependent (some
+        // locales prefix "-", some wrap in parens, some put the sign
+        // after the digits) and would defeat the bidi fix below.
+        let body = abs(net).formatted(.currency(code: preferredCurrencyCode))
+        let sign: String
+        if net > 0      { sign = "+" }
+        else if net < 0 { sign = "-" }
+        else            { sign = "" }
+        // Wrap in U+2066 LRI (Left-to-Right Isolate) … U+2069 PDI
+        // (Pop Directional Isolate). The "+" and "-" characters are
+        // bidi-neutral, so without isolation they'd inherit the
+        // surrounding RTL direction from the Hebrew view and end up
+        // on the visual right of the number. The isolate pair tells
+        // the OS bidi algorithm to render this substring as a single
+        // LTR run, keeping the sign on the visual left.
+        return "\u{2066}\(sign)\(body)\u{2069}"
     }
 
     // MARK: - Aggregation

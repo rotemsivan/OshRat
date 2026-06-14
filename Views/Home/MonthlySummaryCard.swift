@@ -59,6 +59,11 @@ struct MonthlySummaryCard: View {
                     .font(Theme.Typography.amount)
                     .foregroundStyle(net >= 0 ? Theme.Colors.income : Theme.Colors.expense)
                     .monospacedDigit()
+                    // Same RTL/sign fix as BudgetSummaryCard — the
+                    // "+/-" prefix is bidi-neutral and would otherwise
+                    // sit on the visual right of the number inside an
+                    // RTL view. Force LTR to keep the sign on the left.
+                    .environment(\.layoutDirection, .leftToRight)
             }
 
             fxFootnote
@@ -96,8 +101,18 @@ struct MonthlySummaryCard: View {
     }
 
     private func formattedNet(_ net: Decimal) -> String {
-        let formatted = net.formatted(.currency(code: preferredCurrencyCode))
-        return net > 0 ? "+\(formatted)" : formatted
+        // Format `abs(net)` and prepend our own sign so the sign
+        // placement is ours, not the formatter's (whose negative
+        // output is locale-dependent and would defeat the bidi fix).
+        let body = abs(net).formatted(.currency(code: preferredCurrencyCode))
+        let sign: String
+        if net > 0      { sign = "+" }
+        else if net < 0 { sign = "-" }
+        else            { sign = "" }
+        // LRI … PDI — see BudgetSummaryCard for the full reasoning.
+        // The bidi-neutral "+"/"-" inherits RTL from the Hebrew view
+        // and sits on the visual right of the number without this.
+        return "\u{2066}\(sign)\(body)\u{2069}"
     }
 
     // MARK: - Computed data

@@ -85,11 +85,28 @@ final class OnboardingViewModel {
 
     func addAccount(_ draft: AccountDraft) {
         accountDrafts.append(draft)
+        enforceSingleFavourite(promoted: draft.id)
     }
 
     func update(_ draft: AccountDraft) {
         guard let index = accountDrafts.firstIndex(where: { $0.id == draft.id }) else { return }
         accountDrafts[index] = draft
+        enforceSingleFavourite(promoted: draft.id)
+    }
+
+    /// Keeps the "only one favourite at a time" invariant on the draft
+    /// list. If `promoted` is favoured, every other draft is demoted.
+    /// Called from add/update so the rule is enforced wherever drafts
+    /// flow in from the editor sheet.
+    private func enforceSingleFavourite(promoted id: UUID) {
+        guard let promotedIndex = accountDrafts.firstIndex(where: { $0.id == id }),
+              accountDrafts[promotedIndex].isFavorite
+        else { return }
+        for index in accountDrafts.indices where index != promotedIndex {
+            if accountDrafts[index].isFavorite {
+                accountDrafts[index].isFavorite = false
+            }
+        }
     }
 
     func deleteAccounts(at offsets: IndexSet) {
@@ -148,13 +165,21 @@ final class OnboardingViewModel {
         )
         context.insert(profile)
 
+        // Only one account can be the favourite — if the user happened
+        // to mark several during onboarding, honour the first one and
+        // silently clear the rest. The rule lives here so it doesn't
+        // need to be re-checked at every call site that creates accounts.
+        var favouriteAlreadyAssigned = false
         for draft in accountDrafts {
+            let shouldBeFavourite = draft.isFavorite && !favouriteAlreadyAssigned
+            if shouldBeFavourite { favouriteAlreadyAssigned = true }
             let account = Account(
                 name: draft.name.trimmingCharacters(in: .whitespacesAndNewlines),
                 type: draft.type,
                 balance: draft.balance,
                 currencyCode: draft.currencyCode,
-                lastUpdated: .now
+                lastUpdated: .now,
+                isFavorite: shouldBeFavourite
             )
             context.insert(account)
 
@@ -242,6 +267,11 @@ struct AccountDraft: Identifiable, Hashable {
     var balance: Decimal
     var currencyCode: String
     var holdings: [HoldingDraft]
+    /// Whether the user wants this to be the default account for new
+    /// transactions. Persisted onto `Account.isFavorite` at save time;
+    /// the save handler is responsible for clearing the flag off any
+    /// other account so only one is favourite at a time.
+    var isFavorite: Bool
 
     init(
         id: UUID = UUID(),
@@ -249,7 +279,8 @@ struct AccountDraft: Identifiable, Hashable {
         type: AccountType = .current,
         balance: Decimal = 0,
         currencyCode: String = "ILS",
-        holdings: [HoldingDraft] = []
+        holdings: [HoldingDraft] = [],
+        isFavorite: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -257,6 +288,7 @@ struct AccountDraft: Identifiable, Hashable {
         self.balance = balance
         self.currencyCode = currencyCode
         self.holdings = holdings
+        self.isFavorite = isFavorite
     }
 }
 
@@ -272,7 +304,8 @@ extension AccountDraft {
             type: account.type,
             balance: account.balance,
             currencyCode: account.currencyCode,
-            holdings: account.holdings.map(HoldingDraft.init(from:))
+            holdings: account.holdings.map(HoldingDraft.init(from:)),
+            isFavorite: account.isFavorite
         )
     }
 
@@ -291,6 +324,19 @@ extension AccountDraft {
         account.balance = balance
         account.currencyCode = currencyCode
         account.lastUpdated = .now
+
+        // Favourite is single-select: if this one is being promoted,
+        // demote every other account first so the invariant holds.
+        // We do this *before* setting the flag on `account` itself so
+        // we don't accidentally clear it again in the same loop.
+        if isFavorite {
+            if let others = try? context.fetch(FetchDescriptor<Account>()) {
+                for other in others where other.persistentModelID != account.persistentModelID {
+                    if other.isFavorite { other.isFavorite = false }
+                }
+            }
+        }
+        account.isFavorite = isFavorite
 
         for existing in account.holdings {
             context.delete(existing)

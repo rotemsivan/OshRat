@@ -10,6 +10,12 @@ final class Transaction {
     var amount: Decimal = 0
     var kind: TransactionKind = TransactionKind.expense
     var date: Date = Date.now
+    /// Short headline the user types in the "new transaction" sheet
+    /// (e.g. "סופר", "מתנה לאמא"). The list view uses it as the row
+    /// title; falls back to the category name when empty.
+    var title: String = ""
+    /// Longer free-text "extra details" field — the row keeps it as a
+    /// caption underneath the title when present.
     var note: String = ""
     /// Currency of this entry (multi-currency support).
     var currencyCode: String = "ILS"
@@ -22,6 +28,7 @@ final class Transaction {
         amount: Decimal = 0,
         kind: TransactionKind = .expense,
         date: Date = .now,
+        title: String = "",
         note: String = "",
         currencyCode: String = "ILS",
         category: Category? = nil,
@@ -30,6 +37,7 @@ final class Transaction {
         self.amount = amount
         self.kind = kind
         self.date = date
+        self.title = title
         self.note = note
         self.currencyCode = currencyCode
         self.category = category

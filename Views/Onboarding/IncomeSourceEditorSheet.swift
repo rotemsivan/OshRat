@@ -30,8 +30,7 @@ struct IncomeSourceEditorSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("שם מקור ההכנסה", text: $draft.name)
-                        .submitLabel(.next)
+                    HebrewTextField("שם מקור ההכנסה", text: $draft.name, submitLabel: .next)
                 } footer: {
                     Text("למשל: משכורת, עבודה צדדית, השכרת דירה.")
                 }

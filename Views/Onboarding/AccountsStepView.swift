@@ -75,7 +75,7 @@ private struct AccountDraftRow: View {
         HStack {
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
                 Text(draft.name.isEmpty ? "ללא שם" : draft.name)
-                    .font(Theme.Typography.sectionTitle)
+                    .font(Theme.Typography.amount)
                     .foregroundStyle(Theme.Colors.textPrimary)
                 Text(subtitle)
                     .font(Theme.Typography.caption)

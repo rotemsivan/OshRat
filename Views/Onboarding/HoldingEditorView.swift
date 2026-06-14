@@ -33,13 +33,15 @@ struct HoldingEditorView: View {
     var body: some View {
         Form {
             Section {
+                // Ticker symbols are Latin-only (e.g. TEVA, VOO) — keep
+                // the SwiftUI TextField here so the keyboard stays
+                // English by default with autocaps + no autocorrect.
                 TextField("סימול", text: $draft.symbol)
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled(true)
                     .submitLabel(.next)
 
-                TextField("שם הנכס", text: $draft.name)
-                    .submitLabel(.next)
+                HebrewTextField("שם הנכס", text: $draft.name, submitLabel: .next)
             } header: {
                 Text("פרטי הנכס")
             } footer: {

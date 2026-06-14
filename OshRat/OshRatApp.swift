@@ -18,7 +18,14 @@ struct OshRatApp: App {
                 for: UserProfile.self, Account.self, Holding.self, Category.self,
                     Transaction.self, BudgetItem.self, Goal.self, FXRateSnapshot.self
             )
-            // Populate default Hebrew categories on the very first launch.
+            // Clean up any duplicate category rows left over from earlier
+            // dev resets BEFORE topping up the default set — otherwise
+            // the idempotent seed would see "name already present" and
+            // skip while a duplicate still lurked in the database.
+            SeedData.dedupeCategoriesIfNeeded(in: container.mainContext)
+            // Now safe to top up. Idempotent — adds only categories the
+            // store doesn't already have, so it runs every launch
+            // without growing the table.
             SeedData.seedDefaultCategoriesIfNeeded(in: container.mainContext)
         } catch {
             fatalError("Could not create the SwiftData container: \(error)")

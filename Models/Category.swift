@@ -47,3 +47,26 @@ final class Category {
         set { natureRaw = newValue.rawValue }
     }
 }
+
+extension Array where Element == Category {
+    /// Returns the array with semantic duplicates collapsed — two
+    /// categories sharing the same `(name, kind, nature)` triple
+    /// become one row. Order is preserved (first occurrence wins).
+    ///
+    /// The launch-time `SeedData.dedupeCategoriesIfNeeded` pass handles
+    /// duplicates at the persistence layer, but a UI-side guard means
+    /// pickers can never *visually* show a doubled list even if the
+    /// store somehow still has dupes (mid-migration, stale simulator
+    /// state, etc.).
+    var semanticallyUnique: [Category] {
+        var seen: Set<String> = []
+        var result: [Category] = []
+        for category in self {
+            let key = "\(category.name)|\(category.kind.rawValue)|\(category.natureRaw)"
+            if seen.insert(key).inserted {
+                result.append(category)
+            }
+        }
+        return result
+    }
+}

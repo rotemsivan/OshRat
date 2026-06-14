@@ -28,59 +28,60 @@ struct HomeView: View {
 
     @State private var selectedTab: HomeBottomBar.Tab = .home
     @State private var editingAccount: Account?
+    /// Drives the "תנועה חדשה" sheet. Boolean rather than an item-based
+    /// trigger because the sheet builds its own draft internally; we
+    /// just need to know "is it open or closed".
+    @State private var isAddingTransaction: Bool = false
 
     var body: some View {
         ZStack {
             Theme.Colors.background.ignoresSafeArea()
 
-            ScrollView {
-                VStack(spacing: Theme.Spacing.lg) {
-                    headerRow
-
-                    AssetsSummaryCard(
-                        accounts: accounts,
-                        preferredCurrencyCode: preferredCurrencyCode,
-                        fxSnapshot: fxSnapshots.first,
-                        onEditAccount: { account in
-                            editingAccount = account
-                        },
-                        onDeleteAccount: { account in
-                            // `withAnimation` wraps the SwiftData mutation
-                            // so the @Query refire animates the row out
-                            // (collapse + fade) instead of a hard cut.
-                            // The cascade rule on `Account.holdings`
-                            // takes care of nested deletes; transactions
-                            // pointing at this account get their link
-                            // nullified.
-                            withAnimation {
-                                modelContext.delete(account)
-                                try? modelContext.save()
-                            }
-                        }
-                    )
-
-                    BudgetSummaryCard(
-                        budgetItems: budgetItems,
-                        preferredCurrencyCode: preferredCurrencyCode,
-                        fxSnapshot: fxSnapshots.first
-                    )
-
-                    MonthlySummaryCard(
-                        transactions: transactions,
-                        preferredCurrencyCode: preferredCurrencyCode,
-                        fxSnapshot: fxSnapshots.first
-                    )
+            // The two tab branches share the outer chrome (background,
+            // bottom bar, FAB, sheets). Picking inside the ZStack keeps
+            // the safeAreaInset and overlay below from re-rendering on
+            // every tab swap.
+            Group {
+                switch selectedTab {
+                case .home:
+                    dashboardScroll
+                case .transactions:
+                    NavigationStack {
+                        TransactionsListView()
+                    }
                 }
-                .padding(.horizontal, Theme.Spacing.lg)
-                .padding(.top, Theme.Spacing.md)
-                .padding(.bottom, Theme.Spacing.lg)
             }
-            .scrollIndicators(.hidden)
+            .transition(.opacity)
+            .animation(.easeInOut(duration: 0.2), value: selectedTab)
         }
         .safeAreaInset(edge: .bottom) {
             HomeBottomBar(selection: $selectedTab)
                 .padding(.horizontal, Theme.Spacing.md)
+                // The home button pops above the bar by half its
+                // diameter — reserve that headroom in the inset so
+                // the popped portion isn't clipped by the scroll
+                // content above.
+                .padding(.top, HomeBottomBar.homeButtonDiameter / 2)
                 .padding(.bottom, Theme.Spacing.sm)
+        }
+        // The FAB hovers above the bottom bar in the visual right
+        // corner. `.bottomLeading` is intentional: the app is RTL
+        // Hebrew, so leading maps to the visual right edge — that's
+        // the corner the user reaches with their thumb.
+        .overlay(alignment: .bottomLeading) {
+            FloatingAddButton {
+                isAddingTransaction = true
+            }
+            // Lift the FAB high enough that it reads as a separate
+            // floating element from the bottom bar — clearing both
+            // the bar's height *and* the home button that pops out
+            // of its notch, with a generous gap on top so they don't
+            // visually touch.
+            .padding(.leading, Theme.Spacing.lg)
+            .padding(.bottom, HomeBottomBar.barHeight + HomeBottomBar.homeButtonDiameter / 20 + Theme.Spacing.lg)
+        }
+        .sheet(isPresented: $isAddingTransaction) {
+            NewTransactionSheet()
         }
         .sheet(item: $editingAccount) { account in
             AccountEditorSheet(
@@ -100,6 +101,58 @@ struct HomeView: View {
         }
     }
 
+    /// Dashboard branch of the tab switch — the original home-screen
+    /// scroll view, just lifted into its own property so the tab
+    /// switch in `body` reads as a flat picker between two surfaces.
+    private var dashboardScroll: some View {
+        ScrollView {
+            VStack(spacing: Theme.Spacing.lg) {
+                headerRow
+
+                AssetsSummaryCard(
+                    accounts: accounts,
+                    preferredCurrencyCode: preferredCurrencyCode,
+                    fxSnapshot: fxSnapshots.first,
+                    onEditAccount: { account in
+                        editingAccount = account
+                    },
+                    onDeleteAccount: { account in
+                        // `withAnimation` wraps the SwiftData mutation
+                        // so the @Query refire animates the row out
+                        // (collapse + fade) instead of a hard cut.
+                        // The cascade rule on `Account.holdings`
+                        // takes care of nested deletes; transactions
+                        // pointing at this account get their link
+                        // nullified.
+                        withAnimation {
+                            modelContext.delete(account)
+                            try? modelContext.save()
+                        }
+                    }
+                )
+
+                BudgetSummaryCard(
+                    budgetItems: budgetItems,
+                    preferredCurrencyCode: preferredCurrencyCode,
+                    fxSnapshot: fxSnapshots.first
+                )
+
+                MonthlySummaryCard(
+                    transactions: transactions,
+                    preferredCurrencyCode: preferredCurrencyCode,
+                    fxSnapshot: fxSnapshots.first
+                )
+            }
+            .padding(.horizontal, Theme.Spacing.lg)
+            .padding(.top, Theme.Spacing.md)
+            // Reserve enough room for the FAB hovering above the bar
+            // plus the home button that pops out of the notch — so
+            // the bottom card never ends up under either of them.
+            .padding(.bottom, HomeBottomBar.barHeight + HomeBottomBar.homeButtonDiameter + Theme.Spacing.lg)
+        }
+        .scrollIndicators(.hidden)
+    }
+
     private var headerRow: some View {
         HStack(alignment: .top) {
             GreetingHeaderView(name: profiles.first?.name ?? "")
@@ -111,6 +164,45 @@ struct HomeView: View {
 
     private var preferredCurrencyCode: String {
         profiles.first?.preferredCurrencyCode ?? "ILS"
+    }
+}
+
+/// Circular floating "+" used to open the new-transaction sheet.
+///
+/// Tap is two-stage so the press registers as motion: the button springs
+/// in for a moment (scale ~0.85 + tiny rotation on the symbol) then
+/// rebounds before firing `action`. The delay is small enough that the
+/// sheet still feels instant.
+private struct FloatingAddButton: View {
+    let action: () -> Void
+
+    @State private var isPressed: Bool = false
+
+    var body: some View {
+        Button {
+            withAnimation(.spring(response: 0.18, dampingFraction: 0.55)) {
+                isPressed = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                    isPressed = false
+                }
+                action()
+            }
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 26, weight: .semibold))
+                .foregroundStyle(.white)
+                .rotationEffect(.degrees(isPressed ? 45 : 0))
+                .frame(width: 60, height: 60)
+                .background(
+                    Circle().fill(Theme.Colors.accent)
+                )
+                .shadow(color: .black.opacity(0.22), radius: 10, x: 0, y: 4)
+                .scaleEffect(isPressed ? 0.86 : 1)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("תנועה חדשה"))
     }
 }
 
@@ -150,15 +242,23 @@ private struct DebugResetButton: View {
     }
 
     private func resetAll() {
+        // We *used* to call `modelContext.delete(model: T.self)` here
+        // for every type — that's a batch delete, and SwiftData doesn't
+        // always notify `@Query` observers when it runs. The symptom
+        // was that the transactions list (and other dashboard views)
+        // still showed the rows from before the reset until a cold
+        // relaunch. Fetching the rows and deleting them one by one is
+        // slower in theory but reliably fires the change-tracking
+        // that @Query listens to, so views refresh immediately.
         do {
-            try modelContext.delete(model: UserProfile.self)
-            try modelContext.delete(model: Account.self)
-            try modelContext.delete(model: Holding.self)
-            try modelContext.delete(model: Transaction.self)
-            try modelContext.delete(model: BudgetItem.self)
-            try modelContext.delete(model: Goal.self)
-            try modelContext.delete(model: Category.self)
-            try modelContext.delete(model: FXRateSnapshot.self)
+            try deleteAll(of: Transaction.self)
+            try deleteAll(of: BudgetItem.self)
+            try deleteAll(of: Goal.self)
+            try deleteAll(of: Holding.self)
+            try deleteAll(of: Account.self)
+            try deleteAll(of: Category.self)
+            try deleteAll(of: UserProfile.self)
+            try deleteAll(of: FXRateSnapshot.self)
             try modelContext.save()
         } catch {
             print("Reset failed: \(error)")
@@ -167,6 +267,16 @@ private struct DebugResetButton: View {
             modelContext.insert(category)
         }
         try? modelContext.save()
+    }
+
+    /// Fetch-then-delete loop. Issues one delete per row so SwiftData
+    /// fires its per-object change notifications — the batch-delete
+    /// variant misses these, leaving any `@Query` observers stale.
+    private func deleteAll<T: PersistentModel>(of type: T.Type) throws {
+        let rows = try modelContext.fetch(FetchDescriptor<T>())
+        for row in rows {
+            modelContext.delete(row)
+        }
     }
 }
 #endif
