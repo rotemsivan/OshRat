@@ -99,9 +99,26 @@ struct AccountEditorSheet: View {
                 value: $draft.balance
             )
 
-            Picker("מטבע", selection: $draft.currencyCode) {
-                ForEach(supportedCurrencies, id: \.self) { code in
-                    Text(code).tag(code)
+            if isNew {
+                Picker("מטבע", selection: $draft.currencyCode) {
+                    ForEach(supportedCurrencies, id: \.self) { code in
+                        Text(code).tag(code)
+                    }
+                }
+            } else {
+                // The account's base currency is locked once it's been
+                // created. Re-stating it as a static row keeps the value
+                // visible without offering a picker — a mid-life
+                // currency switch would invalidate the balance, its
+                // historical transactions, and the "running balance"
+                // snapshots on every row, with no sensible conversion
+                // to apply. Transactions on this account can still be
+                // entered in any currency (see `NewTransactionSheet`),
+                // converted via the FX snapshot at confirm time.
+                LabeledContent("מטבע") {
+                    Text(draft.currencyCode)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .monospacedDigit()
                 }
             }
         } footer: {

@@ -32,6 +32,10 @@ struct HomeView: View {
     /// trigger because the sheet builds its own draft internally; we
     /// just need to know "is it open or closed".
     @State private var isAddingTransaction: Bool = false
+    /// Drives the budget editor sheet. Boolean for the same reason as
+    /// `isAddingTransaction` — the sheet sources its own data via
+    /// `@Query` and doesn't need a per-presentation seed value.
+    @State private var isEditingBudget: Bool = false
 
     var body: some View {
         ZStack {
@@ -83,6 +87,9 @@ struct HomeView: View {
         .sheet(isPresented: $isAddingTransaction) {
             NewTransactionSheet()
         }
+        .sheet(isPresented: $isEditingBudget) {
+            BudgetEditorSheet()
+        }
         .sheet(item: $editingAccount) { account in
             AccountEditorSheet(
                 draft: AccountDraft(from: account),
@@ -128,13 +135,31 @@ struct HomeView: View {
                             modelContext.delete(account)
                             try? modelContext.save()
                         }
+                    },
+                    onToggleFavorite: { account in
+                        // Enforce the "at most one favourite" rule here
+                        // rather than in the card — the card only knows
+                        // about the row it owns. Toggling off clears the
+                        // flag without picking a replacement, since the
+                        // sheet falls back to `accounts.first` anyway.
+                        withAnimation {
+                            let willBeFavorite = !account.isFavorite
+                            if willBeFavorite {
+                                for other in accounts where other.isFavorite && other !== account {
+                                    other.isFavorite = false
+                                }
+                            }
+                            account.isFavorite = willBeFavorite
+                            try? modelContext.save()
+                        }
                     }
                 )
 
                 BudgetSummaryCard(
                     budgetItems: budgetItems,
                     preferredCurrencyCode: preferredCurrencyCode,
-                    fxSnapshot: fxSnapshots.first
+                    fxSnapshot: fxSnapshots.first,
+                    onEdit: { isEditingBudget = true }
                 )
 
                 MonthlySummaryCard(

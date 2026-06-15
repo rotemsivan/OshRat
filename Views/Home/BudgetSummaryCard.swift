@@ -19,14 +19,13 @@ struct BudgetSummaryCard: View {
     let budgetItems: [BudgetItem]
     let preferredCurrencyCode: String
     let fxSnapshot: FXRateSnapshot?
+    /// Tapped when the user hits the pencil in the header. Parent owns
+    /// the editor presentation; this card only collects intent.
+    let onEdit: () -> Void
 
     var body: some View {
         VStack(alignment: .trailing, spacing: Theme.Spacing.md) {
-            Text("התקציב החודשי")
-                .font(Theme.Typography.caption)
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .textCase(.uppercase)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            header
 
             if budgetItems.isEmpty {
                 Text("עדיין לא הוגדר תקציב.")
@@ -39,6 +38,30 @@ struct BudgetSummaryCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
         .cardStyle()
+    }
+
+    /// Title row with a pencil affordance on the visual right (visual
+    /// left under RTL, where it sits opposite the section label). The
+    /// button is always available — even when there are no items yet,
+    /// tapping it opens the editor where the user can add lines.
+    private var header: some View {
+        HStack {
+            Text("התקציב החודשי")
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .textCase(.uppercase)
+            Spacer()
+            Button(action: onEdit) {
+                Image(systemName: "pencil")
+                    .font(Theme.Typography.body)
+                    .foregroundStyle(Theme.Colors.accent)
+                    .padding(Theme.Spacing.xs)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("עריכת התקציב"))
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Body
@@ -210,7 +233,12 @@ private struct ProportionBar: View {
 #Preview {
     ZStack {
         Theme.Colors.background.ignoresSafeArea()
-        BudgetSummaryCard(budgetItems: [], preferredCurrencyCode: "ILS", fxSnapshot: nil)
-            .padding(Theme.Spacing.lg)
+        BudgetSummaryCard(
+            budgetItems: [],
+            preferredCurrencyCode: "ILS",
+            fxSnapshot: nil,
+            onEdit: {}
+        )
+        .padding(Theme.Spacing.lg)
     }
 }

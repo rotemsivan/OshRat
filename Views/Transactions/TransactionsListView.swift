@@ -28,7 +28,10 @@ struct TransactionsListView: View {
     var body: some View {
         ZStack {
             Theme.Colors.background.ignoresSafeArea()
-            content
+            VStack(spacing: 0) {
+                searchBar
+                content
+            }
         }
         .navigationTitle(Text("תנועות"))
         .navigationBarTitleDisplayMode(.large)
@@ -45,7 +48,6 @@ struct TransactionsListView: View {
                 .accessibilityLabel(Text("פילטרים"))
             }
         }
-        .searchable(text: $search, prompt: Text("חיפוש בתנועות"))
         .sheet(isPresented: $isShowingFilters) {
             FiltersSheet(
                 typeFilter: $typeFilter,
@@ -60,6 +62,40 @@ struct TransactionsListView: View {
     }
 
     // MARK: - Body
+
+    /// Always-visible search row pinned above the day-grouped list.
+    /// Replaces the previous `.searchable` toolbar entry — that one
+    /// collapses under the nav title until the user pulls down, which
+    /// hid the affordance on long lists.
+    private var searchBar: some View {
+        HStack(spacing: Theme.Spacing.md) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 18))
+                .foregroundStyle(Theme.Colors.textSecondary)
+            HebrewTextField("חיפוש בתנועות", text: $search)
+            if !search.isEmpty {
+                Button {
+                    search = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("ניקוי חיפוש"))
+            }
+        }
+        .padding(.horizontal, Theme.Spacing.sm)
+        .frame(height: 32)
+        .background(Theme.Colors.surface)
+        .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .stroke(Theme.Colors.separator, lineWidth: 1)
+        )
+        .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.vertical, Theme.Spacing.xs)
+    }
 
     @ViewBuilder
     private var content: some View {
@@ -232,11 +268,23 @@ private struct TransactionRow: View {
 
             Spacer(minLength: Theme.Spacing.sm)
 
-            Text(formattedAmount)
-                .font(Theme.Typography.amount)
-                .foregroundStyle(amountColor)
-                .monospacedDigit()
-                .lineLimit(1)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(formattedAmount)
+                    .font(Theme.Typography.amount)
+                    .foregroundStyle(amountColor)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                if let balanceText = formattedBalanceAfter {
+                    // Running balance the user saw at the time of entry.
+                    // Greyed out so it reads as metadata, not the row's
+                    // primary value.
+                    Text(balanceText)
+                        .font(Theme.Typography.caption)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                }
+            }
         }
         .padding(.vertical, 2)
     }
@@ -277,6 +325,17 @@ private struct TransactionRow: View {
         if let category = transaction.category { parts.append(category.name) }
         if let account = transaction.account { parts.append(account.name) }
         return parts.joined(separator: " • ")
+    }
+
+    /// "יתרה: X.XX ACC" line under the amount. Returns nil for older
+    /// transactions written before `balanceAfter` existed (or rows
+    /// whose account link was nullified, which leaves us without an
+    /// accurate currency to format in).
+    private var formattedBalanceAfter: String? {
+        guard let balance = transaction.balanceAfter,
+              let accountCurrency = transaction.account?.currencyCode
+        else { return nil }
+        return "יתרה: \(balance.formatted(.currency(code: accountCurrency)))"
     }
 
     /// Signed amount — income shows with a leading "+" so the eye can

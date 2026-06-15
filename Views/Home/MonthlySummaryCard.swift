@@ -121,7 +121,14 @@ struct MonthlySummaryCard: View {
         guard let monthInterval = Calendar.current.dateInterval(of: .month, for: Date()) else {
             return []
         }
-        return transactions.filter { monthInterval.contains($0.date) }
+        // Manual balance-edit rows (inserted whenever the user retypes
+        // an account's cash balance) are deliberately excluded: they're
+        // a bookkeeping artefact, not real income or expense, so
+        // letting them roll into the monthly totals would inflate both
+        // sides of "income vs expense" and skew the net.
+        return transactions.filter { tx in
+            monthInterval.contains(tx.date) && !tx.isManualBalanceEdit
+        }
     }
 
     /// Bucket this month's transactions into income vs expense,

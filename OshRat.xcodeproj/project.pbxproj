@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5E0A2E862FE04B62004441B5 /* BudgetEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0A2E852FE04B62004441B5 /* BudgetEditorSheet.swift */; };
 		5E13B18B2FD5ADF900C87118 /* Heebo-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B1882FD5ADF900C87118 /* Heebo-SemiBold.ttf */; };
 		5E13B18C2FD5ADF900C87118 /* Heebo-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B1852FD5ADF900C87118 /* Heebo-Light.ttf */; };
 		5E13B18D2FD5ADF900C87118 /* Heebo-VariableFont_wght.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B18A2FD5ADF900C87118 /* Heebo-VariableFont_wght.ttf */; };
@@ -94,6 +95,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		5E0A2E852FE04B62004441B5 /* BudgetEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetEditorSheet.swift; sourceTree = "<group>"; };
 		5E13B1812FD5ADF900C87118 /* Heebo-Black.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-Black.ttf"; sourceTree = "<group>"; };
 		5E13B1822FD5ADF900C87118 /* Heebo-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-Bold.ttf"; sourceTree = "<group>"; };
 		5E13B1832FD5ADF900C87118 /* Heebo-ExtraBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-ExtraBold.ttf"; sourceTree = "<group>"; };
@@ -339,6 +341,7 @@
 				5ED3E0F42FD1BECE003083F0 /* HomeBottomBar.swift */,
 				5E4793A32FD2021F00568427 /* BudgetSummaryCard.swift */,
 				5ED3E0F62FD1BEE2003083F0 /* HomeView.swift */,
+				5E0A2E852FE04B62004441B5 /* BudgetEditorSheet.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -509,6 +512,7 @@
 				5ECC1F6E2FDDC729006BAC51 /* TransactionsListView.swift in Sources */,
 				5ED3E0E82FD1BB4D003083F0 /* Holding.swift in Sources */,
 				5E31E54F2FD16B6D00FF83C8 /* SharedEnums.swift in Sources */,
+				5E0A2E862FE04B62004441B5 /* BudgetEditorSheet.swift in Sources */,
 				5E2626C82FD1846400180F49 /* WelcomeView.swift in Sources */,
 				5EA1C0022FDA200000000002 /* WelcomeMascotView.swift in Sources */,
 				5E2626C92FD1846400180F49 /* AccountsStepView.swift in Sources */,

@@ -25,6 +25,10 @@ struct AssetsSummaryCard: View {
     /// Parent owns the actual deletion (SwiftData write + animation
     /// wrapping). The card only collects the user's intent.
     let onDeleteAccount: (Account) -> Void
+    /// Parent flips `isFavorite` on the swiped account and clears it off
+    /// the others — that exclusivity rule lives at the data layer, not
+    /// inside this card.
+    let onToggleFavorite: (Account) -> Void
 
     /// Set when the user taps "מחיקה" on a swipe action. Drives the
     /// confirmation alert below — never persists between renders, so
@@ -154,6 +158,22 @@ struct AssetsSummaryCard: View {
                     }
                     .tint(Theme.Colors.accent)
                 }
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        // Leading edge = visual right under RTL — the
+                        // side opposite Edit/Delete, so favourite
+                        // doesn't compete with the destructive action.
+                        // Full swipe is enabled so the common case
+                        // ("make this my go-to") is a single gesture.
+                        Button {
+                            onToggleFavorite(account)
+                        } label: {
+                            Label(
+                                account.isFavorite ? "ביטול מועדף" : "מועדף",
+                                systemImage: account.isFavorite ? "star.slash.fill" : "star.fill"
+                            )
+                        }
+                        .tint(.yellow)
+                    }
             }
         }
         .listStyle(.plain)
@@ -238,11 +258,21 @@ private struct AccountSummaryRow: View {
                 .frame(width: 24)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(account.name.isEmpty ? "ללא שם" : account.name)
-                    .font(Theme.Typography.body)
-                    .foregroundStyle(Theme.Colors.textPrimary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                HStack(spacing: Theme.Spacing.xs) {
+                    Text(account.name.isEmpty ? "ללא שם" : account.name)
+                        .font(Theme.Typography.body)
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    if account.isFavorite {
+                        // Tiny inline star so the favourite is visible
+                        // at a glance without opening the editor.
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.yellow)
+                            .accessibilityLabel(Text("חשבון מועדף"))
+                    }
+                }
                 Text(subtitle)
                     .font(Theme.Typography.caption)
                     .foregroundStyle(Theme.Colors.textSecondary)
@@ -304,7 +334,8 @@ private struct AccountSummaryRow: View {
             preferredCurrencyCode: "ILS",
             fxSnapshot: nil,
             onEditAccount: { _ in },
-            onDeleteAccount: { _ in }
+            onDeleteAccount: { _ in },
+            onToggleFavorite: { _ in }
         )
         .padding(Theme.Spacing.lg)
     }

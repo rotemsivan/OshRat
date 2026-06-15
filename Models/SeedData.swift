@@ -104,7 +104,7 @@ enum SeedData {
     static func defaultCategories() -> [Category] {
         return [
             // NEEDS — צרכים
-            Category(name: "מזון",              kind: .expense, colorHex: "#E57373", symbolName: "cart",            nature: .need),
+            Category(name: "כלכלת בית",              kind: .expense, colorHex: "#E57373", symbolName: "cart",            nature: .need),
             Category(name: "שכירות",            kind: .expense, colorHex: "#64B5F6", symbolName: "house",           nature: .need),
             Category(name: "חשבונות",           kind: .expense, colorHex: "#BA68C8", symbolName: "doc.text",        nature: .need),
             Category(name: "ביטוחים",           kind: .expense, colorHex: "#9575CD", symbolName: "shield",          nature: .need),
@@ -116,10 +116,10 @@ enum SeedData {
             // WANTS — רצונות
             Category(name: "בילויים",                 kind: .expense, colorHex: "#4DB6AC", symbolName: "ticket",     nature: .want),
             Category(name: "מסעדות ובתי קפה",       kind: .expense, colorHex: "#81C784", symbolName: "fork.knife", nature: .want),
-            Category(name: "קניות בגדים",            kind: .expense, colorHex: "#F48FB1", symbolName: "tshirt",      nature: .want),
+            Category(name: "אופנה וביגוד",            kind: .expense, colorHex: "#F48FB1", symbolName: "tshirt",      nature: .want),
             Category(name: "מתנות",                    kind: .expense, colorHex: "#FFB74D", symbolName: "gift",       nature: .want),
             Category(name: "טיפוח",                    kind: .expense, colorHex: "#CE93D8", symbolName: "scissors",   nature: .want),
-            Category(name: "אימונים",                 kind: .expense, colorHex: "#A1887F", symbolName: "figure.run",  nature: .want),
+            Category(name: "כושר גופני",                 kind: .expense, colorHex: "#A1887F", symbolName: "figure.run",  nature: .want),
 
             // INCOME — הכנסות
             Category(name: "משכורת",      kind: .income, colorHex: "#81C784", symbolName: "banknote",    nature: .neutral),

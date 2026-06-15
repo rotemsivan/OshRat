@@ -31,6 +31,15 @@ struct NewTransactionSheet: View {
     @Query(sort: \Account.name) private var accounts: [Account]
     @Query(sort: \Category.name) private var categories: [Category]
     @Query private var profiles: [UserProfile]
+    /// Newest snapshot first; the head of the array is the freshest FX
+    /// snapshot we have. Used to convert when the transaction's currency
+    /// differs from the account's currency.
+    @Query(sort: \FXRateSnapshot.fetchedAt, order: .reverse) private var fxSnapshots: [FXRateSnapshot]
+
+    /// Currencies the user can pick for the transaction amount. Kept in
+    /// sync with `AccountEditorSheet.supportedCurrencies` — if you add
+    /// one there, add it here too.
+    private let supportedCurrencies: [String] = ["ILS", "USD", "EUR"]
 
     /// Optional ping for the parent ("a new transaction was saved").
     /// The sheet handles the SwiftData insert internally — this is just
@@ -46,6 +55,11 @@ struct NewTransactionSheet: View {
     @State private var title: String = ""
     @State private var details: String = ""
     @State private var amount: Decimal = 0
+    /// Currency the user is typing the amount in. Starts as the source
+    /// account's currency (so the common case is zero-conversion) but
+    /// can diverge — the confirm path then converts via the cached FX
+    /// snapshot before touching the account balance.
+    @State private var amountCurrencyCode: String = "ILS"
     /// The body slides/fades in with a tiny stagger when the sheet
     /// first appears — sets to `true` in `.onAppear`.
     @State private var hasAppeared: Bool = false
@@ -129,6 +143,14 @@ struct NewTransactionSheet: View {
                 category = nil
             }
         }
+        .onChange(of: sourceAccount) { _, new in
+            // When the user switches accounts, snap the amount currency
+            // to the new account's currency. Avoids the silent surprise
+            // of typing 50 in "USD" while the new account is ILS.
+            if let account = new {
+                amountCurrencyCode = account.currencyCode
+            }
+        }
     }
 
     // MARK: - Sections
@@ -171,7 +193,7 @@ struct NewTransactionSheet: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             sectionLabel(kind == .income ? "לאיזה חשבון להוסיף" : "מאיזה חשבון")
             Menu {
-                ForEach(accounts) { account in
+                ForEach(selectableAccounts) { account in
                     Button {
                         sourceAccount = account
                     } label: {
@@ -189,6 +211,16 @@ struct NewTransactionSheet: View {
                 pickerRow(text: sourceAccount?.name ?? "בחרו חשבון")
             }
         }
+    }
+
+    /// Accounts the user may pick as source for an income or expense.
+    /// Savings and investment accounts are deliberately excluded: those
+    /// move money via the dedicated "העברה בין חשבונות" flow, not as
+    /// income / expense rows. Filtering here (rather than disabling at
+    /// confirm time) keeps the picker honest — the user only sees
+    /// options that will actually save.
+    private var selectableAccounts: [Account] {
+        accounts.filter { $0.type == .current }
     }
 
     private var categorySection: some View {
@@ -240,7 +272,17 @@ struct NewTransactionSheet: View {
     private var amountSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             sectionLabel("סכום")
-            BigAmountField(value: $amount, currencyCode: amountCurrencyCode)
+            BigAmountField(
+                value: $amount,
+                currencyCode: $amountCurrencyCode,
+                supportedCurrencies: supportedCurrencies
+            )
+            if let preview = conversionPreviewText {
+                Text(preview)
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 
@@ -307,17 +349,49 @@ struct NewTransactionSheet: View {
         profiles.first?.preferredCurrencyCode ?? "ILS"
     }
 
-    /// Use the source account's currency when one is picked so the big
-    /// amount field shows the right symbol; otherwise fall back to the
-    /// profile-wide preferred currency.
-    private var amountCurrencyCode: String {
-        sourceAccount?.currencyCode ?? preferredCurrencyCode
+    /// Returns the amount converted into the source account's currency,
+    /// or `nil` if conversion is impossible (cross-currency without an
+    /// FX snapshot, or a code that the snapshot doesn't cover). Used in
+    /// both the confirm path (to apply the balance change) and the
+    /// preview line under the picker.
+    private func amountInAccountCurrency(_ raw: Decimal, _ account: Account) -> Decimal? {
+        if amountCurrencyCode == account.currencyCode { return raw }
+        guard let snapshot = fxSnapshots.first else { return nil }
+        return CurrencyConverter.convert(
+            raw,
+            from: amountCurrencyCode,
+            to: account.currencyCode,
+            using: snapshot
+        )
+    }
+
+    /// Single-line "≈ X.XX ACC" hint shown below the currency picker
+    /// when the user types in a currency that isn't the account's own.
+    /// Nil when no conversion is needed (same currency) or when it's
+    /// impossible (no FX snapshot) — the latter is surfaced by the
+    /// disabled confirm slider instead.
+    private var conversionPreviewText: String? {
+        guard let account = sourceAccount,
+              amountCurrencyCode != account.currencyCode,
+              amount > 0
+        else { return nil }
+        if let converted = amountInAccountCurrency(amount, account) {
+            return "≈ \(converted.formatted(.currency(code: account.currencyCode)))"
+        }
+        // FX snapshot missing or doesn't cover this pair — tell the
+        // user why the slider is disabled.
+        return "שערי חליפין לא זמינים — לא ניתן להמיר ל-\(account.currencyCode)."
     }
 
     private var canConfirm: Bool {
         guard kind != .transfer else { return false }
-        return sourceAccount != nil
-            && category != nil
+        guard let account = sourceAccount else { return false }
+        // Block confirm when the amount can't be expressed in the
+        // account's currency — otherwise the balance update would
+        // silently skip and the row would look like it landed but
+        // the balance wouldn't move.
+        guard amountInAccountCurrency(amount, account) != nil else { return false }
+        return category != nil
             && amount > 0
             && !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
@@ -335,25 +409,52 @@ struct NewTransactionSheet: View {
     /// Pick sensible defaults on first appearance so the user only has
     /// to fill in what's specific to this transaction. The favourite
     /// account becomes the source, falling back to the first account.
+    /// The amount currency is seeded from that account so the common
+    /// case avoids any FX conversion.
     private func primeDefaults() {
         if sourceAccount == nil {
-            sourceAccount = accounts.first(where: { $0.isFavorite }) ?? accounts.first
+            // Only current accounts are valid for income/expense, so the
+            // default lookup honours that — a favourite savings account
+            // shouldn't quietly become the seed for an expense.
+            let pool = selectableAccounts
+            sourceAccount = pool.first(where: { $0.isFavorite }) ?? pool.first
+        }
+        if let account = sourceAccount {
+            amountCurrencyCode = account.currencyCode
+        } else {
+            amountCurrencyCode = preferredCurrencyCode
         }
     }
 
     private func handleConfirm() {
         guard canConfirm,
               let account = sourceAccount,
-              let kindModel = kind.transactionKind
+              let kindModel = kind.transactionKind,
+              let accountAmount = amountInAccountCurrency(amount, account)
         else { return }
 
+        // Roll the balance with the transaction in the account's own
+        // currency: income adds, expense subtracts. `accountAmount` is
+        // already converted if the user typed a different currency.
+        switch kindModel {
+        case .income:  account.balance += accountAmount
+        case .expense: account.balance -= accountAmount
+        }
+        account.lastUpdated = .now
+
+        // The transaction keeps the *original* amount and currency the
+        // user typed, so foreign-currency rows still read as such in
+        // the history. `balanceAfter` snapshots the resulting account
+        // balance so the row can show the running balance the user
+        // actually saw at the moment of entry.
         let transaction = Transaction(
             amount: amount,
             kind: kindModel,
             date: .now,
             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
             note: details.trimmingCharacters(in: .whitespacesAndNewlines),
-            currencyCode: account.currencyCode,
+            currencyCode: amountCurrencyCode,
+            balanceAfter: account.balance,
             category: category,
             account: account
         )

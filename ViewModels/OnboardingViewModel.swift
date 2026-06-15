@@ -319,6 +319,15 @@ extension AccountDraft {
     /// switching to a diff-by-persistent-ID strategy once features hang
     /// history (buy/sell logs, etc.) off individual holdings.
     func apply(to account: Account, in context: ModelContext) {
+        // Snapshot before mutating so we can detect a manual balance
+        // change at the end and log it as a transaction. For
+        // investment accounts `account.balance` represents the liquid
+        // cash component only — holdings live in their own table and
+        // are deliberately excluded from this log (per CLAUDE.md, the
+        // transactions log is for income/expense, not portfolio moves).
+        let previousBalance = account.balance
+        let previousCurrencyCode = account.currencyCode
+
         account.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         account.type = type
         account.balance = balance
@@ -355,6 +364,29 @@ extension AccountDraft {
                 holding.account = account
                 context.insert(holding)
             }
+        }
+
+        // Manual balance edits leave a paper trail in the transactions
+        // log so the user can scroll back and see "I bumped my current
+        // account by ₪500 last Tuesday" even though nothing else
+        // happened. Skipped when the currency code also changed in the
+        // same edit — comparing decimals across currencies is
+        // meaningless, so we don't fabricate a delta number for it.
+        let balanceDelta = balance - previousBalance
+        if balanceDelta != 0, currencyCode == previousCurrencyCode {
+            let kind: TransactionKind = balanceDelta > 0 ? .income : .expense
+            let manualEdit = Transaction(
+                amount: abs(balanceDelta),
+                kind: kind,
+                date: .now,
+                title: Transaction.manualBalanceEditTitle,
+                note: "",
+                currencyCode: account.currencyCode,
+                balanceAfter: account.balance,
+                category: nil,
+                account: account
+            )
+            context.insert(manualEdit)
         }
 
         try? context.save()
@@ -424,6 +456,32 @@ struct IncomeSourceDraft: Identifiable, Hashable {
     }
 }
 
+extension IncomeSourceDraft {
+    /// Seed a draft from a persisted `BudgetItem`. Used by the
+    /// post-onboarding budget editor so the same income editor sheet
+    /// can edit existing rows.
+    init(from item: BudgetItem) {
+        self.init(
+            name: item.name,
+            plannedAmount: item.plannedAmount,
+            currencyCode: item.currencyCode
+        )
+    }
+
+    /// Writes this draft back into a persisted income `BudgetItem`.
+    /// Kind stays `.income`, category stays nil — income lines never
+    /// carry a category. Frequency is always monthly for income.
+    func apply(to item: BudgetItem) {
+        item.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        item.plannedAmount = plannedAmount
+        item.kind = .income
+        item.currencyCode = currencyCode
+        item.frequencyKind = .monthly
+        item.frequencyWeeks = 1
+        item.category = nil
+    }
+}
+
 /// A single planned expense line. Tied to a `Category` (which carries
 /// its own need/want nature), plus an optional free-text `note` (e.g.
 /// "ספר" for a barber under the "טיפוח" category) and a frequency so
@@ -459,5 +517,34 @@ struct PlannedExpenseDraft: Identifiable, Hashable {
         self.currencyCode = currencyCode
         self.frequencyKind = frequencyKind
         self.frequencyWeeks = frequencyWeeks
+    }
+}
+
+extension PlannedExpenseDraft {
+    /// Seed a draft from a persisted expense `BudgetItem`. The note
+    /// field on the model holds the optional free-text label (e.g.
+    /// "ספר" under "טיפוח"), which lives in `BudgetItem.name`.
+    init(from item: BudgetItem) {
+        self.init(
+            category: item.category,
+            note: item.name,
+            plannedAmount: item.plannedAmount,
+            currencyCode: item.currencyCode,
+            frequencyKind: item.frequencyKind,
+            frequencyWeeks: max(item.frequencyWeeks, 1)
+        )
+    }
+
+    /// Writes this draft back into a persisted expense `BudgetItem`.
+    /// Kind is forced to `.expense` so an income row that somehow
+    /// reaches this editor is corrected, not double-classified.
+    func apply(to item: BudgetItem) {
+        item.name = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        item.plannedAmount = plannedAmount
+        item.kind = .expense
+        item.currencyCode = currencyCode
+        item.frequencyKind = frequencyKind
+        item.frequencyWeeks = max(frequencyWeeks, 1)
+        item.category = category
     }
 }
