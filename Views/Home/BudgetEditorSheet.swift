@@ -212,15 +212,28 @@ private struct IncomeItemRow: View {
             Circle()
                 .fill(Theme.Colors.income)
                 .frame(width: 10, height: 10)
-            Text(item.name.isEmpty ? "ללא שם" : item.name)
-                .font(Theme.Typography.body)
-                .foregroundStyle(Theme.Colors.textPrimary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.name.isEmpty ? "ללא שם" : item.name)
+                    .font(Theme.Typography.body)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                // Only surface the cadence when it's something other than a
+                // plain "every month" line, so common salaries stay quiet.
+                if showsSchedule {
+                    Text(item.scheduleDescription)
+                        .font(Theme.Typography.caption)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+            }
             Spacer()
             Text(item.plannedAmount.formatted(.currency(code: item.currencyCode)))
                 .font(Theme.Typography.amount)
                 .foregroundStyle(Theme.Colors.textPrimary)
                 .monospacedDigit()
         }
+    }
+
+    private var showsSchedule: Bool {
+        item.scheduleKind != .recurringMonthly || item.scheduleDay != nil
     }
 }
 
@@ -280,10 +293,7 @@ private struct ExpenseItemRow: View {
     }
 
     private var subtitle: String {
-        switch item.frequencyKind {
-        case .monthly:     return "חודשי"
-        case .everyXWeeks: return "כל \(item.frequencyWeeks) שבועות"
-        }
+        item.scheduleDescription
     }
 }
 

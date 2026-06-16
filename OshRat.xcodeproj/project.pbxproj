@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5E17150100000000000000B1 /* IsraeliHolidays.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F1 /* IsraeliHolidays.swift */; };
+		5EBD610100000000000000B1 /* BudgetScheduleSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBD610100000000000000F1 /* BudgetScheduleSection.swift */; };
+		5EBD610100000000000000B2 /* BudgetCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBD610100000000000000F2 /* BudgetCalendarView.swift */; };
+		5EAA170100000000000000B1 /* AnalyticsReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EAA170100000000000000F1 /* AnalyticsReport.swift */; };
+		5EAA170100000000000000B2 /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EAA170100000000000000F2 /* AnalyticsView.swift */; };
+		5EAA170100000000000000B3 /* AnalyticsStations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EAA170100000000000000F3 /* AnalyticsStations.swift */; };
 		5E0A2E862FE04B62004441B5 /* BudgetEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0A2E852FE04B62004441B5 /* BudgetEditorSheet.swift */; };
 		5E13B18B2FD5ADF900C87118 /* Heebo-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B1882FD5ADF900C87118 /* Heebo-SemiBold.ttf */; };
 		5E13B18C2FD5ADF900C87118 /* Heebo-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B1852FD5ADF900C87118 /* Heebo-Light.ttf */; };
@@ -95,6 +101,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		5E17150100000000000000F1 /* IsraeliHolidays.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IsraeliHolidays.swift; sourceTree = "<group>"; };
+		5EBD610100000000000000F1 /* BudgetScheduleSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetScheduleSection.swift; sourceTree = "<group>"; };
+		5EBD610100000000000000F2 /* BudgetCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetCalendarView.swift; sourceTree = "<group>"; };
+		5EAA170100000000000000F1 /* AnalyticsReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsReport.swift; sourceTree = "<group>"; };
+		5EAA170100000000000000F2 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
+		5EAA170100000000000000F3 /* AnalyticsStations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsStations.swift; sourceTree = "<group>"; };
 		5E0A2E852FE04B62004441B5 /* BudgetEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetEditorSheet.swift; sourceTree = "<group>"; };
 		5E13B1812FD5ADF900C87118 /* Heebo-Black.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-Black.ttf"; sourceTree = "<group>"; };
 		5E13B1822FD5ADF900C87118 /* Heebo-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-Bold.ttf"; sourceTree = "<group>"; };
@@ -219,8 +231,29 @@
 				5E2626C22FD1823E00180F49 /* Onboarding */,
 				5ED3E0ED2FD1BE5C003083F0 /* Home */,
 				5E78E4D92FDA02B400867892 /* Transactions */,
+				5EAA170100000000000000A1 /* Analytics */,
+				5EBD610100000000000000A1 /* Budget */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		5EBD610100000000000000A1 /* Budget */ = {
+			isa = PBXGroup;
+			children = (
+				5EBD610100000000000000F1 /* BudgetScheduleSection.swift */,
+				5EBD610100000000000000F2 /* BudgetCalendarView.swift */,
+			);
+			path = Budget;
+			sourceTree = "<group>";
+		};
+		5EAA170100000000000000A1 /* Analytics */ = {
+			isa = PBXGroup;
+			children = (
+				5EAA170100000000000000F1 /* AnalyticsReport.swift */,
+				5EAA170100000000000000F2 /* AnalyticsView.swift */,
+				5EAA170100000000000000F3 /* AnalyticsStations.swift */,
+			);
+			path = Analytics;
 			sourceTree = "<group>";
 		};
 		5E2626C22FD1823E00180F49 /* Onboarding */ = {
@@ -311,6 +344,7 @@
 			children = (
 				5E8EB3A92FD2F9070037E1F3 /* FXRatesService.swift */,
 				5E8EB3AA2FD2F9240037E1F3 /* CurrencyConverter.swift */,
+				5E17150100000000000000F1 /* IsraeliHolidays.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -502,6 +536,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5E17150100000000000000B1 /* IsraeliHolidays.swift in Sources */,
+				5EBD610100000000000000B1 /* BudgetScheduleSection.swift in Sources */,
+				5EBD610100000000000000B2 /* BudgetCalendarView.swift in Sources */,
+				5EAA170100000000000000B1 /* AnalyticsReport.swift in Sources */,
+				5EAA170100000000000000B2 /* AnalyticsView.swift in Sources */,
+				5EAA170100000000000000B3 /* AnalyticsStations.swift in Sources */,
 				5E13B1962FD5BD0700C87118 /* DecimalField.swift in Sources */,
 				5E31E54B2FD16B6D00FF83C8 /* UserProfile.swift in Sources */,
 				5ED3E0F12FD1BE8C003083F0 /* AssetsSummaryCard.swift in Sources */,

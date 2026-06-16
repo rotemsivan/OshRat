@@ -206,17 +206,12 @@ final class OnboardingViewModel {
         }
 
         // Income sources — stored as BudgetItem rows with kind=.income
-        // and no category (the name carries the source label).
+        // and no category (the name carries the source label). Routing
+        // through `draft.apply(to:)` keeps this in lockstep with the
+        // post-onboarding editor, schedule fields included.
         for draft in incomeDrafts {
-            let item = BudgetItem(
-                name: draft.name.trimmingCharacters(in: .whitespacesAndNewlines),
-                plannedAmount: draft.plannedAmount,
-                kind: .income,
-                currencyCode: draft.currencyCode,
-                frequencyKind: .monthly,
-                frequencyWeeks: 1,
-                category: nil
-            )
+            let item = BudgetItem(kind: .income)
+            draft.apply(to: item)
             context.insert(item)
         }
 
@@ -224,16 +219,9 @@ final class OnboardingViewModel {
         // and a category. Drop drafts whose category got nilled out (the
         // editor sheet requires one to save, so this is defensive).
         for draft in plannedExpenseDrafts {
-            guard let category = draft.category else { continue }
-            let item = BudgetItem(
-                name: draft.note.trimmingCharacters(in: .whitespacesAndNewlines),
-                plannedAmount: draft.plannedAmount,
-                kind: .expense,
-                currencyCode: draft.currencyCode,
-                frequencyKind: draft.frequencyKind,
-                frequencyWeeks: max(draft.frequencyWeeks, 1),
-                category: category
-            )
+            guard draft.category != nil else { continue }
+            let item = BudgetItem(kind: .expense)
+            draft.apply(to: item)
             context.insert(item)
         }
 
@@ -304,7 +292,7 @@ extension AccountDraft {
             type: account.type,
             balance: account.balance,
             currencyCode: account.currencyCode,
-            holdings: account.holdings.map(HoldingDraft.init(from:)),
+            holdings: account.holdings.map { HoldingDraft(from: $0) },
             isFavorite: account.isFavorite
         )
     }
@@ -442,17 +430,23 @@ struct IncomeSourceDraft: Identifiable, Hashable {
     var name: String
     var plannedAmount: Decimal
     var currencyCode: String
+    /// When this income lands — monthly (e.g. salary on the 10th), yearly
+    /// (an annual bonus), or a one-off. Defaults to plain recurring-monthly
+    /// so the common case needs no extra taps.
+    var schedule: BudgetSchedule
 
     init(
         id: UUID = UUID(),
         name: String = "",
         plannedAmount: Decimal = 0,
-        currencyCode: String = "ILS"
+        currencyCode: String = "ILS",
+        schedule: BudgetSchedule = BudgetSchedule()
     ) {
         self.id = id
         self.name = name
         self.plannedAmount = plannedAmount
         self.currencyCode = currencyCode
+        self.schedule = schedule
     }
 }
 
@@ -464,13 +458,15 @@ extension IncomeSourceDraft {
         self.init(
             name: item.name,
             plannedAmount: item.plannedAmount,
-            currencyCode: item.currencyCode
+            currencyCode: item.currencyCode,
+            schedule: BudgetSchedule(from: item)
         )
     }
 
     /// Writes this draft back into a persisted income `BudgetItem`.
     /// Kind stays `.income`, category stays nil — income lines never
-    /// carry a category. Frequency is always monthly for income.
+    /// carry a category. Frequency is always monthly for income; the
+    /// schedule controls which months it lands in.
     func apply(to item: BudgetItem) {
         item.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         item.plannedAmount = plannedAmount
@@ -479,6 +475,7 @@ extension IncomeSourceDraft {
         item.frequencyKind = .monthly
         item.frequencyWeeks = 1
         item.category = nil
+        schedule.apply(to: item)
     }
 }
 
@@ -500,6 +497,9 @@ struct PlannedExpenseDraft: Identifiable, Hashable {
     var currencyCode: String
     var frequencyKind: BudgetFrequencyKind
     var frequencyWeeks: Int
+    /// When this expense lands — every month (rent), every year (car test),
+    /// or a single dated event (a gift). Defaults to recurring-monthly.
+    var schedule: BudgetSchedule
 
     init(
         id: UUID = UUID(),
@@ -508,7 +508,8 @@ struct PlannedExpenseDraft: Identifiable, Hashable {
         plannedAmount: Decimal = 0,
         currencyCode: String = "ILS",
         frequencyKind: BudgetFrequencyKind = .monthly,
-        frequencyWeeks: Int = 3
+        frequencyWeeks: Int = 3,
+        schedule: BudgetSchedule = BudgetSchedule()
     ) {
         self.id = id
         self.category = category
@@ -517,6 +518,7 @@ struct PlannedExpenseDraft: Identifiable, Hashable {
         self.currencyCode = currencyCode
         self.frequencyKind = frequencyKind
         self.frequencyWeeks = frequencyWeeks
+        self.schedule = schedule
     }
 }
 
@@ -531,7 +533,8 @@ extension PlannedExpenseDraft {
             plannedAmount: item.plannedAmount,
             currencyCode: item.currencyCode,
             frequencyKind: item.frequencyKind,
-            frequencyWeeks: max(item.frequencyWeeks, 1)
+            frequencyWeeks: max(item.frequencyWeeks, 1),
+            schedule: BudgetSchedule(from: item)
         )
     }
 
@@ -546,5 +549,6 @@ extension PlannedExpenseDraft {
         item.frequencyKind = frequencyKind
         item.frequencyWeeks = max(frequencyWeeks, 1)
         item.category = category
+        schedule.apply(to: item)
     }
 }

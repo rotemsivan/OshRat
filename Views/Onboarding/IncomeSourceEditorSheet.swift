@@ -37,7 +37,7 @@ struct IncomeSourceEditorSheet: View {
 
                 Section {
                     DecimalField(
-                        placeholder: "סכום חודשי מתוכנן",
+                        placeholder: "סכום מתוכנן",
                         value: $draft.plannedAmount
                     )
 
@@ -47,8 +47,20 @@ struct IncomeSourceEditorSheet: View {
                         }
                     }
                 } footer: {
-                    Text("הסכום החודשי הצפוי. אם הוא משתנה — רשמו ממוצע משוער ועדכנו בעתיד.")
+                    Text("הסכום הצפוי. אם הוא משתנה — רשמו ממוצע משוער ועדכנו בעתיד.")
                 }
+
+                // Income lines are always "monthly" in the weekly-cadence
+                // sense, so we lock the frequency to monthly and only let
+                // the user choose the schedule (which months / which day).
+                BudgetScheduleSection(
+                    schedule: $draft.schedule,
+                    frequencyKind: .constant(.monthly),
+                    frequencyWeeks: .constant(1),
+                    allowsWeeklyCadence: false,
+                    currencyCode: draft.currencyCode,
+                    plannedAmount: draft.plannedAmount
+                )
             }
             .scrollContentBackground(.hidden)
             .background(Theme.Colors.background)

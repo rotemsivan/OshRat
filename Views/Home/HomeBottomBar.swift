@@ -14,6 +14,8 @@ struct HomeBottomBar: View {
     enum Tab: Hashable {
         case home
         case transactions
+        case analytics
+        case calendar
     }
 
     @Binding var selection: Tab
@@ -59,10 +61,28 @@ struct HomeBottomBar: View {
                 Color.clear
                     .frame(width: Self.notchRadius * 2)
 
-                // Empty slot on the opposite side — ready for a future
-                // tab (settings, goals…) without re-doing the layout.
-                Color.clear
+                // Opposite flank holds the two "overview/planning" tabs —
+                // analytics and the budget calendar — sharing the half so
+                // every side icon uses the identical accent-when-selected
+                // treatment.
+                HStack(spacing: 0) {
+                    HomeBarButton(
+                        tab: .analytics,
+                        symbol: "chart.line.uptrend.xyaxis",
+                        accessibilityLabel: "תובנות",
+                        selection: $selection
+                    )
                     .frame(maxWidth: .infinity)
+
+                    HomeBarButton(
+                        tab: .calendar,
+                        symbol: "calendar",
+                        accessibilityLabel: "יומן התקציב",
+                        selection: $selection
+                    )
+                    .frame(maxWidth: .infinity)
+                }
+                .frame(maxWidth: .infinity)
             }
             .frame(height: Self.barHeight)
             .padding(.horizontal, Theme.Spacing.lg)
@@ -165,7 +185,6 @@ struct NotchedBarShape: InsettableShape {
         let leftX = r.minX
         let rightX = r.maxX
         let notchStart = centerX - nR
-        let notchEnd = centerX + nR
 
         var path = Path()
 

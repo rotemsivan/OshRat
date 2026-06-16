@@ -42,7 +42,7 @@ struct GreetingHeaderView: View {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
         case 5..<12:  return Text("בוקר טוב")          // morning
-        case 12..<17: return Text("צהריים טובים")     // afternoon
+        case 12..<17: return Text("צוהריים טובים")     // afternoon
         case 17..<21: return Text("ערב טוב")          // evening
         default:      return Text("לילה טוב")          // night (21–04)
         }

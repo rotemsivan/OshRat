@@ -311,7 +311,10 @@ private struct AccountSummaryRow: View {
 
     private var subtitle: String {
         if account.type == .investment, !account.holdings.isEmpty {
-            return "\(account.type.hebrewLabel) • \(account.holdings.count) נכסים"
+            // `String(localized:)` so the count gets proper Hebrew plurals
+            // (נכס אחד / שני נכסים / N נכסים) from the catalog.
+            let holdings = String(localized: "\(account.holdings.count) נכסים")
+            return "\(account.type.hebrewLabel) • \(holdings)"
         }
         return account.type.hebrewLabel
     }

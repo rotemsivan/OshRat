@@ -53,6 +53,14 @@ struct HomeView: View {
                     NavigationStack {
                         TransactionsListView()
                     }
+                case .analytics:
+                    NavigationStack {
+                        AnalyticsView()
+                    }
+                case .calendar:
+                    NavigationStack {
+                        BudgetCalendarView()
+                    }
                 }
             }
             .transition(.opacity)

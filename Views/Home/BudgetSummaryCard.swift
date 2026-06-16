@@ -44,12 +44,19 @@ struct BudgetSummaryCard: View {
     /// left under RTL, where it sits opposite the section label). The
     /// button is always available — even when there are no items yet,
     /// tapping it opens the editor where the user can add lines.
+    ///
+    /// The month label makes it clear the figures are for *this* month
+    /// specifically — important now that yearly and one-off scheduled
+    /// lines can make one month's budget differ from the next.
     private var header: some View {
-        HStack {
+        HStack(spacing: Theme.Spacing.sm) {
             Text("התקציב החודשי")
                 .font(Theme.Typography.caption)
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .textCase(.uppercase)
+            Text(currentMonthLabel)
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
             Spacer()
             Button(action: onEdit) {
                 Image(systemName: "pencil")
@@ -62,6 +69,10 @@ struct BudgetSummaryCard: View {
             .accessibilityLabel(Text("עריכת התקציב"))
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private var currentMonthLabel: String {
+        Date.now.formatted(.dateTime.locale(Locale(identifier: "he_IL")).month(.wide))
     }
 
     // MARK: - Body
@@ -77,8 +88,23 @@ struct BudgetSummaryCard: View {
 
             netRow(net: totals.income - totals.needs - totals.wants)
 
+            scheduledExtrasNote
+                .frame(maxWidth: .infinity, alignment: .leading)
+
             fxFootnote
                 .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// Gentle heads-up when this month carries non-recurring scheduled
+    /// lines (a yearly car test, a one-off gift) that won't be there next
+    /// month — so the user understands why the total moved.
+    @ViewBuilder
+    private var scheduledExtrasNote: some View {
+        if hasScheduledExtrasThisMonth {
+            Label("כולל הוצאות מתוכננות לחודש זה", systemImage: "calendar.badge.clock")
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
         }
     }
 
@@ -154,17 +180,21 @@ struct BudgetSummaryCard: View {
 
     // MARK: - Aggregation
 
-    /// One pass over the budget items: monthly-equivalent each line,
-    /// convert into the preferred currency, bucket by income / needs
-    /// / wants. Items that can't be converted are dropped.
+    /// One pass over the budget items: take each line's contribution to
+    /// *this* month (recurring lines pay every month; yearly and one-off
+    /// lines only in the month they land), convert into the preferred
+    /// currency, and bucket by income / needs / wants. Items that can't be
+    /// converted are dropped.
     private var combinedTotals: (income: Decimal, needs: Decimal, wants: Decimal) {
         var income = Decimal(0)
         var needs = Decimal(0)
         var wants = Decimal(0)
 
+        let (month, year) = currentMonthYear
         for item in budgetItems {
-            let monthly = item.monthlyEquivalent
-            guard let converted = convertToPreferred(monthly, from: item.currencyCode) else { continue }
+            let monthly = item.plannedAmount(inMonth: month, year: year)
+            guard monthly != 0,
+                  let converted = convertToPreferred(monthly, from: item.currencyCode) else { continue }
 
             switch item.kind {
             case .income:
@@ -193,6 +223,20 @@ struct BudgetSummaryCard: View {
 
     private var hasCrossCurrencyItems: Bool {
         budgetItems.contains { $0.currencyCode != preferredCurrencyCode }
+    }
+
+    /// Month and year of "now", used to attribute scheduled lines to the
+    /// current month.
+    private var currentMonthYear: (month: Int, year: Int) {
+        let comps = Calendar.current.dateComponents([.month, .year], from: .now)
+        return (comps.month ?? 1, comps.year ?? 2000)
+    }
+
+    private var hasScheduledExtrasThisMonth: Bool {
+        let (month, year) = currentMonthYear
+        return budgetItems.contains { item in
+            item.scheduleKind != .recurringMonthly && item.appliesTo(month: month, year: year)
+        }
     }
 }
 

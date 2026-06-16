@@ -142,15 +142,28 @@ private struct IncomeDraftRow: View {
             Circle()
                 .fill(Theme.Colors.income)
                 .frame(width: 10, height: 10)
-            Text(draft.name.isEmpty ? "ללא שם" : draft.name)
-                .font(Theme.Typography.body)
-                .foregroundStyle(Theme.Colors.textPrimary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(draft.name.isEmpty ? "ללא שם" : draft.name)
+                    .font(Theme.Typography.body)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                if showsSchedule {
+                    Text(draft.schedule.hebrewDescription())
+                        .font(Theme.Typography.caption)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+            }
             Spacer()
             Text(draft.plannedAmount.formatted(.currency(code: draft.currencyCode)))
                 .font(Theme.Typography.amount)
                 .foregroundStyle(Theme.Colors.textPrimary)
                 .monospacedDigit()
         }
+    }
+
+    /// Surface the cadence only for non-default schedules — a plain monthly
+    /// salary stays a clean single line.
+    private var showsSchedule: Bool {
+        draft.schedule.kind != .recurringMonthly || draft.schedule.usesSpecificDay
     }
 }
 
@@ -216,10 +229,10 @@ private struct PlannedExpenseRow: View {
     }
 
     private var subtitle: String {
-        switch draft.frequencyKind {
-        case .monthly:     return "חודשי"
-        case .everyXWeeks: return "כל \(draft.frequencyWeeks) שבועות"
-        }
+        draft.schedule.hebrewDescription(
+            frequencyKind: draft.frequencyKind,
+            frequencyWeeks: draft.frequencyWeeks
+        )
     }
 
     private var monthlyEquivalent: Decimal {

@@ -92,7 +92,9 @@ private struct AccountDraftRow: View {
 
     private var subtitle: String {
         if draft.type == .investment, !draft.holdings.isEmpty {
-            return "\(draft.type.hebrewLabel) • \(draft.holdings.count) נכסים"
+            // Localized so the holdings count pluralizes correctly in Hebrew.
+            let holdings = String(localized: "\(draft.holdings.count) נכסים")
+            return "\(draft.type.hebrewLabel) • \(holdings)"
         }
         return draft.type.hebrewLabel
     }

@@ -44,7 +44,14 @@ struct PlannedExpenseEditorSheet: View {
                 categorySection
                 noteSection
                 amountSection
-                frequencySection
+                BudgetScheduleSection(
+                    schedule: $draft.schedule,
+                    frequencyKind: $draft.frequencyKind,
+                    frequencyWeeks: $draft.frequencyWeeks,
+                    allowsWeeklyCadence: true,
+                    currencyCode: draft.currencyCode,
+                    plannedAmount: draft.plannedAmount
+                )
             }
             .scrollContentBackground(.hidden)
             .background(Theme.Colors.background)
@@ -137,42 +144,23 @@ struct PlannedExpenseEditorSheet: View {
         } header: {
             Text("סכום מתוכנן")
         } footer: {
-            Text(draft.frequencyKind == .monthly
-                 ? "הסכום החודשי המתוכנן."
-                 : "הסכום עבור כל פעם — לדוגמה כמה עולה ביקור אחד אצל הספר.")
+            Text(amountFooterText)
         }
     }
 
-    private var frequencySection: some View {
-        Section {
-            Picker("תדירות", selection: $draft.frequencyKind) {
-                ForEach(BudgetFrequencyKind.allCases) { kind in
-                    Text(kind.hebrewLabel).tag(kind)
-                }
-            }
-
-            if draft.frequencyKind == .everyXWeeks {
-                Stepper(value: $draft.frequencyWeeks, in: 1...52) {
-                    HStack {
-                        Text("כל")
-                        Text("\(draft.frequencyWeeks)")
-                            .font(.body.monospacedDigit())
-                        Text("שבועות")
-                    }
-                }
-                .contentTransition(.numericText(value: Double(draft.frequencyWeeks)))
-                .animation(.spring(response: 0.35, dampingFraction: 0.8), value: draft.frequencyWeeks) // Triggers the motion
-            }
-
-            if draft.frequencyKind == .everyXWeeks {
-                LabeledContent("שווי חודשי משוער") {
-                    Text(monthlyEquivalentPreview.formatted(.currency(code: draft.currencyCode)))
-                        .font(.body.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                }
-            }
-        } footer: {
-            Text("דוגמה: ‘ספר כל 3 שבועות’ — נחושב ממוצע חודשי שיופיע בדשבורד.")
+    /// The amount's meaning depends on the schedule the user picked, so the
+    /// footer adapts: per-occurrence for weekly cadences, the single sum for
+    /// yearly/one-off lines, the monthly figure otherwise.
+    private var amountFooterText: String {
+        switch draft.schedule.kind {
+        case .oneTime:
+            return "הסכום של ההוצאה החד־פעמית."
+        case .recurringYearly:
+            return "הסכום שייכנס פעם בשנה, בחודש שנבחר."
+        case .recurringMonthly:
+            return draft.frequencyKind == .everyXWeeks
+                ? "הסכום עבור כל פעם — לדוגמה כמה עולה ביקור אחד אצל הספר."
+                : "הסכום החודשי המתוכנן."
         }
     }
 
@@ -183,19 +171,6 @@ struct PlannedExpenseEditorSheet: View {
     /// the same category twice even if the store still has duplicates.
     private var expenseCategories: [Category] {
         categories.filter { $0.kind == .expense }.semanticallyUnique
-    }
-
-    /// Live preview of what this expense rolls up to per month — uses
-    /// the same formula `BudgetItem.monthlyEquivalent` does, so the
-    /// editor's preview never disagrees with the dashboard.
-    private var monthlyEquivalentPreview: Decimal {
-        switch draft.frequencyKind {
-        case .monthly:
-            return draft.plannedAmount
-        case .everyXWeeks:
-            let weeks = max(draft.frequencyWeeks, 1)
-            return draft.plannedAmount * (Decimal(30) / Decimal(weeks * 7))
-        }
     }
 }
 
