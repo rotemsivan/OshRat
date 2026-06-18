@@ -115,6 +115,7 @@ enum SeedData {
 
             // WANTS — רצונות
             Category(name: "בילויים",                 kind: .expense, colorHex: "#4DB6AC", symbolName: "ticket",     nature: .want),
+            Category(name: "חופשות",                 kind: .expense, colorHex: "#4d83b6", symbolName: "airplane",     nature: .want),
             Category(name: "מסעדות ובתי קפה",       kind: .expense, colorHex: "#81C784", symbolName: "fork.knife", nature: .want),
             Category(name: "אופנה וביגוד",            kind: .expense, colorHex: "#F48FB1", symbolName: "tshirt",      nature: .want),
             Category(name: "מתנות",                    kind: .expense, colorHex: "#FFB74D", symbolName: "gift",       nature: .want),
