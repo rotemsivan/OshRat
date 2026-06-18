@@ -235,7 +235,7 @@ struct BudgetSummaryCard: View {
     private var hasScheduledExtrasThisMonth: Bool {
         let (month, year) = currentMonthYear
         return budgetItems.contains { item in
-            item.scheduleKind != .recurringMonthly && item.appliesTo(month: month, year: year)
+            !item.landsEveryMonth && item.appliesTo(month: month, year: year)
         }
     }
 }

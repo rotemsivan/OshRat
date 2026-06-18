@@ -64,6 +64,14 @@ struct BudgetStepView: View {
 
     private var incomeSection: some View {
         Section {
+            
+            Button {
+                isEditingNewIncome = true
+                editingIncome = IncomeSourceDraft(currencyCode: viewModel.preferredCurrencyCode)
+            } label: {
+                Label("הוספת מקור הכנסה", systemImage: "plus.circle.fill")
+                    .foregroundStyle(Theme.Colors.accent)
+            }
             if viewModel.incomeDrafts.isEmpty {
                 Text("הוסיפו לפחות מקור הכנסה אחד כדי שנוכל לחשב לכם תקציב חודשי.")
                     .font(Theme.Typography.body)
@@ -81,17 +89,8 @@ struct BudgetStepView: View {
                 .onDelete(perform: viewModel.deleteIncome(at:))
             }
 
-            Button {
-                isEditingNewIncome = true
-                editingIncome = IncomeSourceDraft(currencyCode: viewModel.preferredCurrencyCode)
-            } label: {
-                Label("הוספת מקור הכנסה", systemImage: "plus.circle.fill")
-                    .foregroundStyle(Theme.Colors.accent)
-            }
         } header: {
             Text("הכנסות")
-        } footer: {
-            Text("ההכנסות החודשיות הצפויות. אפשר להוסיף כמה שצריך — משכורת, עבודות צד, השכרה.")
         }
     }
 
@@ -99,6 +98,14 @@ struct BudgetStepView: View {
 
     private var expensesSection: some View {
         Section {
+            Button {
+                isEditingNewExpense = true
+                editingExpense = PlannedExpenseDraft(currencyCode: viewModel.preferredCurrencyCode)
+            } label: {
+                Label("הוספת הוצאה מתוכננת", systemImage: "plus.circle.fill")
+                    .foregroundStyle(Theme.Colors.accent)
+            }
+            
             if viewModel.plannedExpenseDrafts.isEmpty {
                 Text("לא חובה להגדיר עכשיו. אפשר להוסיף הוצאות מתוכננות בכל עת — נתחיל בדוגמה אחת כדי להבין.")
                     .font(Theme.Typography.body)
@@ -116,13 +123,6 @@ struct BudgetStepView: View {
                 .onDelete(perform: viewModel.deleteExpenses(at:))
             }
 
-            Button {
-                isEditingNewExpense = true
-                editingExpense = PlannedExpenseDraft(currencyCode: viewModel.preferredCurrencyCode)
-            } label: {
-                Label("הוספת הוצאה מתוכננת", systemImage: "plus.circle.fill")
-                    .foregroundStyle(Theme.Colors.accent)
-            }
         } header: {
             Text("הוצאות מתוכננות")
         }
@@ -163,7 +163,7 @@ private struct IncomeDraftRow: View {
     /// Surface the cadence only for non-default schedules — a plain monthly
     /// salary stays a clean single line.
     private var showsSchedule: Bool {
-        draft.schedule.kind != .recurringMonthly || draft.schedule.usesSpecificDay
+        draft.schedule.isNoteworthy
     }
 }
 
@@ -195,7 +195,7 @@ private struct PlannedExpenseRow: View {
                     .font(Theme.Typography.amount)
                     .foregroundStyle(Theme.Colors.textPrimary)
                     .monospacedDigit()
-                if draft.frequencyKind == .everyXWeeks {
+                if !draft.schedule.isOneTime, draft.schedule.unit.isAveraged {
                     Text("~\(monthlyEquivalent.formatted(.currency(code: draft.currencyCode))) חודשי")
                         .font(Theme.Typography.caption)
                         .foregroundStyle(Theme.Colors.textSecondary)
@@ -229,18 +229,15 @@ private struct PlannedExpenseRow: View {
     }
 
     private var subtitle: String {
-        draft.schedule.hebrewDescription(
-            frequencyKind: draft.frequencyKind,
-            frequencyWeeks: draft.frequencyWeeks
-        )
+        draft.schedule.hebrewDescription()
     }
 
     private var monthlyEquivalent: Decimal {
-        switch draft.frequencyKind {
-        case .monthly: return draft.plannedAmount
-        case .everyXWeeks:
-            let weeks = max(draft.frequencyWeeks, 1)
-            return draft.plannedAmount * (Decimal(30) / Decimal(weeks * 7))
+        let n = Decimal(max(draft.schedule.count, 1))
+        switch draft.schedule.unit {
+        case .day:  return draft.plannedAmount * (Decimal(30) / n)
+        case .week: return draft.plannedAmount * (Decimal(30) / (n * 7))
+        case .month, .year: return draft.plannedAmount
         }
     }
 }

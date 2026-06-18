@@ -12,7 +12,7 @@ struct PersonalDetailsStepView: View {
     /// A small, hard-coded set of ISO currency codes for the MVP. We can
     /// swap this for `Locale.commonISOCurrencyCodes` later if we want
     /// the long list, but a short menu is friendlier for first-time setup.
-    private let supportedCurrencies: [String] = ["ILS", "USD", "EUR", "GBP"]
+    private let supportedCurrencies: [String] = ["ILS", "USD", "EUR"]
 
     var body: some View {
         Form {

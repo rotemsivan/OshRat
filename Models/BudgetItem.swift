@@ -26,12 +26,27 @@ final class BudgetItem {
     var kind: TransactionKind = TransactionKind.expense
     var currencyCode: String = "ILS"
 
-    /// Stored raw value of the frequency kind enum; defaults to monthly
-    /// because that's far and away the most common cadence.
+    // MARK: - Recurrence (modern cadence model)
+
+    /// Raw value of the recurrence unit ("every N <unit>"). **Optional on
+    /// purpose:** `nil` marks a pre-`RecurrenceUnit` row, and `recurrenceUnit`
+    /// then reconstructs the cadence from the legacy `frequencyKind`/
+    /// `scheduleKind` fields. New rows always set it. (Optional + the count's
+    /// default keep us CloudKit-safe and need no custom migration.)
+    var recurrenceUnitRaw: String?
+
+    /// The "N" in "every N <unit>" (e.g. 3 in "every 3 weeks"). Defaults to 1
+    /// and is ignored on legacy rows (where `recurrenceUnitRaw` is `nil`).
+    var recurrenceCount: Int = 1
+
+    // MARK: - Legacy cadence (kept for migration only)
+
+    /// Legacy frequency kind. Superseded by `recurrenceUnit`; read only as a
+    /// fallback for rows persisted before the unit model existed.
     var frequencyKindRaw: String = BudgetFrequencyKind.monthly.rawValue
 
-    /// Interval in weeks for `.everyXWeeks` lines. Ignored for monthly.
-    /// Stored even when unused so old rows migrate cleanly.
+    /// Legacy weekly interval. Superseded by `recurrenceCount`; read only as a
+    /// fallback for old `.everyXWeeks` rows.
     var frequencyWeeks: Int = 1
 
     // MARK: - Scheduling
@@ -68,6 +83,8 @@ final class BudgetItem {
         plannedAmount: Decimal = 0,
         kind: TransactionKind = .expense,
         currencyCode: String = "ILS",
+        recurrenceUnit: RecurrenceUnit? = nil,
+        recurrenceCount: Int = 1,
         frequencyKind: BudgetFrequencyKind = .monthly,
         frequencyWeeks: Int = 1,
         scheduleKind: BudgetScheduleKind = .recurringMonthly,
@@ -82,6 +99,8 @@ final class BudgetItem {
         self.plannedAmount = plannedAmount
         self.kind = kind
         self.currencyCode = currencyCode
+        self.recurrenceUnitRaw = recurrenceUnit?.rawValue
+        self.recurrenceCount = recurrenceCount
         self.frequencyKindRaw = frequencyKind.rawValue
         self.frequencyWeeks = frequencyWeeks
         self.scheduleKindRaw = scheduleKind.rawValue
@@ -95,25 +114,88 @@ final class BudgetItem {
 
     // MARK: - Computed
 
-    /// Typed view of the stored raw frequency kind. Fallback to monthly
-    /// keeps old rows (pre-migration) working.
+    /// Typed view of the stored raw frequency kind. **Legacy** — kept for the
+    /// recurrence fallback below. Fallback to monthly keeps old rows working.
     var frequencyKind: BudgetFrequencyKind {
         get { BudgetFrequencyKind(rawValue: frequencyKindRaw) ?? .monthly }
         set { frequencyKindRaw = newValue.rawValue }
     }
 
-    /// Per-month equivalent of this line, for rolling into dashboard
-    /// totals. For weekly cadences we approximate "30 days in a month"
-    /// because the user-facing question is "roughly per month", not "to
-    /// the day exact". For example, every-3-weeks at ₪100 ≈ ₪143/month.
+    /// The recurrence unit. Prefers the modern `recurrenceUnitRaw`; for rows
+    /// that predate it, reconstructs the unit from the legacy schedule +
+    /// frequency fields so historical budgets keep their original cadence.
+    var recurrenceUnit: RecurrenceUnit {
+        get {
+            if let raw = recurrenceUnitRaw, let unit = RecurrenceUnit(rawValue: raw) {
+                return unit
+            }
+            // Legacy fallback.
+            switch scheduleKind {
+            case .recurringYearly:
+                return .year
+            case .recurringMonthly:
+                return frequencyKind == .everyXWeeks ? .week : .month
+            case .oneTime:
+                return .month // unused for one-time lines
+            }
+        }
+        set { recurrenceUnitRaw = newValue.rawValue }
+    }
+
+    /// The "N" in "every N <unit>", never below 1. Falls back to the legacy
+    /// `frequencyWeeks` for old weekly rows, otherwise 1.
+    var recurrenceCountValue: Int {
+        get {
+            if recurrenceUnitRaw != nil { return max(recurrenceCount, 1) }
+            // Legacy: only weekly rows carried a count, in `frequencyWeeks`.
+            if scheduleKind == .recurringMonthly, frequencyKind == .everyXWeeks {
+                return max(frequencyWeeks, 1)
+            }
+            return 1
+        }
+        set { recurrenceCount = max(newValue, 1) }
+    }
+
+    /// A one-time line is a single dated event rather than a recurring one.
+    var isOneTime: Bool { scheduleKind == .oneTime }
+
+    /// True when the line contributes to *every* month — either an averaged
+    /// sub-monthly cadence or a plain "every month" line. Lines that land on
+    /// select months only (yearly, every-N-months, one-time) return `false`.
+    var landsEveryMonth: Bool {
+        guard !isOneTime else { return false }
+        if recurrenceUnit.isAveraged { return true }
+        return recurrenceUnit == .month && recurrenceCountValue == 1
+    }
+
+    /// Whether the cadence is worth surfacing in a compact row — anything
+    /// other than a plain "every month, no specific day" line.
+    var hasNoteworthySchedule: Bool {
+        isOneTime
+            || recurrenceUnit != .month
+            || recurrenceCountValue != 1
+            || scheduleDay != nil
+    }
+
+    /// Per-month equivalent of this line. For **averaged** cadences (days/
+    /// weeks) this is the smooth monthly figure the dashboard rolls up — we
+    /// approximate "30 days in a month" since the question is "roughly per
+    /// month", e.g. every-3-weeks at ₪100 ≈ ₪143/month. For **landing**
+    /// cadences (months/years) it's the long-run average for reference only;
+    /// the budget itself uses `plannedAmount(inMonth:year:)`, which drops the
+    /// whole amount into the months the line actually occurs.
     var monthlyEquivalent: Decimal {
-        switch frequencyKind {
-        case .monthly:
-            return plannedAmount
-        case .everyXWeeks:
-            let weeks = max(frequencyWeeks, 1)
-            // 30 days/month divided by (weeks × 7) gives occurrences/month
-            return plannedAmount * (Decimal(30) / Decimal(weeks * 7))
+        let n = Decimal(recurrenceCountValue)
+        switch recurrenceUnit {
+        case .day:
+            return plannedAmount * (Decimal(30) / n)
+        case .week:
+            // 30 days/month divided by (weeks × 7) gives occurrences/month.
+            return plannedAmount * (Decimal(30) / (n * 7))
+        case .month:
+            return plannedAmount / n
+        case .year:
+            return plannedAmount / (n * 12)
         }
     }
 
@@ -127,8 +209,13 @@ final class BudgetItem {
     }
 
     /// Whether this line counts toward the budget of the given month.
-    /// Recurring-monthly lines always do; yearly lines only in their
-    /// month; one-time lines only in their exact month and year.
+    ///
+    /// * Averaged cadences (days/weeks) and plain "every month" lines count
+    ///   in every month.
+    /// * "Every N months" lands on months whose distance from the anchor
+    ///   month is a multiple of N; "every N years" lands in the anchor month
+    ///   of every Nth year. `scheduleMonth`/`scheduleYear` hold that anchor.
+    /// * One-time lines count only in their exact month and year.
     func appliesTo(month: Int, year: Int) -> Bool {
         // Past the optional end bound? Then it no longer applies, whatever
         // the cadence. The end is inclusive — "until January 2028" still
@@ -137,28 +224,44 @@ final class BudgetItem {
            (year, month) > (endYear, endMonth) {
             return false
         }
-        switch scheduleKind {
-        case .recurringMonthly:
-            return true
-        case .recurringYearly:
-            return scheduleMonth == month
-        case .oneTime:
+        if isOneTime {
             return scheduleMonth == month && scheduleYear == year
+        }
+        let n = recurrenceCountValue
+        switch recurrenceUnit {
+        case .day, .week:
+            return true
+        case .month:
+            guard n > 1 else { return true } // plain every-month line
+            // Phase against the anchor (its absolute month index). Floored
+            // modulo so months *before* the anchor stay in phase too.
+            let anchorMonth = scheduleMonth ?? month
+            let anchorYear = scheduleYear ?? year
+            let delta = (year * 12 + month) - (anchorYear * 12 + anchorMonth)
+            return Self.flooredMod(delta, n) == 0
+        case .year:
+            guard let anchorMonth = scheduleMonth, month == anchorMonth else { return false }
+            guard n > 1 else { return true } // every year, in its month
+            let anchorYear = scheduleYear ?? year
+            return Self.flooredMod(year - anchorYear, n) == 0
         }
     }
 
     /// The amount this line contributes to a *specific* month's budget.
-    /// Recurring-monthly lines contribute their monthly equivalent every
-    /// month; yearly and one-time lines drop their whole planned amount
-    /// into the single month they land on, and nothing into the others.
+    /// Averaged cadences contribute their monthly equivalent every month;
+    /// landing cadences (every N months/years) and one-time lines drop their
+    /// whole planned amount into the months they occur in, and nothing else.
     func plannedAmount(inMonth month: Int, year: Int) -> Decimal {
         guard appliesTo(month: month, year: year) else { return 0 }
-        switch scheduleKind {
-        case .recurringMonthly:
-            return monthlyEquivalent
-        case .recurringYearly, .oneTime:
-            return plannedAmount
-        }
+        if isOneTime { return plannedAmount }
+        return recurrenceUnit.isAveraged ? monthlyEquivalent : plannedAmount
+    }
+
+    /// Floored modulo (result has the divisor's sign), so phase maths work
+    /// for months/years on either side of the anchor. `n` is assumed ≥ 1.
+    static func flooredMod(_ a: Int, _ n: Int) -> Int {
+        let r = a % n
+        return r >= 0 ? r : r + n
     }
 
     /// The concrete calendar date this line lands on within the given
@@ -214,14 +317,11 @@ final class BudgetItem {
     }
 
     /// Short Hebrew description of the cadence, for budget rows and the
-    /// calendar (e.g. "כל חודש ב-10", "מדי שנה בפברואר", "22 באוגוסט 2026").
-    /// Delegates to `BudgetSchedule` so the model and the editor drafts
-    /// never describe the same schedule two different ways.
+    /// calendar (e.g. "כל שבועיים", "כל חודש ב-10", "מדי שנה בפברואר",
+    /// "22 באוגוסט 2026"). Delegates to `BudgetSchedule` so the model and the
+    /// editor drafts never describe the same schedule two different ways.
     var scheduleDescription: String {
-        BudgetSchedule(from: self).hebrewDescription(
-            frequencyKind: frequencyKind,
-            frequencyWeeks: frequencyWeeks
-        )
+        BudgetSchedule(from: self).hebrewDescription()
     }
 
     /// The exact date of a one-time line, reconstructed from its stored
@@ -259,14 +359,24 @@ final class BudgetItem {
 /// SwiftData `@Model`) matches the rest of the budget flow, where drafts
 /// stay in memory until the user confirms a save.
 struct BudgetSchedule: Hashable {
-    var kind: BudgetScheduleKind = .recurringMonthly
-    /// Day-of-month used by monthly and yearly cadences (1...31).
+    /// A one-time line is a single dated event; everything else recurs on
+    /// `unit` + `count`.
+    var isOneTime: Bool = false
+    /// Recurrence interval: "every `count` `unit`s". Defaults to every month.
+    var count: Int = 1
+    var unit: RecurrenceUnit = .month
+    /// Day-of-month a landing cadence is pinned to (1...31), when `usesSpecificDay`.
     var dayOfMonth: Int = 1
-    /// Whether a monthly/yearly line is pinned to `dayOfMonth`. When false
-    /// the line still counts toward the month, just without a calendar day.
+    /// Whether a landing line is pinned to `dayOfMonth`. When false the line
+    /// still counts toward the month, just without a calendar day. Averaged
+    /// cadences (days/weeks) never pin a day.
     var usesSpecificDay: Bool = false
-    /// Month-of-year (1...12) for the yearly cadence.
+    /// Month-of-year (1...12) a landing cadence occurs / anchors in (every N
+    /// months with N>1, or any yearly cadence).
     var month: Int = Calendar.current.component(.month, from: .now)
+    /// Year used as the phase anchor for landing cadences whose period
+    /// doesn't divide evenly into a year (every 5 months, every 2 years…).
+    var anchorYear: Int = Calendar.current.component(.year, from: .now)
     /// Exact date for the one-time cadence.
     var oneTimeDate: Date = .now
     /// Whether a recurring line stops at `endDate` (month-granular). Never
@@ -277,28 +387,37 @@ struct BudgetSchedule: Hashable {
 
     /// Build the UI schedule from a persisted item.
     init(from item: BudgetItem) {
-        kind = item.scheduleKind
+        isOneTime = item.isOneTime
+        unit = item.recurrenceUnit
+        count = item.recurrenceCountValue
         usesSpecificDay = item.scheduleDay != nil
         dayOfMonth = item.scheduleDay ?? 1
         month = item.scheduleMonth ?? Calendar.current.component(.month, from: .now)
+        anchorYear = item.scheduleYear ?? Calendar.current.component(.year, from: .now)
         oneTimeDate = item.oneTimeDate ?? .now
         hasEndDate = item.scheduleEndMonth != nil
         endDate = item.scheduleEndDate ?? Self.defaultEndDate
     }
 
     init(
-        kind: BudgetScheduleKind = .recurringMonthly,
+        isOneTime: Bool = false,
+        count: Int = 1,
+        unit: RecurrenceUnit = .month,
         dayOfMonth: Int = 1,
         usesSpecificDay: Bool = false,
         month: Int = Calendar.current.component(.month, from: .now),
+        anchorYear: Int = Calendar.current.component(.year, from: .now),
         oneTimeDate: Date = .now,
         hasEndDate: Bool = false,
         endDate: Date = BudgetSchedule.defaultEndDate
     ) {
-        self.kind = kind
+        self.isOneTime = isOneTime
+        self.count = count
+        self.unit = unit
         self.dayOfMonth = dayOfMonth
         self.usesSpecificDay = usesSpecificDay
         self.month = month
+        self.anchorYear = anchorYear
         self.oneTimeDate = oneTimeDate
         self.hasEndDate = hasEndDate
         self.endDate = endDate
@@ -310,28 +429,46 @@ struct BudgetSchedule: Hashable {
         Calendar.current.date(byAdding: .year, value: 1, to: .now) ?? .now
     }
 
+    /// True for anything other than a plain "every month, no specific day"
+    /// line — i.e. worth surfacing in a compact row.
+    var isNoteworthy: Bool {
+        isOneTime || unit != .month || count != 1 || usesSpecificDay
+    }
+
+    /// Whether this cadence pins to a calendar month/day — i.e. lands its
+    /// full amount on set months (every N>1 months, or yearly).
+    private var landsOnAnchorMonth: Bool {
+        !isOneTime && (unit == .year || (unit == .month && count > 1))
+    }
+
     /// Write this schedule back onto a persisted item, setting only the
-    /// fields relevant to the chosen kind and clearing the rest so a row
-    /// can never carry stale components from a previous kind.
+    /// fields relevant to the chosen cadence and clearing the rest so a row
+    /// can never carry stale components from a previous cadence.
     func apply(to item: BudgetItem) {
-        item.scheduleKind = kind
-        switch kind {
-        case .recurringMonthly:
-            item.scheduleDay = usesSpecificDay ? clampedDay : nil
-            item.scheduleMonth = nil
-            item.scheduleYear = nil
-        case .recurringYearly:
-            item.scheduleMonth = month
-            item.scheduleDay = usesSpecificDay ? clampedDay : nil
-            item.scheduleYear = nil
-        case .oneTime:
+        if isOneTime {
+            // `scheduleKind` still flags one-time vs. recurring for all rows.
+            item.scheduleKind = .oneTime
             let comps = Calendar.current.dateComponents([.year, .month, .day], from: oneTimeDate)
             item.scheduleYear = comps.year
             item.scheduleMonth = comps.month
             item.scheduleDay = comps.day
+        } else {
+            // Keep the legacy kind sensible (yearly stays yearly) even though
+            // the live cadence now reads from the recurrence fields.
+            item.scheduleKind = unit == .year ? .recurringYearly : .recurringMonthly
+            item.recurrenceUnit = unit
+            item.recurrenceCountValue = count
+            // Averaged cadences (days/weeks) are spread across the month, so
+            // they never pin a calendar day — guard against a stale toggle
+            // left on from a previous landing cadence.
+            item.scheduleDay = (!unit.isAveraged && usesSpecificDay) ? clampedDay : nil
+            // Only landing cadences need a month/year anchor; averaged and
+            // plain-monthly lines clear it.
+            item.scheduleMonth = landsOnAnchorMonth ? month : nil
+            item.scheduleYear = landsOnAnchorMonth ? anchorYear : nil
         }
         // End bound is only meaningful for recurring lines.
-        if kind != .oneTime, hasEndDate {
+        if !isOneTime, hasEndDate {
             let comps = Calendar.current.dateComponents([.month, .year], from: endDate)
             item.scheduleEndMonth = comps.month
             item.scheduleEndYear = comps.year
@@ -343,31 +480,48 @@ struct BudgetSchedule: Hashable {
 
     private var clampedDay: Int { min(max(dayOfMonth, 1), 31) }
 
-    /// Canonical short Hebrew description of the cadence, reused by the
-    /// model (`BudgetItem.scheduleDescription`) and by the onboarding/
-    /// editor draft rows. `frequencyKind`/`frequencyWeeks` only matter for
-    /// the recurring-monthly "every X weeks" case.
-    func hebrewDescription(
-        frequencyKind: BudgetFrequencyKind = .monthly,
-        frequencyWeeks: Int = 1
-    ) -> String {
-        let base: String
-        switch kind {
-        case .recurringMonthly:
-            if frequencyKind == .everyXWeeks {
-                // Localized for the Hebrew dual: כל שבוע / כל שבועיים / כל N שבועות.
-                base = String(localized: "כל \(max(frequencyWeeks, 1)) שבועות")
-            } else {
-                base = usesSpecificDay ? "כל חודש ב-\(clampedDay)" : "כל חודש"
-            }
-        case .recurringYearly:
-            let monthName = Self.hebrewMonthName(month)
-            base = usesSpecificDay ? "מדי שנה, ה-\(clampedDay) ב\(monthName)" : "מדי שנה ב\(monthName)"
-        case .oneTime:
+    /// "כל יום / כל שבועיים / כל 3 חודשים / כל שנה …" — the recurrence interval
+    /// in Hebrew, handling the singular and dual forms. Shared by the cadence
+    /// stepper and the full schedule description.
+    static func everyPhrase(count: Int, unit: RecurrenceUnit) -> String {
+        let n = max(count, 1)
+        switch unit {
+        case .day:   return n == 1 ? "כל יום"  : "כל \(n) ימים"
+        case .week:  return n == 1 ? "כל שבוע" : n == 2 ? "כל שבועיים" : "כל \(n) שבועות"
+        case .month: return n == 1 ? "כל חודש" : "כל \(n) חודשים"
+        case .year:  return n == 1 ? "כל שנה"  : n == 2 ? "כל שנתיים"  : "כל \(n) שנים"
+        }
+    }
+
+    /// Canonical short Hebrew description of the cadence, reused by the model
+    /// (`BudgetItem.scheduleDescription`) and by the onboarding/editor draft
+    /// rows, so a schedule is never described two different ways.
+    func hebrewDescription() -> String {
+        if isOneTime {
             // One-off lines are inherently bounded, so no "until" suffix.
             return oneTimeDate.formatted(
                 .dateTime.locale(Locale(identifier: "he_IL")).day().month(.wide).year()
             )
+        }
+
+        let phrase = Self.everyPhrase(count: count, unit: unit)
+        let base: String
+        switch unit {
+        case .day, .week:
+            base = phrase
+        case .month:
+            if count == 1 {
+                base = usesSpecificDay ? "כל חודש ב-\(clampedDay)" : "כל חודש"
+            } else {
+                base = usesSpecificDay ? "\(phrase), ב-\(clampedDay) בחודש" : phrase
+            }
+        case .year:
+            let monthName = Self.hebrewMonthName(month)
+            if count == 1 {
+                base = usesSpecificDay ? "מדי שנה, ה-\(clampedDay) ב\(monthName)" : "מדי שנה ב\(monthName)"
+            } else {
+                base = usesSpecificDay ? "\(phrase), ה-\(clampedDay) ב\(monthName)" : "\(phrase) ב\(monthName)"
+            }
         }
 
         guard hasEndDate else { return base }

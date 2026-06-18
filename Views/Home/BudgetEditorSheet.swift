@@ -233,7 +233,7 @@ private struct IncomeItemRow: View {
     }
 
     private var showsSchedule: Bool {
-        item.scheduleKind != .recurringMonthly || item.scheduleDay != nil
+        item.hasNoteworthySchedule
     }
 }
 
@@ -267,7 +267,7 @@ private struct ExpenseItemRow: View {
                     .font(Theme.Typography.amount)
                     .foregroundStyle(Theme.Colors.textPrimary)
                     .monospacedDigit()
-                if item.frequencyKind == .everyXWeeks {
+                if !item.isOneTime, item.recurrenceUnit.isAveraged {
                     Text("~\(item.monthlyEquivalent.formatted(.currency(code: item.currencyCode))) חודשי")
                         .font(Theme.Typography.caption)
                         .foregroundStyle(Theme.Colors.textSecondary)

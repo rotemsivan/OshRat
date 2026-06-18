@@ -296,12 +296,13 @@ struct BudgetCalendarView: View {
     /// day/month too so switching it to monthly ("every month on the 22nd")
     /// or yearly keeps the date the user already picked.
     private func seededSchedule() -> BudgetSchedule {
-        let comps = calendar.dateComponents([.day, .month], from: addSeedDate)
+        let comps = calendar.dateComponents([.day, .month, .year], from: addSeedDate)
         return BudgetSchedule(
-            kind: .oneTime,
+            isOneTime: true,
             dayOfMonth: comps.day ?? 1,
             usesSpecificDay: true,
             month: comps.month ?? 1,
+            anchorYear: comps.year ?? Calendar.current.component(.year, from: .now),
             oneTimeDate: addSeedDate
         )
     }

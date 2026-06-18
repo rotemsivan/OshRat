@@ -465,15 +465,13 @@ extension IncomeSourceDraft {
 
     /// Writes this draft back into a persisted income `BudgetItem`.
     /// Kind stays `.income`, category stays nil — income lines never
-    /// carry a category. Frequency is always monthly for income; the
-    /// schedule controls which months it lands in.
+    /// carry a category. The schedule carries the full cadence (income
+    /// editors only expose monthly / yearly / one-off cadences).
     func apply(to item: BudgetItem) {
         item.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         item.plannedAmount = plannedAmount
         item.kind = .income
         item.currencyCode = currencyCode
-        item.frequencyKind = .monthly
-        item.frequencyWeeks = 1
         item.category = nil
         schedule.apply(to: item)
     }
@@ -491,14 +489,12 @@ struct PlannedExpenseDraft: Identifiable, Hashable {
     /// the editor sheet won't allow saving without one.
     var category: Category?
     var note: String
-    /// Amount per occurrence (per visit for `everyXWeeks`, per month
-    /// for `monthly`). Roll-up to monthly happens on the dashboard.
+    /// Amount per occurrence (per visit for an averaged cadence, per month
+    /// for "every month"). Roll-up to monthly happens on the dashboard.
     var plannedAmount: Decimal
     var currencyCode: String
-    var frequencyKind: BudgetFrequencyKind
-    var frequencyWeeks: Int
-    /// When this expense lands — every month (rent), every year (car test),
-    /// or a single dated event (a gift). Defaults to recurring-monthly.
+    /// When this expense lands — and how often. The cadence (every N days /
+    /// weeks / months / years, or a one-off) lives entirely here.
     var schedule: BudgetSchedule
 
     init(
@@ -507,8 +503,6 @@ struct PlannedExpenseDraft: Identifiable, Hashable {
         note: String = "",
         plannedAmount: Decimal = 0,
         currencyCode: String = "ILS",
-        frequencyKind: BudgetFrequencyKind = .monthly,
-        frequencyWeeks: Int = 3,
         schedule: BudgetSchedule = BudgetSchedule()
     ) {
         self.id = id
@@ -516,8 +510,6 @@ struct PlannedExpenseDraft: Identifiable, Hashable {
         self.note = note
         self.plannedAmount = plannedAmount
         self.currencyCode = currencyCode
-        self.frequencyKind = frequencyKind
-        self.frequencyWeeks = frequencyWeeks
         self.schedule = schedule
     }
 }
@@ -532,8 +524,6 @@ extension PlannedExpenseDraft {
             note: item.name,
             plannedAmount: item.plannedAmount,
             currencyCode: item.currencyCode,
-            frequencyKind: item.frequencyKind,
-            frequencyWeeks: max(item.frequencyWeeks, 1),
             schedule: BudgetSchedule(from: item)
         )
     }
@@ -546,8 +536,6 @@ extension PlannedExpenseDraft {
         item.plannedAmount = plannedAmount
         item.kind = .expense
         item.currencyCode = currencyCode
-        item.frequencyKind = frequencyKind
-        item.frequencyWeeks = max(frequencyWeeks, 1)
         item.category = category
         schedule.apply(to: item)
     }
