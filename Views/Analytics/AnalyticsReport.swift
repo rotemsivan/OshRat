@@ -449,10 +449,10 @@ extension AnalyticsReport {
 
     private static func symbol(for type: AccountType) -> String {
         switch type {
-        case .current:    return "banknote"
-        case .savings:    return "lock"
-        case .investment: return "chart.line.uptrend.xyaxis"
-        case .other:      return "circle.dashed"
+        case .current:       return "banknote"
+        case .digitalWallet: return "wallet.bifold"
+        case .savings:       return "lock"
+        case .investment:    return "chart.line.uptrend.xyaxis"
         }
     }
 }

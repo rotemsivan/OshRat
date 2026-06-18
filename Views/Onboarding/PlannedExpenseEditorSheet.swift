@@ -46,9 +46,7 @@ struct PlannedExpenseEditorSheet: View {
                 amountSection
                 BudgetScheduleSection(
                     schedule: $draft.schedule,
-                    frequencyKind: $draft.frequencyKind,
-                    frequencyWeeks: $draft.frequencyWeeks,
-                    allowsWeeklyCadence: true,
+                    allowsSubMonthlyCadence: true,
                     currencyCode: draft.currencyCode,
                     plannedAmount: draft.plannedAmount
                 )
@@ -124,23 +122,20 @@ struct PlannedExpenseEditorSheet: View {
     private var noteSection: some View {
         Section {
             HebrewTextField("הערה (לא חובה)", text: $draft.note, submitLabel: .next)
-        } footer: {
-            Text("מקום לפירוט נקודתי, למשל ‘ספר’ או ‘חדר כושר’ בתוך הקטגוריה.")
         }
     }
 
     private var amountSection: some View {
         Section {
-            DecimalField(
-                placeholder: "סכום",
-                value: $draft.plannedAmount
+            // Same big amount + inline currency field used across the app's
+            // money inputs. Row background cleared so only the field's own
+            // card shows.
+            BigAmountField(
+                value: $draft.plannedAmount,
+                currencyCode: $draft.currencyCode,
+                supportedCurrencies: supportedCurrencies
             )
-
-            Picker("מטבע", selection: $draft.currencyCode) {
-                ForEach(supportedCurrencies, id: \.self) { code in
-                    Text(code).tag(code)
-                }
-            }
+            .listRowBackground(Color.clear)
         } header: {
             Text("סכום מתוכנן")
         } footer: {
@@ -148,19 +143,23 @@ struct PlannedExpenseEditorSheet: View {
         }
     }
 
-    /// The amount's meaning depends on the schedule the user picked, so the
-    /// footer adapts: per-occurrence for weekly cadences, the single sum for
-    /// yearly/one-off lines, the monthly figure otherwise.
+    /// The amount's meaning depends on the cadence the user picked, so the
+    /// footer adapts: per-occurrence for averaged cadences, the single sum
+    /// for landing / one-off lines, the monthly figure for plain monthly.
     private var amountFooterText: String {
-        switch draft.schedule.kind {
-        case .oneTime:
+        let schedule = draft.schedule
+        if schedule.isOneTime {
             return "הסכום של ההוצאה החד־פעמית."
-        case .recurringYearly:
-            return "הסכום שייכנס פעם בשנה, בחודש שנבחר."
-        case .recurringMonthly:
-            return draft.frequencyKind == .everyXWeeks
-                ? "הסכום עבור כל פעם — לדוגמה כמה עולה ביקור אחד אצל הספר."
+        }
+        switch schedule.unit {
+        case .day, .week:
+            return "הסכום עבור כל פעם — לדוגמה כמה עולה ביקור אחד אצל הספר."
+        case .month:
+            return schedule.count > 1
+                ? "הסכום המלא שייכנס בכל פעם שזה חוזר."
                 : "הסכום החודשי המתוכנן."
+        case .year:
+            return "הסכום שייכנס פעם בשנה, בחודש שנבחר."
         }
     }
 

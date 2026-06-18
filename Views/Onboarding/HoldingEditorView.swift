@@ -54,16 +54,15 @@ struct HoldingEditorView: View {
                     value: $draft.quantity
                 )
 
-                DecimalField(
-                    placeholder: "שווי שוק נוכחי",
-                    value: $draft.marketValue
+                // Market value is the holding's money figure, so it uses
+                // the shared big amount + inline currency field. The
+                // quantity above stays a plain count, not a currency amount.
+                BigAmountField(
+                    value: $draft.marketValue,
+                    currencyCode: $draft.currencyCode,
+                    supportedCurrencies: supportedCurrencies
                 )
-
-                Picker("מטבע", selection: $draft.currencyCode) {
-                    ForEach(supportedCurrencies, id: \.self) { code in
-                        Text(code).tag(code)
-                    }
-                }
+                .listRowBackground(Color.clear)
             } header: {
                 Text("שווי והחזקה")
             } footer: {

@@ -28,6 +28,10 @@ struct HomeView: View {
 
     @State private var selectedTab: HomeBottomBar.Tab = .home
     @State private var editingAccount: Account?
+    /// Drives the "חשבון חדש" sheet from the assets card's add button.
+    /// Boolean rather than item-based because the sheet seeds its own
+    /// fresh draft — there's no existing account to hand it.
+    @State private var isAddingAccount: Bool = false
     /// Drives the "תנועה חדשה" sheet. Boolean rather than an item-based
     /// trigger because the sheet builds its own draft internally; we
     /// just need to know "is it open or closed".
@@ -98,10 +102,28 @@ struct HomeView: View {
         .sheet(isPresented: $isEditingBudget) {
             BudgetEditorSheet()
         }
+        .sheet(isPresented: $isAddingAccount) {
+            AccountEditorSheet(
+                // Seed the draft in the user's preferred currency, matching
+                // the onboarding add button. Nothing is persisted yet, so
+                // the currency picker stays editable (unlike the edit flow
+                // below, which locks it on an already-saved account).
+                draft: AccountDraft(currencyCode: preferredCurrencyCode),
+                isNew: true,
+                lockCurrency: false,
+                onSave: { draft in addAccount(draft) },
+                onCancel: {}
+            )
+        }
         .sheet(item: $editingAccount) { account in
             AccountEditorSheet(
                 draft: AccountDraft(from: account),
                 isNew: false,
+                // Dashboard edits target a persisted account, so the
+                // currency picker is locked here — see AccountEditorSheet
+                // for the reasoning. Onboarding leaves it on the default
+                // (unlocked) since drafts haven't been committed yet.
+                lockCurrency: true,
                 onSave: { updated in
                     updated.apply(to: account, in: modelContext)
                 },
@@ -160,7 +182,8 @@ struct HomeView: View {
                             account.isFavorite = willBeFavorite
                             try? modelContext.save()
                         }
-                    }
+                    },
+                    onAddAccount: { isAddingAccount = true }
                 )
 
                 BudgetSummaryCard(
@@ -192,6 +215,59 @@ struct HomeView: View {
             #if DEBUG
             DebugResetButton()
             #endif
+        }
+    }
+
+    /// Turns a freshly filled draft into a persisted `Account`.
+    ///
+    /// This mirrors the per-account loop in `OnboardingViewModel.commit`
+    /// rather than reusing `AccountDraft.apply(to:in:)` on purpose: `apply`
+    /// logs a "manual balance edit" transaction whenever the balance
+    /// differs from the account's previous value, which for a brand-new
+    /// account (previous balance 0) would fabricate a bogus transaction
+    /// for the opening balance. Opening balances are the source of truth,
+    /// not a logged movement — so we create the row directly here.
+    private func addAccount(_ draft: AccountDraft) {
+        withAnimation {
+            // A new account may claim the single "favourite" slot. Clear
+            // the flag off every existing account first so the invariant
+            // (at most one favourite) holds — same rule as the toggle
+            // handler above.
+            if draft.isFavorite {
+                for other in accounts where other.isFavorite {
+                    other.isFavorite = false
+                }
+            }
+
+            let account = Account(
+                name: draft.name.trimmingCharacters(in: .whitespacesAndNewlines),
+                type: draft.type,
+                balance: draft.balance,
+                currencyCode: draft.currencyCode,
+                lastUpdated: .now,
+                isFavorite: draft.isFavorite
+            )
+            modelContext.insert(account)
+
+            // Holdings only make sense on investment accounts. Setting the
+            // inverse relationship keeps `Account.holdings` in sync without
+            // appending by hand.
+            if draft.type == .investment {
+                for hd in draft.holdings {
+                    let holding = Holding(
+                        symbol: hd.symbol.trimmingCharacters(in: .whitespacesAndNewlines),
+                        name: hd.name.trimmingCharacters(in: .whitespacesAndNewlines),
+                        quantity: hd.quantity,
+                        marketValue: hd.marketValue,
+                        currencyCode: hd.currencyCode,
+                        lastUpdated: .now
+                    )
+                    holding.account = account
+                    modelContext.insert(holding)
+                }
+            }
+
+            try? modelContext.save()
         }
     }
 

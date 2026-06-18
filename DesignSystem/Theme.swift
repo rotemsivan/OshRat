@@ -78,9 +78,9 @@ enum Theme {
     enum Typography {
         static let screenTitle  = Font.custom(Fonts.bold,    size: 28, relativeTo: .largeTitle)
         static let sectionTitle = Font.custom(Fonts.bold,    size: 22, relativeTo: .headline)
-        static let amount       = Font.custom(Fonts.bold,    size: 16, relativeTo: .title2)
-        static let body         = Font.custom(Fonts.regular, size: 14, relativeTo: .body)
-        static let caption      = Font.custom(Fonts.regular, size: 12, relativeTo: .caption)
+        static let amount       = Font.custom(Fonts.bold,    size: 18, relativeTo: .title2)
+        static let body         = Font.custom(Fonts.regular, size: 17, relativeTo: .body)
+        static let caption      = Font.custom(Fonts.regular, size: 13, relativeTo: .caption)
     }
 
     // MARK: Fonts
@@ -99,6 +99,19 @@ enum Theme {
         }
         static func uiBold(_ size: CGFloat) -> UIFont {
             UIFont(name: bold, size: size) ?? .boldSystemFont(ofSize: size)
+        }
+
+        /// Dynamic-Type-aware variants for the UIKit-backed inputs
+        /// (`UITextField` / `UITextView`). The SwiftUI `Text` tokens above
+        /// scale via `relativeTo:`, but a plain `UIFont(name:size:)` is
+        /// frozen — so we scale the base size against a text style here.
+        /// Pair with `adjustsFontForContentSizeCategory = true` on the view
+        /// so it also tracks live changes to the user's text-size setting.
+        static func uiRegularScaled(_ size: CGFloat, style: UIFont.TextStyle = .body) -> UIFont {
+            UIFontMetrics(forTextStyle: style).scaledFont(for: uiRegular(size))
+        }
+        static func uiBoldScaled(_ size: CGFloat, style: UIFont.TextStyle = .body) -> UIFont {
+            UIFontMetrics(forTextStyle: style).scaledFont(for: uiBold(size))
         }
     }
 

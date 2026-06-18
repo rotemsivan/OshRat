@@ -64,8 +64,8 @@ struct HebrewTextField: UIViewRepresentable {
         let field = HebrewUITextField()
         field.placeholder = placeholder
         field.borderStyle = .none
-        field.font = UIFont(name: Theme.Fonts.regular, size: 14)
-            ?? .systemFont(ofSize: 14)
+        field.font = Theme.Fonts.uiRegularScaled(17)
+        field.adjustsFontForContentSizeCategory = true
         field.textColor = .label
         // Right-align text + caret so Hebrew flows from the right and
         // the placeholder doesn't appear stranded on the left.
@@ -155,8 +155,8 @@ private struct HebrewTextEditorRepresentable: UIViewRepresentable {
 
     func makeUIView(context: Context) -> HebrewUITextView {
         let view = HebrewUITextView()
-        view.font = UIFont(name: Theme.Fonts.regular, size: 14)
-            ?? .systemFont(ofSize: 14)
+        view.font = Theme.Fonts.uiRegularScaled(17)
+        view.adjustsFontForContentSizeCategory = true
         view.textColor = .label
         view.textAlignment = .right
         view.semanticContentAttribute = .forceRightToLeft

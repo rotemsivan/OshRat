@@ -36,28 +36,27 @@ struct IncomeSourceEditorSheet: View {
                 }
 
                 Section {
-                    DecimalField(
-                        placeholder: "סכום מתוכנן",
-                        value: $draft.plannedAmount
+                    // Same big amount + inline currency field used across
+                    // the app's money inputs. Row background cleared so only
+                    // the field's own card shows.
+                    BigAmountField(
+                        value: $draft.plannedAmount,
+                        currencyCode: $draft.currencyCode,
+                        supportedCurrencies: supportedCurrencies
                     )
-
-                    Picker("מטבע", selection: $draft.currencyCode) {
-                        ForEach(supportedCurrencies, id: \.self) { code in
-                            Text(code).tag(code)
-                        }
-                    }
+                    .listRowBackground(Color.clear)
+                } header: {
+                    Text("סכום מתוכנן")
                 } footer: {
                     Text("הסכום הצפוי. אם הוא משתנה — רשמו ממוצע משוער ועדכנו בעתיד.")
                 }
 
-                // Income lines are always "monthly" in the weekly-cadence
-                // sense, so we lock the frequency to monthly and only let
-                // the user choose the schedule (which months / which day).
+                // Income doesn't use the averaged sub-monthly cadences (a
+                // salary doesn't arrive "every few days"), so we hide them and
+                // offer only monthly / every-N-months / yearly / one-off.
                 BudgetScheduleSection(
                     schedule: $draft.schedule,
-                    frequencyKind: .constant(.monthly),
-                    frequencyWeeks: .constant(1),
-                    allowsWeeklyCadence: false,
+                    allowsSubMonthlyCadence: false,
                     currencyCode: draft.currencyCode,
                     plannedAmount: draft.plannedAmount
                 )

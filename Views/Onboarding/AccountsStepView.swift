@@ -65,27 +65,56 @@ struct AccountsStepView: View {
     }
 }
 
-/// One row in the accounts list. Name on top, type + holdings count
-/// underneath, total (cash + holdings for investment accounts) on the
-/// trailing side. All colours/fonts come from the design system.
+/// One row in the accounts list. Visually matches the dashboard's
+/// `AssetsSummaryCard.AccountSummaryRow` — accent-colour SF Symbol on
+/// the leading edge, name with an optional favourite star on top, type
+/// + holdings count underneath, total on the trailing side. Keeping
+/// the two rows lockstep means the user sees the same account "card"
+/// shape in onboarding and on the dashboard, so the mental model
+/// carries over without re-learning.
 private struct AccountDraftRow: View {
     let draft: AccountDraft
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                Text(draft.name.isEmpty ? "ללא שם" : draft.name)
-                    .font(Theme.Typography.amount)
-                    .foregroundStyle(Theme.Colors.textPrimary)
+        HStack(spacing: Theme.Spacing.sm) {
+            Image(systemName: symbolName)
+                .foregroundStyle(Theme.Colors.accent)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: Theme.Spacing.xs) {
+                    Text(draft.name.isEmpty ? "ללא שם" : draft.name)
+                        .font(Theme.Typography.body)
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    if draft.isFavorite {
+                        // Tiny inline star so the favourite is visible
+                        // at a glance without opening the editor.
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.yellow)
+                            .accessibilityLabel(Text("חשבון מועדף"))
+                    }
+                }
                 Text(subtitle)
                     .font(Theme.Typography.caption)
                     .foregroundStyle(Theme.Colors.textSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
-            Spacer()
+
+            Spacer(minLength: Theme.Spacing.sm)
+
+            // Long balances (e.g. high-value investment accounts) must
+            // stay on one line and shrink to fit instead of wrapping.
             Text(formattedTotal)
                 .font(Theme.Typography.amount)
                 .foregroundStyle(Theme.Colors.textPrimary)
                 .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .layoutPriority(1)
         }
         .contentShape(.rect)
     }
@@ -110,6 +139,15 @@ private struct AccountDraftRow: View {
             }
         }
         return total.formatted(.currency(code: draft.currencyCode))
+    }
+
+    private var symbolName: String {
+        switch draft.type {
+        case .current:       return "banknote"
+        case .digitalWallet: return "wallet.bifold"
+        case .savings:       return "lock"
+        case .investment:    return "chart.line.uptrend.xyaxis"
+        }
     }
 }
 

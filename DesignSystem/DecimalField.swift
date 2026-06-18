@@ -24,8 +24,8 @@ struct DecimalField: UIViewRepresentable {
         field.placeholder = placeholder
         field.keyboardType = .decimalPad
         field.borderStyle = .none
-        field.font = UIFont(name: Theme.Fonts.regular, size: 14)
-            ?? .systemFont(ofSize: 14)
+        field.font = Theme.Fonts.uiRegularScaled(17)
+        field.adjustsFontForContentSizeCategory = true
         field.textColor = .label
         // Numbers are inherently left-to-right. The surrounding form
         // is RTL Hebrew, but forcing the field itself to LTR keeps the

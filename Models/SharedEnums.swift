@@ -22,22 +22,42 @@ enum TransactionKind: String, Codable, CaseIterable, Identifiable {
 }
 
 /// The kind of financial account the user is tracking.
+///
+/// Declaration order is also the order `allCases` feeds the type picker
+/// and (mirrored in `AssetsSummaryCard.typeRank`) the dashboard list:
+/// everyday liquid money first (current + digital wallet), then savings
+/// and investments.
 enum AccountType: String, Codable, CaseIterable, Identifiable {
-    case current      // עו״ש
-    case savings      // חיסכון
-    case investment   // השקעות
-    case other        // אחר
+    case current        // עו״ש
+    case digitalWallet  // ארנק דיגיטלי — Bit / PayBox / PayPal balance, etc.
+    case savings        // חיסכון
+    case investment     // השקעות
 
     var id: String { rawValue }
 
     /// TODO: move into the String Catalog later.
     var hebrewLabel: String {
         switch self {
-        case .current:    return "עו״ש"
-        case .savings:    return "חיסכון"
-        case .investment: return "השקעות"
-        case .other:      return "אחר"
+        case .current:       return "עו״ש"
+        case .digitalWallet: return "ארנק דיגיטלי"
+        case .savings:       return "חיסכון"
+        case .investment:    return "השקעות"
         }
+    }
+
+    /// Decode unknown raw values to a safe fallback instead of throwing.
+    ///
+    /// SwiftData persists this enum as a composite (Codable) attribute, so
+    /// if a case is ever removed or renamed, old rows still holding the old
+    /// raw value would otherwise fail to decode and crash the *entire* store
+    /// at launch (as happened when `.other` was removed). Falling back to
+    /// `.current` degrades one stale field gracefully rather than bricking
+    /// the app. Encoding stays the synthesized rawValue path, so storage is
+    /// unchanged. (Not a substitute for a real migration once there are real
+    /// users — there it would silently reclassify their accounts.)
+    init(from decoder: any Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = AccountType(rawValue: raw) ?? .current
     }
 }
 
@@ -63,10 +83,35 @@ enum CategoryNature: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-/// How often a planned expense recurs. `monthly` is by far the common
-/// case (rent, subscriptions, bills). `everyXWeeks` covers things like
-/// "barber every 3 weeks" — the dashboard converts these to a monthly
-/// equivalent so totals line up.
+/// The unit of a budget line's recurrence interval. Combined with a count
+/// it expresses "every N <unit>" (every 3 days, every 2 weeks, every month,
+/// every 2 years…). This is the modern cadence model; it supersedes the
+/// legacy `BudgetFrequencyKind`/`BudgetScheduleKind` pair, which is kept only
+/// so old rows still migrate cleanly (see `BudgetItem.recurrenceUnit`).
+///
+/// The two scales behave differently in the month-based budget:
+/// * **Averaged** (`day`, `week`) — shorter than a month, so we spread the
+///   amount into a smooth monthly equivalent and count it in *every* month.
+/// * **Landing** (`month`, `year`) — the full amount lands only on the
+///   months the line actually occurs in (e.g. a quarterly bill shows its
+///   whole amount in those months and ₪0 in the rest).
+enum RecurrenceUnit: String, Codable, CaseIterable, Identifiable {
+    case day
+    case week
+    case month
+    case year
+
+    var id: String { rawValue }
+
+    /// True for sub-monthly units, which are spread into a monthly average
+    /// rather than landing their full amount on specific months.
+    var isAveraged: Bool { self == .day || self == .week }
+}
+
+/// How often a planned expense recurs. **Legacy** — superseded by
+/// `RecurrenceUnit` + a count. Retained because existing `BudgetItem` rows
+/// persisted their cadence here; `BudgetItem.recurrenceUnit` falls back to
+/// it when the newer `recurrenceUnitRaw` field is absent.
 enum BudgetFrequencyKind: String, Codable, CaseIterable, Identifiable {
     case monthly       // חודשי
     case everyXWeeks   // כל X שבועות
@@ -91,11 +136,13 @@ enum BudgetFrequencyKind: String, Codable, CaseIterable, Identifiable {
 /// * `oneTime` — a single dated event ("anniversary gift, 22 Aug"), counted
 ///   only in its own month.
 ///
-/// Orthogonal to `BudgetFrequencyKind`: frequency answers "how big is the
-/// monthly slice" for recurring-monthly lines, while this answers "which
-/// months does the line appear in at all". A brand-new or migrated row
-/// defaults to `recurringMonthly`, so existing budgets behave exactly as
-/// before.
+/// Since the move to `RecurrenceUnit` + a count, this enum's live job is
+/// narrower: it flags whether a line is `oneTime` versus recurring (the
+/// recurring *cadence* now lives in `recurrenceUnit`/`recurrenceCount`). It
+/// is still persisted and still distinguishes monthly vs. yearly for **old**
+/// rows that predate `recurrenceUnitRaw`, so `BudgetItem.recurrenceUnit` can
+/// reconstruct their cadence. A brand-new or migrated row defaults to
+/// `recurringMonthly`.
 enum BudgetScheduleKind: String, Codable, CaseIterable, Identifiable {
     case recurringMonthly   // כל חודש
     case recurringYearly    // כל שנה

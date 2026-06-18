@@ -8,13 +8,21 @@ import SwiftUI
 /// swiping the sheet down throws the edits away.
 ///
 /// The body adapts to the account type:
-///   * `.current` / `.savings` / `.other` — one balance field, done.
+///   * `.current` / `.digitalWallet` / `.savings` — one balance field, done.
 ///   * `.investment` — the balance is relabelled as *liquid cash* and a
 ///     "Holdings" section appears for stocks, ETFs and other assets the
 ///     user holds in the same account.
 struct AccountEditorSheet: View {
     @State private var draft: AccountDraft
     private let isNew: Bool
+    /// When true, the currency picker is replaced with a read-only
+    /// label. Used by the dashboard's edit-account flow where the
+    /// account is already persisted: changing its currency would
+    /// invalidate the stored balance and the transaction history that
+    /// hangs off it. During onboarding (both add and re-edit of a
+    /// freshly added draft) nothing is committed yet, so the picker
+    /// stays editable and the caller passes `false`.
+    private let lockCurrency: Bool
     private let onSave: (AccountDraft) -> Void
     private let onCancel: () -> Void
 
@@ -25,11 +33,13 @@ struct AccountEditorSheet: View {
     init(
         draft: AccountDraft,
         isNew: Bool,
+        lockCurrency: Bool = false,
         onSave: @escaping (AccountDraft) -> Void,
         onCancel: @escaping () -> Void
     ) {
         self._draft = State(initialValue: draft)
         self.isNew = isNew
+        self.lockCurrency = lockCurrency
         self.onSave = onSave
         self.onCancel = onCancel
     }
@@ -38,25 +48,42 @@ struct AccountEditorSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    HebrewTextField("שם החשבון", text: $draft.name, submitLabel: .next)
+                    HStack(spacing: Theme.Spacing.sm) {
+                        // Favourite toggle in line with — but visually
+                        // separate from — the name field. RTL reads as
+                        // rat → small gap → boxed field. Selecting it fires
+                        // the window-wide glow below.
+                        FavouriteRatToggle(isFavorite: $draft.isFavorite)
+                        HebrewTextField("שם החשבון", text: $draft.name, submitLabel: .next)
+                            .padding(Theme.Spacing.md)
+                            .background(Theme.Colors.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                                    .stroke(Theme.Colors.separator, lineWidth: 1)
+                            )
+                    }
+                    .listRowBackground(Color.clear)
                 } footer: {
                     Text("למשל: עו״ש בנק הפועלים, חיסכון, תיק השקעות.")
                 }
-                HStack {
-                    Text("סוג")
-                    Picker("סוג", selection: $draft.type) {
-                        ForEach(AccountType.allCases) { type in
-                            Text(type.hebrewLabel).tag(type)
-                        }
+
+                // Segmented "slide" picker across the four account types.
+                // The row background is cleared so the control floats on the
+                // sheet background instead of a white capsule, and the
+                // top/bottom row insets are trimmed so it isn't boxed in
+                // vertical whitespace. The "סוג" title stays for VoiceOver
+                // though the segmented style hides it.
+                Picker("סוג", selection: $draft.type) {
+                    ForEach(AccountType.allCases) { type in
+                        Text(type.hebrewLabel).tag(type)
                     }
-                    .pickerStyle(.segmented)
-                    .fixedSize()
-                    .frame(maxWidth: .infinity, alignment: .trailing)
                 }
+                .pickerStyle(.segmented)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 0, leading: Theme.Spacing.md, bottom: 0, trailing: Theme.Spacing.md))
 
                 balanceSection
-
-                favouriteSection
 
                 if draft.type == .investment {
                     holdingsSection
@@ -88,57 +115,39 @@ struct AccountEditorSheet: View {
             }
         }
         .tint(Theme.Colors.accent)
+        // Siri-style glow that sweeps the whole window when the account is
+        // marked favourite. Lives at the sheet root (not on the rat) so it
+        // can span the full window; fires off `draft.isFavorite` flipping on.
+        .overlay {
+            FavouriteWindowGlow(isActive: draft.isFavorite)
+        }
     }
 
     // MARK: - Sections
 
     private var balanceSection: some View {
         Section {
-            DecimalField(
-                placeholder: draft.type == .investment ? "יתרה במזומן (נזיל)" : "יתרה",
-                value: $draft.balance
+            // Mirrors the "סכום" field in NewTransactionSheet: one big
+            // balance number with the currency on the same row, reading as
+            // a single editable unit. The row background is cleared so only
+            // the field's own card shows (no double surface).
+            //
+            // `isCurrencyLocked` is on for the dashboard edit flow — a
+            // persisted account's balance, history and running-balance
+            // snapshots are all in its currency, with no sensible
+            // conversion, so the code is read-only there. Onboarding drafts
+            // aren't committed yet, so they stay editable.
+            BigAmountField(
+                value: $draft.balance,
+                currencyCode: $draft.currencyCode,
+                supportedCurrencies: supportedCurrencies,
+                isCurrencyLocked: lockCurrency
             )
-
-            if isNew {
-                Picker("מטבע", selection: $draft.currencyCode) {
-                    ForEach(supportedCurrencies, id: \.self) { code in
-                        Text(code).tag(code)
-                    }
-                }
-            } else {
-                // The account's base currency is locked once it's been
-                // created. Re-stating it as a static row keeps the value
-                // visible without offering a picker — a mid-life
-                // currency switch would invalidate the balance, its
-                // historical transactions, and the "running balance"
-                // snapshots on every row, with no sensible conversion
-                // to apply. Transactions on this account can still be
-                // entered in any currency (see `NewTransactionSheet`),
-                // converted via the FX snapshot at confirm time.
-                LabeledContent("מטבע") {
-                    Text(draft.currencyCode)
-                        .foregroundStyle(Theme.Colors.textSecondary)
-                        .monospacedDigit()
-                }
-            }
+            .listRowBackground(Color.clear)
+        } header: {
+            Text(draft.type == .investment ? "יתרה במזומן (נזיל)" : "יתרה")
         } footer: {
             Text(balanceFooter)
-        }
-    }
-
-    /// Single-account "default" flag. The "תנועה חדשה" sheet pre-selects
-    /// this account so the common-case income/expense entry is one tap.
-    /// Only one account can be the favourite at a time — the parent save
-    /// handler clears the flag off the others.
-    private var favouriteSection: some View {
-        Section {
-            Toggle(isOn: $draft.isFavorite) {
-                Label("חשבון מועדף", systemImage: "star.fill")
-                    .foregroundStyle(Theme.Colors.textPrimary)
-            }
-            .tint(Theme.Colors.accent)
-        } footer: {
-            Text("ייבחר כברירת מחדל במסך ‘תנועה חדשה’. אפשר להחליף בכל עת — רק חשבון אחד יכול להיות מועדף.")
         }
     }
 
@@ -193,6 +202,101 @@ struct AccountEditorSheet: View {
             Text("נכסים בחשבון")
         } footer: {
             Text("מניות, תעודות סל (ETF), קרנות, אג״ח או כל נכס אחר. נכסים בלבד — המזומן הנזיל מנוהל בשדה היתרה למעלה.")
+        }
+    }
+}
+
+// MARK: - Favourite toggle
+
+/// Small rat mascot, in line with the name field, that marks this account
+/// as the favourite (the default account pre-selected in "תנועה חדשה").
+/// Desaturated + dimmed when off, full colour with a gentle pop when on.
+/// The celebratory flourish on selection is the window-wide glow at the
+/// sheet root (`FavouriteWindowGlow`), not anything on the icon itself.
+///
+/// Accessibility: the icon carries no inherent "favourite" meaning, so we
+/// give it an explicit label, an on/off value, the selected trait, and a
+/// hint. State is conveyed by saturation + opacity (never colour alone),
+/// and the pop collapses to a plain crossfade under Reduce Motion.
+private struct FavouriteRatToggle: View {
+    @Binding var isFavorite: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private let size: CGFloat = 40
+
+    var body: some View {
+        Button {
+            isFavorite.toggle()
+        } label: {
+            Image("rat-mascot-thumbsup")
+                .resizable()
+                .scaledToFit()
+                .frame(width: size, height: size)
+                .saturation(isFavorite ? 1 : 0)
+                .opacity(isFavorite ? 1 : 0.4)
+                .scaleEffect(reduceMotion ? 1 : (isFavorite ? 1 : 0.9))
+                // Pad to a ≥44pt tap target without enlarging the glyph.
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .animation(
+            reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.3, dampingFraction: 0.6),
+            value: isFavorite
+        )
+        .accessibilityLabel(Text("חשבון מועדף"))
+        .accessibilityValue(Text(isFavorite ? "פעיל" : "כבוי"))
+        .accessibilityHint(Text("סימון החשבון כברירת מחדל לתנועה חדשה"))
+        .accessibilityAddTraits(isFavorite ? .isSelected : [])
+    }
+}
+
+// MARK: - Window glow
+
+/// A gentle golden glow that washes diagonally across the edge of the
+/// whole sheet when an account is marked favourite. Fires once each time
+/// `isActive` flips to true: a soft, blurred golden border (lit
+/// top-leading → bottom-trailing for a diagonal feel) fades in, holds,
+/// then fades out. Edge-only and non-interactive, so it never blocks the
+/// form. It deliberately does **not** fire on appear, so opening an
+/// already-favourite account stays calm — only an actual selection glows.
+private struct FavouriteWindowGlow: View {
+    let isActive: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    @State private var opacity: Double = 0
+
+    /// Diagonal (top-leading → bottom-trailing) gradient of warm golds —
+    /// light at one corner, deeper at the other — for a soft golden sheen.
+    private var goldGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color(red: 0.99, green: 0.88, blue: 0.58),
+                Color(red: 0.85, green: 0.65, blue: 0.22)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 40, style: .continuous)
+            .strokeBorder(goldGradient, lineWidth: 14)
+            .blur(radius: 18)
+            .opacity(opacity)
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .onChange(of: isActive) { _, active in
+                if active { fire() }
+            }
+    }
+
+    /// Soft fade in → brief hold → fade out. Already gentle (pure opacity),
+    /// so Reduce Motion only shortens the hold rather than changing kind.
+    private func fire() {
+        withAnimation(.easeOut(duration: 0.45)) { opacity = 0.6 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + (reduceMotion ? 0.5 : 0.75)) {
+            withAnimation(.easeIn(duration: 0.7)) { opacity = 0 }
         }
     }
 }

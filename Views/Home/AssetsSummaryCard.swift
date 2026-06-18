@@ -29,6 +29,10 @@ struct AssetsSummaryCard: View {
     /// the others — that exclusivity rule lives at the data layer, not
     /// inside this card.
     let onToggleFavorite: (Account) -> Void
+    /// Opens the account editor in "new" mode. The card only signals the
+    /// intent; `HomeView` owns the sheet and the SwiftData insert, exactly
+    /// like the edit/delete/favourite handlers above.
+    let onAddAccount: () -> Void
 
     /// Set when the user taps "מחיקה" on a swipe action. Drives the
     /// confirmation alert below — never persists between renders, so
@@ -69,11 +73,23 @@ struct AssetsSummaryCard: View {
     // MARK: - Header
 
     private var sectionHeader: some View {
-        Text("הנכסים שלי")
-            .font(Theme.Typography.caption)
-            .foregroundStyle(Theme.Colors.textSecondary)
-            .textCase(.uppercase)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        HStack(spacing: Theme.Spacing.sm) {
+            Text("הנכסים שלי")
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .textCase(.uppercase)
+
+            Spacer(minLength: Theme.Spacing.sm)
+
+            // Text + icon (not an icon-only button) so VoiceOver reads a
+            // real label and the action is discoverable in the empty state
+            // too — the header shows whether or not there are accounts yet.
+            Button("הוסף חשבון", systemImage: "plus.circle.fill", action: onAddAccount)
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.accent)
+                .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Hero
@@ -130,7 +146,7 @@ struct AssetsSummaryCard: View {
     /// from claiming all available space.
     private var accountRows: some View {
         List {
-            ForEach(accounts) { account in
+            ForEach(sortedAccounts) { account in
                 AccountSummaryRow(account: account)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -197,6 +213,41 @@ struct AssetsSummaryCard: View {
             get: { accountPendingDelete != nil },
             set: { if !$0 { accountPendingDelete = nil } }
         )
+    }
+
+    // MARK: - Row ordering
+
+    /// The order accounts appear in the list: the favourite floats to the
+    /// top, then everything else groups by account type (everyday → savings
+    /// → investment → catch-all), and finally sorts by name within each
+    /// group so the order stays stable as balances change.
+    ///
+    /// Only the *visible rows* are sorted — `combinedTotal` and the FX
+    /// check below iterate the raw `accounts`, since order is irrelevant
+    /// to a sum.
+    private var sortedAccounts: [Account] {
+        accounts.sorted { lhs, rhs in
+            // Favourite first, regardless of its type.
+            if lhs.isFavorite != rhs.isFavorite { return lhs.isFavorite }
+            // Then by the fixed type order.
+            let lRank = Self.typeRank(lhs.type)
+            let rRank = Self.typeRank(rhs.type)
+            if lRank != rRank { return lRank < rRank }
+            // Stable, predictable tiebreak within a group.
+            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
+    }
+
+    /// Lower rank sorts earlier. Deliberately has no `default`, so adding a
+    /// new `AccountType` becomes a compile error here until it's given an
+    /// explicit slot in the order.
+    private static func typeRank(_ type: AccountType) -> Int {
+        switch type {
+        case .current:       return 0
+        case .digitalWallet: return 1   // liquid like cash, so it sits by current
+        case .savings:       return 2
+        case .investment:    return 3
+        }
     }
 
     // MARK: - Computed data
@@ -321,10 +372,10 @@ private struct AccountSummaryRow: View {
 
     private var symbolName: String {
         switch account.type {
-        case .current:    return "banknote"
-        case .savings:    return "lock"
-        case .investment: return "chart.line.uptrend.xyaxis"
-        case .other:      return "circle.dashed"
+        case .current:       return "banknote"
+        case .digitalWallet: return "wallet.bifold"
+        case .savings:       return "lock"
+        case .investment:    return "chart.line.uptrend.xyaxis"
         }
     }
 }
@@ -338,7 +389,8 @@ private struct AccountSummaryRow: View {
             fxSnapshot: nil,
             onEditAccount: { _ in },
             onDeleteAccount: { _ in },
-            onToggleFavorite: { _ in }
+            onToggleFavorite: { _ in },
+            onAddAccount: {}
         )
         .padding(Theme.Spacing.lg)
     }
