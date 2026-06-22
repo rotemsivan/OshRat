@@ -2,23 +2,27 @@ import SwiftUI
 import SwiftData
 
 /// "תנועה חדשה" — the modal sheet for adding a new income, expense, or
-/// (later) account-to-account transfer.
+/// account-to-account transfer.
 ///
 /// Top to bottom:
-///   1. **Segmented picker** — הכנסה / הוצאה / העברה בין חשבונות. The
-///      transfer option is wired but disabled for now (shows a "בקרוב"
-///      placeholder); the income/expense flow is fully functional.
+///   1. **Segmented picker** — הכנסה / הוצאה / העברה בין חשבונות. All
+///      three flows are functional; switching kind animates the form
+///      between the income/expense layout and the transfer layout.
 ///   2. **Accounts** — one picker for income/expense (pre-selected to
-///      the user's favourite account), two pickers for transfers.
+///      the user's favourite account); for transfers, an animated
+///      source → destination diagram with a picker on each side.
 ///   3. **Category** — same list as the budget builder, filtered to the
 ///      side that matches the selected kind. Transfers don't take one.
 ///   4. **Title** — short headline ("שם התנועה").
-///   5. **Details** — long-form note.
+///   5. **Details** — long-form note (income/expense only).
 ///   6. **Amount** — large `BigAmountField` with the user's preferred
-///      currency as the trailing label.
+///      currency as the trailing label. For a transfer the currency is
+///      locked to the source account (what leaves it), and a preview
+///      shows what the destination receives after FX conversion.
 ///   7. **Slide-to-confirm** — replaces a "save" button so the act of
-///      committing money feels deliberate. Snaps into a checkmark when
-///      the user crosses the threshold, then dismisses the sheet.
+///      committing money feels deliberate. Tinted per kind; snaps into a
+///      checkmark when the user crosses the threshold, fires a themed
+///      glow, then dismisses the sheet.
 ///
 /// Side input flows in (`onSave` callback) so the parent can run a
 /// quick haptic / toast if it wants to celebrate. The sheet inserts
@@ -27,6 +31,10 @@ import SwiftData
 struct NewTransactionSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    /// Decorative motion (the flowing transfer arrow, the kind-switch
+    /// transition, the post-confirm glow pulse) is softened or dropped
+    /// when the user has Reduce Motion on.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @Query(sort: \Account.name) private var accounts: [Account]
     @Query(sort: \Category.name) private var categories: [Category]
@@ -41,9 +49,16 @@ struct NewTransactionSheet: View {
     /// one there, add it here too.
     private let supportedCurrencies: [String] = ["ILS", "USD", "EUR"]
 
-    /// Optional ping for the parent ("a new transaction was saved").
-    /// The sheet handles the SwiftData insert internally — this is just
-    /// so callers can react (e.g. haptic, confetti) without re-querying.
+    /// The transaction being edited, or `nil` for a brand-new entry.
+    /// When set, the sheet opens pre-filled from this row and the
+    /// confirm path *updates* it (reversing its old balance effect and
+    /// applying the new one) instead of inserting a fresh row.
+    private let editingTransaction: Transaction?
+
+    /// Optional ping for the parent ("a transaction was saved"). The
+    /// sheet handles the SwiftData insert/update internally — this is
+    /// just so callers can react (e.g. haptic, confetti) without
+    /// re-querying.
     let onSaved: ((Transaction) -> Void)?
 
     // MARK: - Form state
@@ -63,9 +78,29 @@ struct NewTransactionSheet: View {
     /// The body slides/fades in with a tiny stagger when the sheet
     /// first appears — sets to `true` in `.onAppear`.
     @State private var hasAppeared: Bool = false
+    /// Flips to `true` the instant the slide-to-confirm crosses its
+    /// threshold, driving the themed glow that flashes over the sheet
+    /// (coloured by `kind`) just before it dismisses.
+    @State private var hasConfirmed: Bool = false
 
-    init(onSaved: ((Transaction) -> Void)? = nil) {
+    /// - Parameters:
+    ///   - transaction: an existing row to edit, or `nil` to add a new
+    ///     one. In edit mode every form field is seeded from the row via
+    ///     `State(initialValue:)` so the sheet opens pre-filled.
+    ///   - onSaved: optional callback fired after the save lands.
+    init(transaction: Transaction? = nil, onSaved: ((Transaction) -> Void)? = nil) {
+        self.editingTransaction = transaction
         self.onSaved = onSaved
+
+        if let transaction {
+            _kind = State(initialValue: SheetKind(transaction.kind))
+            _sourceAccount = State(initialValue: transaction.account)
+            _category = State(initialValue: transaction.category)
+            _title = State(initialValue: transaction.title)
+            _details = State(initialValue: transaction.note)
+            _amount = State(initialValue: transaction.amount)
+            _amountCurrencyCode = State(initialValue: transaction.currencyCode)
+        }
     }
 
     var body: some View {
@@ -79,38 +114,60 @@ struct NewTransactionSheet: View {
                             .appearStagger(index: 0, visible: hasAppeared)
 
                         if kind == .transfer {
-                            transferComingSoon
+                            transferSection
                                 .appearStagger(index: 1, visible: hasAppeared)
+                                .transition(kindTransition)
+                            amountSection
+                                .appearStagger(index: 2, visible: hasAppeared)
+                                .transition(kindTransition)
+                            titleSection
+                                .appearStagger(index: 3, visible: hasAppeared)
+                                .transition(kindTransition)
                         } else {
                             accountSection
                                 .appearStagger(index: 1, visible: hasAppeared)
+                                .transition(kindTransition)
                             categorySection
                                 .appearStagger(index: 2, visible: hasAppeared)
+                                .transition(kindTransition)
                             titleSection
                                 .appearStagger(index: 3, visible: hasAppeared)
+                                .transition(kindTransition)
                             detailsSection
                                 .appearStagger(index: 4, visible: hasAppeared)
+                                .transition(kindTransition)
                             amountSection
                                 .appearStagger(index: 5, visible: hasAppeared)
+                                .transition(kindTransition)
                         }
                     }
+                    // Animate the swap between the income/expense layout and
+                    // the transfer layout. Reduce Motion users get an
+                    // instant cut (the `kindTransition` collapses to
+                    // `.identity` and we pass `nil` here).
+                    .animation(reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.85), value: kind)
                     .padding(.horizontal, Theme.Spacing.lg)
                     .padding(.top, Theme.Spacing.md)
                     .padding(.bottom, Theme.Spacing.xl + 80) // breathing room above the slide bar
                 }
                 .scrollIndicators(.hidden)
             }
+            // Themed glow that flashes from the bottom (where the slider
+            // lives) once the user confirms — green for income, red for
+            // expense, accent for a transfer.
+            .overlay(alignment: .bottom) { confirmGlow }
             .safeAreaInset(edge: .bottom) {
                 SlideToConfirm(
                     label: confirmLabel,
                     isEnabled: canConfirm,
+                    tint: kindTint,
                     onConfirm: handleConfirm
                 )
                 .padding(.horizontal, Theme.Spacing.lg)
                 .padding(.bottom, Theme.Spacing.md)
             }
             .font(Theme.Typography.body)
-            .navigationTitle(Text("תנועה חדשה"))
+            .navigationTitle(editingTransaction == nil ? Text("תנועה חדשה") : Text("עריכת תנועה"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -127,7 +184,12 @@ struct NewTransactionSheet: View {
         // matter what the simulator locale happens to be.
         .environment(\.layoutDirection, .rightToLeft)
         .onAppear {
-            primeDefaults()
+            // Only seed defaults for a *new* transaction. In edit mode the
+            // form is already populated from the row in `init`, and
+            // re-priming would clobber the user's chosen account/currency.
+            if editingTransaction == nil {
+                primeDefaults()
+            }
             // Slight delay so the spring entrance reads as motion rather
             // than a flash. The staggered modifier inside each section
             // then layers small offsets on top.
@@ -141,6 +203,21 @@ struct NewTransactionSheet: View {
             // we never persist a mismatched (kind, category) pair.
             if let c = category, c.kind.rawValue != new.transactionKind?.rawValue {
                 category = nil
+            }
+            if new == .transfer {
+                // The transfer amount is locked to the source's currency,
+                // so pin it now (the user may have typed in another
+                // currency while in expense mode), and seed a destination
+                // that isn't the source.
+                if let source = sourceAccount {
+                    amountCurrencyCode = source.currencyCode
+                }
+                if destinationAccount == nil
+                    || destinationAccount?.persistentModelID == sourceAccount?.persistentModelID {
+                    destinationAccount = transferAccounts.first {
+                        $0.persistentModelID != sourceAccount?.persistentModelID
+                    }
+                }
             }
         }
         .onChange(of: sourceAccount) { _, new in
@@ -167,26 +244,93 @@ struct NewTransactionSheet: View {
         }
     }
 
-    /// Placeholder for the not-yet-built transfer flow. Leaves the
-    /// picker option visible so the surface area of the feature is
-    /// discoverable, but blocks confirmation.
-    private var transferComingSoon: some View {
-        VStack(spacing: Theme.Spacing.sm) {
-            Image(systemName: "arrow.left.arrow.right.circle.fill")
-                .font(.system(size: 40))
-                .foregroundStyle(Theme.Colors.accent.opacity(0.6))
-            Text("העברה בין חשבונות תיתמך בקרוב")
-                .font(Theme.Typography.sectionTitle)
-                .foregroundStyle(Theme.Colors.textPrimary)
-            Text("נרכז כאן בקרוב את ההעברות הפנימיות בין החשבונות שלך — כך שלא יתחלפו עם הכנסות והוצאות.")
-                .font(Theme.Typography.caption)
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .multilineTextAlignment(.center)
+    /// Animated "source → destination" transfer picker. A chip on each
+    /// side (tap to choose its account) with a flowing arrow between them.
+    /// Any account type is selectable here — unlike income/expense, a
+    /// transfer is exactly how money reaches savings / investment accounts.
+    private var transferSection: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            sectionLabel("העברה בין חשבונות")
+            HStack(spacing: Theme.Spacing.xs) {
+                // Source first → lands on the visual right under RTL; the
+                // arrow then flows leftward toward the destination chip.
+                accountChip(
+                    caption: "מהחשבון",
+                    account: sourceAccount,
+                    excluding: destinationAccount
+                ) { sourceAccount = $0 }
+
+                TransferFlowArrow(animated: !reduceMotion)
+
+                accountChip(
+                    caption: "לחשבון",
+                    account: destinationAccount,
+                    excluding: sourceAccount
+                ) { destinationAccount = $0 }
+            }
         }
-        .frame(maxWidth: .infinity)
-        .padding(Theme.Spacing.lg)
-        .background(Theme.Colors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+    }
+
+    /// One side of the transfer diagram: a tappable chip showing the
+    /// chosen account (type icon + name + currency) or a "choose" prompt.
+    /// `excluding` is the account already picked on the other side — hidden
+    /// from this menu so a transfer can't have the same account on both
+    /// ends. A spring on the selection makes a freshly-picked account pop.
+    private func accountChip(
+        caption: LocalizedStringKey,
+        account: Account?,
+        excluding other: Account?,
+        onPick: @escaping (Account) -> Void
+    ) -> some View {
+        Menu {
+            ForEach(transferAccounts.filter { $0.persistentModelID != other?.persistentModelID }) { option in
+                Button {
+                    onPick(option)
+                } label: {
+                    Label(option.name, systemImage: accountSymbol(option.type))
+                }
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                Text(caption)
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                HStack(spacing: Theme.Spacing.xs) {
+                    Image(systemName: account.map { accountSymbol($0.type) } ?? "circle.dashed")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.Colors.accent)
+                    Text(account?.name ?? "בחרו חשבון")
+                        .font(Theme.Typography.body)
+                        .foregroundStyle(account == nil ? Theme.Colors.textSecondary : Theme.Colors.textPrimary)
+                        .lineLimit(1)
+                }
+                Text(account?.currencyCode ?? " ")
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .environment(\.layoutDirection, .leftToRight)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(Theme.Spacing.md)
+            .background(Theme.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                    .stroke(account == nil ? Theme.Colors.separator : Theme.Colors.accent.opacity(0.45), lineWidth: 1)
+            )
+            .environment(\.layoutDirection, .rightToLeft)
+        }
+        .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.7), value: account?.persistentModelID)
+    }
+
+    /// SF Symbol per account type. Mirrors `AnalyticsReport.symbol(for:)`
+    /// so an account reads with the same icon wherever it appears.
+    private func accountSymbol(_ type: AccountType) -> String {
+        switch type {
+        case .current:       return "banknote"
+        case .digitalWallet: return "wallet.bifold"
+        case .savings:       return "lock"
+        case .investment:    return "chart.line.uptrend.xyaxis"
+        }
     }
 
     private var accountSection: some View {
@@ -221,6 +365,14 @@ struct NewTransactionSheet: View {
     /// options that will actually save.
     private var selectableAccounts: [Account] {
         accounts.filter { $0.type == .current }
+    }
+
+    /// Endpoints offered for a transfer: *every* account, regardless of
+    /// type. Moving money into a savings or investment account is the
+    /// whole point of the transfer flow, so the current-only restriction
+    /// that income/expense uses deliberately doesn't apply here.
+    private var transferAccounts: [Account] {
+        accounts
     }
 
     private var categorySection: some View {
@@ -271,11 +423,15 @@ struct NewTransactionSheet: View {
 
     private var amountSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            sectionLabel("סכום")
+            sectionLabel(kind == .transfer ? "סכום להעברה" : "סכום")
             BigAmountField(
                 value: $amount,
                 currencyCode: $amountCurrencyCode,
-                supportedCurrencies: supportedCurrencies
+                supportedCurrencies: supportedCurrencies,
+                // For a transfer the amount is what leaves the *source*, so
+                // its currency is pinned to the source account; the
+                // destination figure is derived below via FX.
+                isCurrencyLocked: kind == .transfer
             )
             if let preview = conversionPreviewText {
                 Text(preview)
@@ -371,6 +527,7 @@ struct NewTransactionSheet: View {
     /// impossible (no FX snapshot) — the latter is surfaced by the
     /// disabled confirm slider instead.
     private var conversionPreviewText: String? {
+        if kind == .transfer { return transferPreviewText }
         guard let account = sourceAccount,
               amountCurrencyCode != account.currencyCode,
               amount > 0
@@ -383,8 +540,50 @@ struct NewTransactionSheet: View {
         return "שערי חליפין לא זמינים — לא ניתן להמיר ל-\(account.currencyCode)."
     }
 
+    /// Amount the destination account receives, in *its own* currency.
+    /// For a same-currency transfer that's just `amount`; otherwise it's
+    /// the FX conversion via the latest snapshot, or `nil` when no rate
+    /// bridges the two currencies — which disables the confirm slider.
+    /// (`amountCurrencyCode` is locked to the source in transfer mode, so
+    /// this converts source → destination.)
+    private var transferDestAmount: Decimal? {
+        guard let destination = destinationAccount else { return nil }
+        if amountCurrencyCode == destination.currencyCode { return amount }
+        guard let snapshot = fxSnapshots.first else { return nil }
+        return CurrencyConverter.convert(
+            amount,
+            from: amountCurrencyCode,
+            to: destination.currencyCode,
+            using: snapshot
+        )
+    }
+
+    /// Preview under the transfer amount: what lands in the destination
+    /// after FX. Nil when there's nothing useful to add — no destination
+    /// yet, zero amount, or a same-currency transfer where the figure is
+    /// identical to what was typed.
+    private var transferPreviewText: String? {
+        guard let destination = destinationAccount, amount > 0 else { return nil }
+        if amountCurrencyCode == destination.currencyCode { return nil }
+        if let dest = transferDestAmount {
+            return "≈ \(dest.formatted(.currency(code: destination.currencyCode))) יתקבלו בחשבון היעד"
+        }
+        return "שערי חליפין לא זמינים — לא ניתן להמיר ל-\(destination.currencyCode)."
+    }
+
     private var canConfirm: Bool {
-        guard kind != .transfer else { return false }
+        if kind == .transfer {
+            // Need two *distinct* accounts, a positive amount, and a rate
+            // that can express it in the destination's currency — without
+            // the last, the credit would silently skip.
+            guard let source = sourceAccount,
+                  let destination = destinationAccount,
+                  source.persistentModelID != destination.persistentModelID,
+                  amount > 0,
+                  transferDestAmount != nil
+            else { return false }
+            return true
+        }
         guard let account = sourceAccount else { return false }
         // Block confirm when the amount can't be expressed in the
         // account's currency — otherwise the balance update would
@@ -397,11 +596,51 @@ struct NewTransactionSheet: View {
     }
 
     private var confirmLabel: String {
+        // Editing keeps the same slide gesture but reframes it as saving
+        // changes rather than adding a new row.
+        if editingTransaction != nil {
+            return "החליקו לשמירת השינויים"
+        }
         switch kind {
         case .income:   return "החליקו להוספת הכנסה"
         case .expense:  return "החליקו להוספת הוצאה"
-        case .transfer: return "בקרוב — העברה בין חשבונות"
+        case .transfer: return "החליקו לביצוע ההעברה"
         }
+    }
+
+    /// Colour that themes the confirm slider and the post-confirm glow,
+    /// keyed to the kind being committed: income green, expense red,
+    /// transfer the brand accent.
+    private var kindTint: Color {
+        switch kind {
+        case .income:   return Theme.Colors.income
+        case .expense:  return Theme.Colors.expense
+        case .transfer: return Theme.Colors.accent
+        }
+    }
+
+    /// Transition the form sections use as the layout swaps between the
+    /// income/expense and transfer modes. Collapses to `.identity` under
+    /// Reduce Motion so the swap is an instant cut.
+    private var kindTransition: AnyTransition {
+        reduceMotion ? .identity : .opacity.combined(with: .scale(scale: 0.97, anchor: .top))
+    }
+
+    /// A soft band of `kindTint` that blooms up from the bottom of the
+    /// sheet the instant the user confirms, then the sheet dismisses over
+    /// it — a quick, themed "done" flash. Kept in the tree (at zero
+    /// opacity) so flipping `hasConfirmed` animates rather than hard-cuts.
+    /// Under Reduce Motion it only cross-fades (no upward bloom).
+    private var confirmGlow: some View {
+        kindTint
+            .frame(maxWidth: .infinity)
+            .frame(height: 280)
+            .blur(radius: 70)
+            .opacity(hasConfirmed ? (reduceMotion ? 0.22 : 0.32) : 0)
+            .scaleEffect(reduceMotion ? 1 : (hasConfirmed ? 1 : 0.7), anchor: .bottom)
+            .animation(reduceMotion ? .easeOut(duration: 0.3) : .easeOut(duration: 0.55), value: hasConfirmed)
+            .allowsHitTesting(false)
+            .ignoresSafeArea()
     }
 
     // MARK: - Behaviour
@@ -427,19 +666,74 @@ struct NewTransactionSheet: View {
     }
 
     private func handleConfirm() {
-        guard canConfirm,
-              let account = sourceAccount,
-              let kindModel = kind.transactionKind,
-              let accountAmount = amountInAccountCurrency(amount, account)
-        else { return }
+        guard canConfirm else { return }
 
+        let saved: Transaction
+        if kind == .transfer {
+            guard let source = sourceAccount,
+                  let destination = destinationAccount,
+                  let destAmount = transferDestAmount
+            else { return }
+            saved = insertTransfer(source: source, destination: destination, destAmount: destAmount)
+        } else {
+            guard let account = sourceAccount,
+                  let kindModel = kind.transactionKind,
+                  let accountAmount = amountInAccountCurrency(amount, account)
+            else { return }
+            saved = editingTransaction.map { existing in
+                applyEdit(to: existing, account: account, kindModel: kindModel, accountAmount: accountAmount)
+            } ?? insertNew(account: account, kindModel: kindModel, accountAmount: accountAmount)
+        }
+
+        try? modelContext.save()
+        onSaved?(saved)
+
+        // Light the themed glow (driven by `hasConfirmed`), then dismiss
+        // once it's registered. The short delay also lets the slider's
+        // checkmark snap in before the sheet slides away.
+        hasConfirmed = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            dismiss()
+        }
+    }
+
+    /// Insert a transfer row and move the money: debit the source by
+    /// `amount` (in the source's own currency) and credit the destination
+    /// by `destAmount` (already converted into the destination's
+    /// currency). Both figures are stored on the row so the later reversal
+    /// (delete) needs no FX. `kind` is left at its default and ignored —
+    /// the non-nil `destinationAmount` is what marks the row a transfer.
+    private func insertTransfer(source: Account, destination: Account, destAmount: Decimal) -> Transaction {
+        let now = Date.now
+        source.balance -= amount
+        destination.balance += destAmount
+        source.lastUpdated = now
+        destination.lastUpdated = now
+
+        let transfer = Transaction(
+            amount: amount,
+            date: now,
+            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+            note: details.trimmingCharacters(in: .whitespacesAndNewlines),
+            currencyCode: amountCurrencyCode,
+            // The source's running balance after the debit — same role as
+            // an ordinary row's `balanceAfter`, denominated in the source
+            // account's currency (which the list reads back from `account`).
+            balanceAfter: source.balance,
+            account: source,
+            destinationAccount: destination,
+            destinationAmount: destAmount
+        )
+        modelContext.insert(transfer)
+        return transfer
+    }
+
+    /// Insert a brand-new transaction and roll the account balance.
+    private func insertNew(account: Account, kindModel: TransactionKind, accountAmount: Decimal) -> Transaction {
         // Roll the balance with the transaction in the account's own
         // currency: income adds, expense subtracts. `accountAmount` is
         // already converted if the user typed a different currency.
-        switch kindModel {
-        case .income:  account.balance += accountAmount
-        case .expense: account.balance -= accountAmount
-        }
+        applyEffect(kindModel, accountAmount, to: account)
         account.lastUpdated = .now
 
         // The transaction keeps the *original* amount and currency the
@@ -459,13 +753,48 @@ struct NewTransactionSheet: View {
             account: account
         )
         modelContext.insert(transaction)
-        try? modelContext.save()
-        onSaved?(transaction)
+        return transaction
+    }
 
-        // Tiny delay lets the user see the checkmark snap in before the
-        // sheet slides away — without it the dismissal masks the cue.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-            dismiss()
+    /// Update an existing transaction. The net balance change is "new
+    /// effect minus old effect": we first reverse the row's *original*
+    /// impact on its old account (read off the row before we mutate it),
+    /// then apply the freshly-entered impact to the chosen account. When
+    /// the account is unchanged this collapses to just the delta; when it
+    /// changes, the old account is made whole and the new one absorbs the
+    /// full amount. The row's `date` is left untouched so it keeps its
+    /// place in the history.
+    private func applyEdit(to existing: Transaction, account: Account, kindModel: TransactionKind, accountAmount: Decimal) -> Transaction {
+        // Reverse first — `balanceEffect` reads the row's *current* (old)
+        // amount/kind/currency and account, so it has to run before the
+        // fields below are overwritten.
+        if let oldAccount = existing.account,
+           let oldEffect = existing.balanceEffect(using: fxSnapshots.first) {
+            oldAccount.balance -= oldEffect
+            oldAccount.lastUpdated = .now
+        }
+
+        applyEffect(kindModel, accountAmount, to: account)
+        account.lastUpdated = .now
+
+        existing.amount = amount
+        existing.kind = kindModel
+        existing.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        existing.note = details.trimmingCharacters(in: .whitespacesAndNewlines)
+        existing.currencyCode = amountCurrencyCode
+        existing.category = category
+        existing.account = account
+        existing.balanceAfter = account.balance
+        return existing
+    }
+
+    /// Apply a signed amount to an account's balance: income adds,
+    /// expense subtracts. Shared by the insert and edit paths so the
+    /// sign convention lives in one place.
+    private func applyEffect(_ kind: TransactionKind, _ accountAmount: Decimal, to account: Account) {
+        switch kind {
+        case .income:  account.balance += accountAmount
+        case .expense: account.balance -= accountAmount
         }
     }
 }
@@ -474,16 +803,26 @@ struct NewTransactionSheet: View {
 
 /// The three options shown in the segmented picker. Stored separately
 /// from `TransactionKind` so the sheet can model "transfer" without
-/// polluting the persistence-level enum (which is only income/expense
-/// for now — see CLAUDE.md). When transfer is implemented later this
-/// will map either to a new `TransactionKind.transfer` case or to a
-/// paired-transaction strategy.
+/// polluting the persistence-level enum (which `Category` and `BudgetItem`
+/// share, and where a third case would be meaningless — see CLAUDE.md).
+/// A confirmed transfer persists as a single `Transaction` flagged by its
+/// `destinationAmount` (`Transaction.isTransfer`), not as a new kind.
 enum SheetKind: String, CaseIterable, Identifiable {
     case income
     case expense
     case transfer
 
     var id: String { rawValue }
+
+    /// Bridge *up* from the persistence-level enum, used when seeding the
+    /// sheet to edit an existing row. Transfers are delete-only (never
+    /// reopened for editing), so `.transfer` is unreachable here.
+    init(_ kind: TransactionKind) {
+        switch kind {
+        case .income:  self = .income
+        case .expense: self = .expense
+        }
+    }
 
     var hebrewLabel: String {
         switch self {
@@ -493,8 +832,9 @@ enum SheetKind: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Bridge to the persistence-level enum. Nil for transfer since the
-    /// persistence model doesn't represent that case yet.
+    /// Bridge to the persistence-level enum. Nil for transfer — it isn't
+    /// an income/expense kind; the confirm path handles it separately and
+    /// stores it as a transfer row.
     var transactionKind: TransactionKind? {
         switch self {
         case .income:   return .income
@@ -528,6 +868,56 @@ private struct AppearStagger: ViewModifier {
 private extension View {
     func appearStagger(index: Int, visible: Bool) -> some View {
         modifier(AppearStagger(index: index, visible: visible))
+    }
+}
+
+// MARK: - Transfer flow arrow
+
+/// The flowing arrow shown between the two transfer chips: three chevrons
+/// that "march" toward the destination to suggest money crossing over.
+///
+/// Pinned to LTR internally so the chevrons always point the same visual
+/// direction regardless of the sheet's RTL environment (SF directional
+/// symbols otherwise auto-mirror). When `animated` is false (Reduce
+/// Motion) it renders a single static, dimmed set. `accessibilityHidden`
+/// because it's pure decoration — the two account chips carry the meaning.
+private struct TransferFlowArrow: View {
+    let animated: Bool
+
+    var body: some View {
+        Group {
+            if animated {
+                // PhaseAnimator with no trigger loops through the phases
+                // forever, giving a continuous marching highlight.
+                PhaseAnimator([0, 1, 2]) { phase in
+                    chevrons(highlight: phase)
+                }
+            } else {
+                chevrons(highlight: nil)
+            }
+        }
+        .environment(\.layoutDirection, .leftToRight)
+        .accessibilityHidden(true)
+    }
+
+    private func chevrons(highlight: Int?) -> some View {
+        HStack(spacing: 1) {
+            ForEach(0..<3) { index in
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(Theme.Colors.accent)
+                    // Brighten the marching chevron; the highlight walks
+                    // right-to-left (2 → 0) so motion reads source →
+                    // destination, matching the RTL chip order.
+                    .opacity(opacity(for: index, highlight: highlight))
+            }
+        }
+        .frame(width: 44)
+    }
+
+    private func opacity(for index: Int, highlight: Int?) -> Double {
+        guard let highlight else { return 0.55 }
+        return index == (2 - highlight) ? 1 : 0.3
     }
 }
 

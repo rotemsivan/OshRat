@@ -33,6 +33,34 @@ final class Transaction {
     var category: Category?
     var account: Account?
 
+    // MARK: - Transfer support
+    //
+    // A transfer between two accounts is modelled as a *single* row rather
+    // than as a new `TransactionKind` case: `TransactionKind` is shared by
+    // `Category` and `BudgetItem`, where "transfer" is meaningless, and a
+    // third case would force every exhaustive switch across budget /
+    // analytics to grow a dead branch. Instead a transfer reuses the
+    // income/expense machinery and is identified by `isTransfer` — the
+    // same marker philosophy as `isManualBalanceEdit`.
+    //
+    // For a transfer: `account` is the *source* (money leaves it),
+    // `amount` / `currencyCode` describe what left the source, and the two
+    // fields below describe what landed in the destination. `kind` is left
+    // at its default and ignored — `isTransfer` gates all special handling.
+
+    /// The account a transfer credits. `nil` for ordinary income/expense.
+    /// Inverse declared on `Account.incomingTransfers`.
+    var destinationAccount: Account?
+
+    /// Amount credited to `destinationAccount`, in *that account's* own
+    /// currency. Equals `amount` for a same-currency transfer; for a
+    /// cross-currency transfer it's the converted figure, captured at
+    /// creation so the reversal is exact and never re-runs FX. Its
+    /// presence (non-nil) is the canonical "this row is a transfer"
+    /// signal — it survives an account being deleted (which would nil out
+    /// `destinationAccount`), so totals stay correct even then.
+    var destinationAmount: Decimal?
+
     init(
         amount: Decimal = 0,
         kind: TransactionKind = .expense,
@@ -42,7 +70,9 @@ final class Transaction {
         currencyCode: String = "ILS",
         balanceAfter: Decimal? = nil,
         category: Category? = nil,
-        account: Account? = nil
+        account: Account? = nil,
+        destinationAccount: Account? = nil,
+        destinationAmount: Decimal? = nil
     ) {
         self.amount = amount
         self.kind = kind
@@ -53,7 +83,15 @@ final class Transaction {
         self.balanceAfter = balanceAfter
         self.category = category
         self.account = account
+        self.destinationAccount = destinationAccount
+        self.destinationAmount = destinationAmount
     }
+
+    /// True when this row moves money between two accounts rather than
+    /// logging income or expense. Keyed off `destinationAmount` (not the
+    /// relationship) so it stays reliable even if an involved account is
+    /// later deleted and its link nullified.
+    var isTransfer: Bool { destinationAmount != nil }
 
     // MARK: - Manual balance-edit marker
 
@@ -73,5 +111,71 @@ final class Transaction {
     /// silently excluded from monthly totals.
     var isManualBalanceEdit: Bool {
         title == Transaction.manualBalanceEditTitle && category == nil
+    }
+}
+
+// MARK: - Balance effect
+
+extension Transaction {
+    /// The signed effect this transaction had on its linked account's
+    /// balance, expressed in the *account's own* currency: income is
+    /// positive, expense negative. This mirrors the math the "new
+    /// transaction" sheet runs when the row is created, so the editor
+    /// (swap old effect for new) and the list's delete action (reverse
+    /// the effect) can keep the manually-tracked balance honest.
+    ///
+    /// Returns `nil` when there's no linked account, or when the entry's
+    /// currency differs from the account's and no FX snapshot can bridge
+    /// them. Same-currency entries — the overwhelmingly common case in a
+    /// single-user ILS ledger — need no FX and are always exact;
+    /// cross-currency entries reuse the latest cached rate, which can
+    /// differ slightly from the rate used at creation. That's the same
+    /// drift the app already tolerates for its `balanceAfter` snapshots.
+    func balanceEffect(using snapshot: FXRateSnapshot?) -> Decimal? {
+        guard let account else { return nil }
+
+        let inAccountCurrency: Decimal
+        if currencyCode == account.currencyCode {
+            inAccountCurrency = amount
+        } else if let snapshot,
+                  let converted = CurrencyConverter.convert(
+                    amount,
+                    from: currencyCode,
+                    to: account.currencyCode,
+                    using: snapshot
+                  ) {
+            inAccountCurrency = converted
+        } else {
+            return nil
+        }
+
+        switch kind {
+        case .income:  return inAccountCurrency
+        case .expense: return -inAccountCurrency
+        }
+    }
+
+    /// Undo this transaction's effect on its account balance(s), used by
+    /// the list's delete action. Transfer-aware: a transfer debited the
+    /// source and credited the destination, so both are unwound using the
+    /// amounts captured at creation (`amount` for the source, the stored
+    /// `destinationAmount` for the destination) — no FX needed. Ordinary
+    /// rows reverse their single `balanceEffect`; if that can't be
+    /// computed (cross-currency with no snapshot) the balance is left
+    /// untouched, matching the previous inline behaviour.
+    func reverseEffect(using snapshot: FXRateSnapshot?) {
+        if isTransfer {
+            if let source = account {
+                source.balance += amount
+                source.lastUpdated = .now
+            }
+            if let destination = destinationAccount {
+                destination.balance -= destinationAmount ?? amount
+                destination.lastUpdated = .now
+            }
+        } else if let account, let effect = balanceEffect(using: snapshot) {
+            account.balance -= effect
+            account.lastUpdated = .now
+        }
     }
 }

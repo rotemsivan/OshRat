@@ -27,6 +27,15 @@ final class Account {
     @Relationship(deleteRule: .nullify, inverse: \Transaction.account)
     var transactions: [Transaction] = []
 
+    /// Transfers that *credit* this account (its role as the destination
+    /// side of a money move). Declared explicitly so SwiftData can tell
+    /// the two Account↔Transaction relationships apart — with more than
+    /// one link between the same models the inverse can't be inferred.
+    /// Nullify (not cascade): deleting the destination account shouldn't
+    /// delete the transfer row, just orphan its destination link.
+    @Relationship(deleteRule: .nullify, inverse: \Transaction.destinationAccount)
+    var incomingTransfers: [Transaction] = []
+
     /// Holdings (stocks, ETFs, etc.) inside an investment-type account.
     /// Non-investment accounts simply leave this empty. Deleting the
     /// account cascades into its holdings — they don't make sense on

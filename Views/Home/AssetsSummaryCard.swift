@@ -161,18 +161,25 @@ struct AssetsSummaryCard: View {
                     // closest to the swipe edge. Putting Delete first
                     // means it sits at the trailing edge — the
                     // "destructive" position users expect.
+                    //
+                    // Icon-only (an `Image`, not a `Label`) so the action
+                    // reads the same compact way regardless of row height,
+                    // matching the transactions list. `accessibilityLabel`
+                    // keeps the spoken name for VoiceOver.
                     Button(role: .destructive) {
                         accountPendingDelete = account
                     } label: {
-                        Label("מחיקה", systemImage: "trash")
+                        Image(systemName: "trash")
                     }
+                    .accessibilityLabel(Text("מחיקה"))
 
                     Button {
                         onEditAccount(account)
                     } label: {
-                        Label("עריכה", systemImage: "pencil")
+                        Image(systemName: "pencil")
                     }
                     .tint(Theme.Colors.accent)
+                    .accessibilityLabel(Text("עריכה"))
                 }
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                         // Leading edge = visual right under RTL — the
@@ -183,12 +190,10 @@ struct AssetsSummaryCard: View {
                         Button {
                             onToggleFavorite(account)
                         } label: {
-                            Label(
-                                account.isFavorite ? "ביטול מועדף" : "מועדף",
-                                systemImage: account.isFavorite ? "star.slash.fill" : "star.fill"
-                            )
+                            Image(systemName: account.isFavorite ? "star.slash.fill" : "star.fill")
                         }
                         .tint(.yellow)
+                        .accessibilityLabel(Text(account.isFavorite ? "ביטול מועדף" : "מועדף"))
                     }
             }
         }

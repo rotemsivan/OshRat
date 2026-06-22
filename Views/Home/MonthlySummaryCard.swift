@@ -125,9 +125,11 @@ struct MonthlySummaryCard: View {
         // an account's cash balance) are deliberately excluded: they're
         // a bookkeeping artefact, not real income or expense, so
         // letting them roll into the monthly totals would inflate both
-        // sides of "income vs expense" and skew the net.
+        // sides of "income vs expense" and skew the net. Transfers are
+        // excluded for the same reason — money moving between the user's
+        // own accounts is neither income nor expense.
         return transactions.filter { tx in
-            monthInterval.contains(tx.date) && !tx.isManualBalanceEdit
+            monthInterval.contains(tx.date) && !tx.isManualBalanceEdit && !tx.isTransfer
         }
     }
 

@@ -173,6 +173,67 @@ enum Theme {
     }
 }
 
+// MARK: - Tap-anywhere to dismiss the keyboard
+// SwiftUI doesn't ship a built-in "tap outside to close the keyboard"
+// behaviour, but Hebrew users coming in from the iOS norm expect it on
+// every input (transaction title, account name, amount, etc.). We
+// install a single `UITapGestureRecognizer` on the app's key window so
+// any tap that isn't on a text input ends editing — no per-screen
+// boilerplate, no fragile background `.onTapGesture` overlays.
+//
+// Two flags make this safe:
+//   • `cancelsTouchesInView = false` — the underlying view still gets the
+//     touch, so buttons, list rows, pickers, and slide-to-confirm all
+//     keep working. The recognizer just *additionally* fires
+//     `endEditing(_:)` on the window.
+//   • A delegate that refuses touches landing on a `UITextField` /
+//     `UITextView` (or any subview of one). Without this, tapping a
+//     field would focus it AND immediately resign first responder,
+//     dismissing the very keyboard the user wanted to open.
+//
+// `KeyboardDismissTapInstaller` is held by a single static reference
+// because `UIGestureRecognizer.delegate` is weak — without the strong
+// reference the delegate would deallocate on the next runloop tick and
+// the gesture would silently stop firing.
+final class KeyboardDismissTapInstaller: NSObject, UIGestureRecognizerDelegate {
+    static let shared = KeyboardDismissTapInstaller()
+    private var installed = false
+
+    /// Idempotent. Safe to call from `.onAppear` — it will look up the
+    /// current key window and attach the gesture once.
+    func install() {
+        guard !installed else { return }
+        guard let window = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .flatMap(\.windows)
+            .first(where: { $0.isKeyWindow }) else { return }
+
+        let tap = UITapGestureRecognizer(target: window, action: #selector(UIView.endEditing(_:)))
+        tap.cancelsTouchesInView = false
+        tap.delegate = self
+        window.addGestureRecognizer(tap)
+        installed = true
+    }
+
+    // Walk up the view tree so a tap on the inner scroll view / label
+    // inside a `UITextView` is still recognised as "on the text input".
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        var view = touch.view
+        while let v = view {
+            if v is UITextField || v is UITextView || v is UISearchBar { return false }
+            view = v.superview
+        }
+        return true
+    }
+
+    // Let SwiftUI's own gestures (taps on buttons, scroll, swipe-to-go-back)
+    // run alongside ours. We're only listening, never consuming.
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                           shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        true
+    }
+}
+
 // MARK: - Reusable card style
 // Apply to any view to give it the standard card look: padding, surface colour,
 // rounded corners, and a soft shadow. Usage:  SomeView().cardStyle()

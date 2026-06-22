@@ -20,6 +20,11 @@ import SwiftUI
 struct SlideToConfirm: View {
     let label: String
     let isEnabled: Bool
+    /// Accent colour for the thumb and the progress fill. Defaults to the
+    /// brand accent; the new-transaction sheet overrides it per kind
+    /// (income green / expense red / transfer accent) so the gesture is
+    /// themed to the action being confirmed.
+    var tint: Color = Theme.Colors.accent
     let onConfirm: () -> Void
 
     @Environment(\.layoutDirection) private var layoutDirection
@@ -76,7 +81,7 @@ struct SlideToConfirm: View {
             // how far they've travelled. Inset to sit inside the stroke.
             .overlay(alignment: .leading) {
                 Capsule()
-                    .fill(Theme.Colors.accent.opacity(0.18))
+                    .fill(tint.opacity(0.18))
                     .frame(width: max(Self.height, abs(dragOffset) + Self.height))
                     .padding(Self.thumbInset)
             }
@@ -86,7 +91,7 @@ struct SlideToConfirm: View {
     private func thumb(thumbSize: CGFloat) -> some View {
         ZStack {
             Circle()
-                .fill(Theme.Colors.accent)
+                .fill(tint)
                 .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 2)
             Image(systemName: isConfirmed ? "checkmark" : thumbSymbol)
                 .font(.system(size: 22, weight: .semibold))

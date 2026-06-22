@@ -20,11 +20,18 @@ struct ContentView: View {
     @Query private var profiles: [UserProfile]
 
     var body: some View {
-        if profiles.isEmpty {
-            OnboardingFlowView()
-        } else {
-            HomeView()
+        Group {
+            if profiles.isEmpty {
+                OnboardingFlowView()
+            } else {
+                HomeView()
+            }
         }
+        // Install the global "tap outside a text input to dismiss the
+        // keyboard" gesture once the window is live. `OshRatApp.init`
+        // runs before any window exists, so we defer this to the first
+        // time the root view appears.
+        .onAppear { KeyboardDismissTapInstaller.shared.install() }
     }
 }
 

@@ -33,6 +33,16 @@ struct GreetingHeaderView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        // Pull the row down past the parent VStack's `.lg` spacing so
+        // the mascot visually *sits on* the AssetsSummaryCard — its
+        // feet rest on the card's top edge with a few points of
+        // overlap, instead of floating above it.
+        .padding(.bottom, -(Theme.Spacing.lg + Theme.Spacing.sm))
+        // Default sibling order in a VStack draws later children on
+        // top; without this the card would cover the rat's feet at
+        // the overlap. Lifting the greeting row's z-index makes the
+        // mascot read as sitting *on* the card instead of behind it.
+        .zIndex(1)
     }
 
     /// Hebrew greetings keyed to a coarse part-of-day split. Returned as

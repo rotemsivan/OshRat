@@ -170,8 +170,10 @@ extension AnalyticsReport {
 
         // Manual balance-edit rows are bookkeeping artefacts, not real
         // income/expense — exclude them everywhere, exactly like the
-        // monthly summary card does.
-        let real = transactions.filter { !$0.isManualBalanceEdit }
+        // monthly summary card does. Transfers (money moving between the
+        // user's own accounts) are excluded for the same reason: they're
+        // neither income nor expense and would distort every statistic.
+        let real = transactions.filter { !$0.isManualBalanceEdit && !$0.isTransfer }
 
         let monthInterval = calendar.dateInterval(of: .month, for: now)
         let yearInterval = calendar.dateInterval(of: .year, for: now)
