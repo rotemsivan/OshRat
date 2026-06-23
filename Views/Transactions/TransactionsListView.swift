@@ -390,11 +390,13 @@ private struct TransactionRow: View {
                     .foregroundStyle(amountColor)
                     .monospacedDigit()
                     .lineLimit(1)
-                if let balanceText = formattedBalanceAfter {
-                    // Running balance the user saw at the time of entry.
-                    // Greyed out so it reads as metadata, not the row's
-                    // primary value.
-                    Text(balanceText)
+                // Running balance(s) the user saw at the time of entry —
+                // one line for an income/expense, both sides for a transfer.
+                // Greyed out so they read as metadata, not the row's primary
+                // value. `enumerated` keeps the id stable even if two lines
+                // ever format identically (duplicate account names).
+                ForEach(Array(balanceLines.enumerated()), id: \.offset) { _, line in
+                    Text(line)
                         .font(Theme.Typography.caption)
                         .foregroundStyle(Theme.Colors.textSecondary)
                         .monospacedDigit()
@@ -466,15 +468,44 @@ private struct TransactionRow: View {
         return parts.joined(separator: " • ")
     }
 
-    /// "יתרה: X.XX ACC" line under the amount. Returns nil for older
-    /// transactions written before `balanceAfter` existed (or rows
-    /// whose account link was nullified, which leaves us without an
-    /// accurate currency to format in).
-    private var formattedBalanceAfter: String? {
-        guard let balance = transaction.balanceAfter,
-              let accountCurrency = transaction.account?.currencyCode
-        else { return nil }
-        return "יתרה: \(balance.formatted(.currency(code: accountCurrency)))"
+    /// Running-balance line(s) shown under the amount. An income/expense
+    /// row shows the single "יתרה: X.XX ACC" the user saw at entry. A
+    /// transfer shows *both* sides — the source's balance after the debit
+    /// and the destination's after the credit — each tagged with its
+    /// account name so the two don't blur into one another (and so they
+    /// map back to the "source ← destination" subtitle).
+    private var balanceLines: [String] {
+        if transaction.isTransfer {
+            // Source first (it pairs with the debit shown as the row's main
+            // amount), destination below.
+            return [
+                balanceLine(
+                    transaction.balanceAfter,
+                    currency: transaction.account?.currencyCode,
+                    name: transaction.account?.name
+                ),
+                balanceLine(
+                    transaction.destinationBalanceAfter,
+                    currency: transaction.destinationAccount?.currencyCode,
+                    name: transaction.destinationAccount?.name
+                )
+            ].compactMap { $0 }
+        }
+        return [balanceLine(transaction.balanceAfter, currency: transaction.account?.currencyCode, name: nil)]
+            .compactMap { $0 }
+    }
+
+    /// Format one balance line, or nil when there's nothing trustworthy to
+    /// show — a missing balance (legacy rows from before the snapshot
+    /// existed) or a missing currency (a nullified account link leaves no
+    /// accurate currency to format in). `name`, when given, prefixes the
+    /// line ("עו״ש: …") so a transfer's two balances stay distinguishable;
+    /// without it the plain "יתרה: …" label is used.
+    private func balanceLine(_ balance: Decimal?, currency: String?, name: String?) -> String? {
+        guard let balance, let currency else { return nil }
+        let formatted = balance.formatted(.currency(code: currency))
+        if let name { return "\(name): \(formatted)" }
+        return "יתרה: \(formatted)"
     }
 
     /// Signed amount — income shows with a leading "+" so the eye can

@@ -260,7 +260,9 @@ struct NewTransactionSheet: View {
                     excluding: destinationAccount
                 ) { sourceAccount = $0 }
 
-                TransferFlowArrow(animated: !reduceMotion)
+                TransferFlowArrow(animated: !reduceMotion) {
+                    swapTransferAccounts()
+                }
 
                 accountChip(
                     caption: "לחשבון",
@@ -364,7 +366,7 @@ struct NewTransactionSheet: View {
     /// confirm time) keeps the picker honest — the user only sees
     /// options that will actually save.
     private var selectableAccounts: [Account] {
-        accounts.filter { $0.type == .current }
+        accounts.filter { $0.type == .current || $0.type == .digitalWallet }
     }
 
     /// Endpoints offered for a transfer: *every* account, regardless of
@@ -665,6 +667,18 @@ struct NewTransactionSheet: View {
         }
     }
 
+    /// Flip the transfer's two endpoints in place. Wired to the arrow
+    /// between the chips (see `transferSection`) so reversing a transfer is
+    /// one tap rather than reopening both menus. Reassigning `sourceAccount`
+    /// trips `onChange(of: sourceAccount)` above, which re-pins the amount
+    /// currency to the new source — correct, since a transfer's amount is
+    /// always denominated in the account the money leaves.
+    private func swapTransferAccounts() {
+        let previousSource = sourceAccount
+        sourceAccount = destinationAccount
+        destinationAccount = previousSource
+    }
+
     private func handleConfirm() {
         guard canConfirm else { return }
 
@@ -722,7 +736,11 @@ struct NewTransactionSheet: View {
             balanceAfter: source.balance,
             account: source,
             destinationAccount: destination,
-            destinationAmount: destAmount
+            destinationAmount: destAmount,
+            // The destination's running balance after the credit — the
+            // counterpart to `balanceAfter`, in the destination account's
+            // own currency, so the list can show both sides of the move.
+            destinationBalanceAfter: destination.balance
         )
         modelContext.insert(transfer)
         return transfer
@@ -876,15 +894,59 @@ private extension View {
 /// The flowing arrow shown between the two transfer chips: three chevrons
 /// that "march" toward the destination to suggest money crossing over.
 ///
+/// When `onSwap` is provided the arrow doubles as a **swap control** — a
+/// tap flips the transfer's source and destination and spins the arrow a
+/// full turn as confirmation, so the user can reverse a transfer without
+/// reopening both pickers. Left a non-interactive decoration (and
+/// `accessibilityHidden`, since the chips carry the meaning) when nil.
+///
 /// Pinned to LTR internally so the chevrons always point the same visual
 /// direction regardless of the sheet's RTL environment (SF directional
 /// symbols otherwise auto-mirror). When `animated` is false (Reduce
-/// Motion) it renders a single static, dimmed set. `accessibilityHidden`
-/// because it's pure decoration — the two account chips carry the meaning.
+/// Motion) it renders a single static, dimmed set and the spin is dropped.
 private struct TransferFlowArrow: View {
     let animated: Bool
+    /// Invoked on tap to swap the two endpoints. Nil keeps the arrow a
+    /// purely decorative, non-interactive element.
+    var onSwap: (() -> Void)? = nil
+
+    /// Accumulated full turns. Each tap bumps it so the `rotationEffect`
+    /// keeps spinning the same way on repeated taps; a multiple of 360°
+    /// leaves the chevrons pointing source → destination as before — the
+    /// captions and flow direction are fixed, only the accounts swap.
+    @State private var turns: Int = 0
 
     var body: some View {
+        if let onSwap {
+            Button {
+                if animated {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                        turns += 1
+                    }
+                } else {
+                    turns += 1
+                }
+                onSwap()
+            } label: {
+                arrow
+                    // A 44×44 hit target around the small chevrons so the
+                    // swap is comfortably tappable (HIG minimum).
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            // No longer pure decoration: expose it to VoiceOver as the
+            // swap affordance it now is.
+            .accessibilityLabel(Text("החלפת כיוון ההעברה"))
+            .accessibilityHint(Text("מחליף בין חשבון המקור לחשבון היעד"))
+        } else {
+            arrow.accessibilityHidden(true)
+        }
+    }
+
+    /// The marching chevrons, pinned LTR and rotated by the accumulated
+    /// turns. Shared by the interactive and decorative paths.
+    private var arrow: some View {
         Group {
             if animated {
                 // PhaseAnimator with no trigger loops through the phases
@@ -897,7 +959,7 @@ private struct TransferFlowArrow: View {
             }
         }
         .environment(\.layoutDirection, .leftToRight)
-        .accessibilityHidden(true)
+        .rotationEffect(.degrees(Double(turns) * 360))
     }
 
     private func chevrons(highlight: Int?) -> some View {

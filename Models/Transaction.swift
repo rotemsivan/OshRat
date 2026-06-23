@@ -61,6 +61,15 @@ final class Transaction {
     /// `destinationAccount`), so totals stay correct even then.
     var destinationAmount: Decimal?
 
+    /// Snapshot of `destinationAccount`'s balance *immediately after* this
+    /// transfer credited it, in that account's own currency — the transfer
+    /// counterpart to `balanceAfter` (which snapshots the *source*). Lets
+    /// the transactions list show the running balance on *both* sides of a
+    /// transfer. `nil` for ordinary income/expense rows and for transfers
+    /// written before this field existed (which then show only the source
+    /// balance, exactly as before).
+    var destinationBalanceAfter: Decimal?
+
     init(
         amount: Decimal = 0,
         kind: TransactionKind = .expense,
@@ -72,7 +81,8 @@ final class Transaction {
         category: Category? = nil,
         account: Account? = nil,
         destinationAccount: Account? = nil,
-        destinationAmount: Decimal? = nil
+        destinationAmount: Decimal? = nil,
+        destinationBalanceAfter: Decimal? = nil
     ) {
         self.amount = amount
         self.kind = kind
@@ -85,6 +95,7 @@ final class Transaction {
         self.account = account
         self.destinationAccount = destinationAccount
         self.destinationAmount = destinationAmount
+        self.destinationBalanceAfter = destinationBalanceAfter
     }
 
     /// True when this row moves money between two accounts rather than
