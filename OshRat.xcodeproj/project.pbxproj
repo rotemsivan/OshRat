@@ -38,6 +38,11 @@
 		5E31E54F2FD16B6D00FF83C8 /* SharedEnums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5482FD16B6D00FF83C8 /* SharedEnums.swift */; };
 		5E31E5502FD16B6D00FF83C8 /* Category.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5442FD16B6D00FF83C8 /* Category.swift */; };
 		5E31E5512FD16B6D00FF83C8 /* Transaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5492FD16B6D00FF83C8 /* Transaction.swift */; };
+		5EFACE0100000000000000A1 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
+		5EFACE0100000000000000A2 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
+		5EFACE0100000000000000A3 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
+		5EFACE0100000000000000A4 /* TransactionInsights.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F2 /* TransactionInsights.swift */; };
+		5EFACE0100000000000000A5 /* TransactionAttachments.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F3 /* TransactionAttachments.swift */; };
 		5E31E5522FD16B6D00FF83C8 /* SeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5472FD16B6D00FF83C8 /* SeedData.swift */; };
 		5E31E5532FD16B6D00FF83C8 /* Account.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5422FD16B6D00FF83C8 /* Account.swift */; };
 		5E31E5542FD16B6D00FF83C8 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E54A2FD16B6D00FF83C8 /* UserProfile.swift */; };
@@ -137,6 +142,9 @@
 		5E31E5472FD16B6D00FF83C8 /* SeedData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedData.swift; sourceTree = "<group>"; };
 		5E31E5482FD16B6D00FF83C8 /* SharedEnums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedEnums.swift; sourceTree = "<group>"; };
 		5E31E5492FD16B6D00FF83C8 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
+		5EFACE0100000000000000F1 /* TransactionAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionAttachment.swift; sourceTree = "<group>"; };
+		5EFACE0100000000000000F2 /* TransactionInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionInsights.swift; sourceTree = "<group>"; };
+		5EFACE0100000000000000F3 /* TransactionAttachments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionAttachments.swift; sourceTree = "<group>"; };
 		5E31E54A2FD16B6D00FF83C8 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
 		5E47939D2FD2014100568427 /* IncomeSourceEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomeSourceEditorSheet.swift; sourceTree = "<group>"; };
 		5E47939F2FD2017300568427 /* PlannedExpenseEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannedExpenseEditorSheet.swift; sourceTree = "<group>"; };
@@ -311,6 +319,7 @@
 				5E31E5472FD16B6D00FF83C8 /* SeedData.swift */,
 				5E31E5482FD16B6D00FF83C8 /* SharedEnums.swift */,
 				5E31E5492FD16B6D00FF83C8 /* Transaction.swift */,
+				5EFACE0100000000000000F1 /* TransactionAttachment.swift */,
 				5E31E54A2FD16B6D00FF83C8 /* UserProfile.swift */,
 				5ED3E0E72FD1BB4D003083F0 /* Holding.swift */,
 				5E8EB3A42FD2F8E70037E1F3 /* FXRateSnapshot.swift */,
@@ -335,6 +344,8 @@
 				5E78E4DC2FDA02F600867892 /* BigAmountField.swift */,
 				5E78E4DE2FDA033E00867892 /* NewTransactionSheet.swift */,
 				5ECC1F6D2FDDC729006BAC51 /* TransactionsListView.swift */,
+				5EFACE0100000000000000F2 /* TransactionInsights.swift */,
+				5EFACE0100000000000000F3 /* TransactionAttachments.swift */,
 			);
 			path = Transactions;
 			sourceTree = "<group>";
@@ -568,6 +579,9 @@
 				5E78E4DF2FDA033E00867892 /* NewTransactionSheet.swift in Sources */,
 				5E31E5502FD16B6D00FF83C8 /* Category.swift in Sources */,
 				5E31E5512FD16B6D00FF83C8 /* Transaction.swift in Sources */,
+				5EFACE0100000000000000A1 /* TransactionAttachment.swift in Sources */,
+				5EFACE0100000000000000A4 /* TransactionInsights.swift in Sources */,
+				5EFACE0100000000000000A5 /* TransactionAttachments.swift in Sources */,
 				5E8EB3A72FD2F8E70037E1F3 /* FXRateSnapshot.swift in Sources */,
 				5E4793A22FD201AC00568427 /* BudgetStepView.swift in Sources */,
 				5ED3E0EC2FD1BB9D003083F0 /* HoldingEditorView.swift in Sources */,
@@ -593,6 +607,7 @@
 				5E31E5612FD16B6D00FF83C8 /* SharedEnums.swift in Sources */,
 				5E31E5622FD16B6D00FF83C8 /* Category.swift in Sources */,
 				5E31E5632FD16B6D00FF83C8 /* Transaction.swift in Sources */,
+				5EFACE0100000000000000A2 /* TransactionAttachment.swift in Sources */,
 				5E8EB3A62FD2F8E70037E1F3 /* FXRateSnapshot.swift in Sources */,
 				5E31E5642FD16B6D00FF83C8 /* SeedData.swift in Sources */,
 				5E31E5652FD16B6D00FF83C8 /* Account.swift in Sources */,
@@ -610,6 +625,7 @@
 				5E31E5582FD16B6D00FF83C8 /* SharedEnums.swift in Sources */,
 				5E31E5592FD16B6D00FF83C8 /* Category.swift in Sources */,
 				5E31E55A2FD16B6D00FF83C8 /* Transaction.swift in Sources */,
+				5EFACE0100000000000000A3 /* TransactionAttachment.swift in Sources */,
 				5E8EB3A52FD2F8E70037E1F3 /* FXRateSnapshot.swift in Sources */,
 				5E31E55B2FD16B6D00FF83C8 /* SeedData.swift in Sources */,
 				5E31E55C2FD16B6D00FF83C8 /* Account.swift in Sources */,

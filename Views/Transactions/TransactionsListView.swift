@@ -15,6 +15,9 @@ import SwiftData
 /// feed) so re-filtering on every keystroke is fine.
 struct TransactionsListView: View {
     @Environment(\.modelContext) private var modelContext
+    /// The expand/collapse animation and the row chevron's spin are dropped
+    /// when the user has Reduce Motion on.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @Query(sort: \Transaction.date, order: .reverse) private var transactions: [Transaction]
     @Query(sort: \Category.name) private var categories: [Category]
@@ -39,6 +42,10 @@ struct TransactionsListView: View {
     /// (not `@Binding`) is the right ownership — same pattern as the
     /// accounts card on the dashboard.
     @State private var transactionPendingDelete: Transaction?
+    /// The row currently expanded into its insights/attachments card, or
+    /// `nil` when every row is collapsed. At most one is open at a time, so
+    /// a single optional id (rather than a set) is the right model.
+    @State private var expandedID: PersistentIdentifier?
 
     var body: some View {
         ZStack {
@@ -121,6 +128,23 @@ struct TransactionsListView: View {
         }
     }
 
+    // MARK: - Expansion
+
+    /// Toggle the tapped row's inline insights card open/closed. Opening a
+    /// new row collapses the previous one (single optional id). The spring is
+    /// dropped under Reduce Motion so the height change is an instant cut.
+    private func toggleExpand(_ tx: Transaction) {
+        let id = tx.persistentModelID
+        let next: PersistentIdentifier? = (expandedID == id) ? nil : id
+        if reduceMotion {
+            expandedID = next
+        } else {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                expandedID = next
+            }
+        }
+    }
+
     // MARK: - Body
 
     /// Always-visible search row pinned above the day-grouped list.
@@ -192,7 +216,22 @@ struct TransactionsListView: View {
             ForEach(groupedByDay, id: \.day) { group in
                 Section {
                     ForEach(group.items) { tx in
-                        TransactionRow(transaction: tx)
+                        VStack(spacing: 0) {
+                            TransactionRow(transaction: tx, isExpanded: expandedID == tx.persistentModelID)
+                                // Make the whole row a tap target that toggles
+                                // its inline insights card. The swipe actions
+                                // below still work — a horizontal swipe and a
+                                // tap don't compete.
+                                .contentShape(.rect)
+                                .onTapGesture { toggleExpand(tx) }
+
+                            if expandedID == tx.persistentModelID {
+                                ExpandedTransactionCard(transaction: tx, allTransactions: transactions)
+                                    .transition(reduceMotion
+                                        ? .opacity
+                                        : .opacity.combined(with: .move(edge: .top)))
+                            }
+                        }
                             .listRowBackground(Theme.Colors.surface)
                             // Full-bleed surface row (zero horizontal inset)
                             // so the swipe actions reveal the white row
@@ -366,16 +405,29 @@ private struct DayGroup {
 /// + account underneath, amount on the trailing side coloured by kind.
 private struct TransactionRow: View {
     let transaction: Transaction
+    /// Whether this row's inline insights card is open — drives the
+    /// disclosure chevron's direction.
+    var isExpanded: Bool = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: Theme.Spacing.sm) {
             categoryBadge
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(displayTitle)
-                    .font(Theme.Typography.body)
-                    .foregroundStyle(Theme.Colors.textPrimary)
-                    .lineLimit(1)
+                HStack(spacing: Theme.Spacing.xs) {
+                    Text(displayTitle)
+                        .font(Theme.Typography.body)
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                        .lineLimit(1)
+                    // A small paperclip flags rows that carry a receipt /
+                    // invoice, so the user can spot them without expanding.
+                    if transaction.hasAttachments {
+                        Image(systemName: "paperclip")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
+                }
                 Text(subtitle)
                     .font(Theme.Typography.caption)
                     .foregroundStyle(Theme.Colors.textSecondary)
@@ -403,12 +455,27 @@ private struct TransactionRow: View {
                         .lineLimit(1)
                 }
             }
+
+            // Disclosure chevron — points down when collapsed, flips up when
+            // the insights card is open. Hidden from VoiceOver since the whole
+            // row already exposes a button trait + hint.
+            Image(systemName: "chevron.down")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: isExpanded)
+                .accessibilityHidden(true)
         }
         // Rows are full-bleed in the list (zero row insets) so the swipe
         // actions sit on the white surface; the content supplies its own
         // padding to match the screen's horizontal rhythm.
         .padding(.horizontal, Theme.Spacing.lg)
         .padding(.vertical, Theme.Spacing.sm)
+        // One combined VoiceOver element — title, amount, balances — plus a
+        // button trait and a hint so the expand affordance is discoverable.
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityHint(Text(isExpanded ? "הקש לסגירת התובנות" : "הקש להצגת תובנות וקבצים"))
     }
 
     private var categoryBadge: some View {
@@ -535,6 +602,212 @@ private struct TransactionRow: View {
         case .income:  return Theme.Colors.income
         case .expense: return Theme.Colors.expense
         }
+    }
+}
+
+// MARK: - Expanded insights card
+
+/// The card revealed under a row when it's tapped open. Surfaces the
+/// previously-hidden note, a few computed insights (how often this recurs,
+/// how the amount compares, when it was last seen, a timing pattern), any
+/// attached files, and a short list of similar past transactions.
+///
+/// All the number-crunching lives in the pure `TransactionInsights` value
+/// type; this view only formats those facts into Hebrew. Insights are
+/// computed lazily here — only the single open row builds them, and the
+/// ledger is tiny by design (same rationale as the list's client-side
+/// filtering), so there's no need to cache.
+private struct ExpandedTransactionCard: View {
+    let transaction: Transaction
+    let allTransactions: [Transaction]
+
+    /// Relative-time formatter pinned to Hebrew, e.g. "לפני 8 ימים".
+    private static let relativeFormatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.locale = Locale(identifier: "he_IL")
+        formatter.unitsStyle = .full
+        return formatter
+    }()
+
+    var body: some View {
+        let insights = TransactionInsights.make(for: transaction, in: allTransactions)
+
+        VStack(alignment: .leading, spacing: Theme.Spacing.md) {
+            if !trimmedNote.isEmpty { noteBlock }
+            if insights.hasMeaningfulInsights { insightsBlock(insights) }
+            if !transaction.attachments.isEmpty { attachmentsBlock }
+            if !insights.similar.isEmpty { similarBlock(insights.similar) }
+            if isEmpty(insights) { emptyHint }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Theme.Spacing.md)
+        .background(
+            Theme.Colors.background,
+            in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+        )
+        .padding(.horizontal, Theme.Spacing.lg)
+        .padding(.bottom, Theme.Spacing.md)
+    }
+
+    // MARK: Blocks
+
+    private var noteBlock: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            blockLabel("פירוט")
+            Text(trimmedNote)
+                .font(Theme.Typography.body)
+                .foregroundStyle(Theme.Colors.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func insightsBlock(_ insights: TransactionInsights) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            blockLabel("תובנות")
+            VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+                if let line = occurrenceLine(insights) {
+                    InsightLine(symbol: "number.square", text: line)
+                }
+                if let cadence = insights.cadence {
+                    InsightLine(symbol: "repeat", text: cadenceText(cadence))
+                }
+                if let line = amountComparisonLine(insights) {
+                    InsightLine(symbol: "chart.bar", text: line)
+                }
+                if let last = insights.lastOccurrence {
+                    InsightLine(
+                        symbol: "clock.arrow.circlepath",
+                        text: "נראתה לאחרונה \(Self.relativeFormatter.localizedString(for: last, relativeTo: .now))"
+                    )
+                }
+                if let pattern = insights.dayPattern {
+                    InsightLine(symbol: "calendar", text: dayPatternText(pattern))
+                }
+            }
+        }
+    }
+
+    private var attachmentsBlock: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            blockLabel("קבצים מצורפים")
+            // Sorted oldest-first for a stable order matching the editor.
+            AttachmentStrip(attachments: transaction.attachments.sorted { $0.createdAt < $1.createdAt })
+        }
+    }
+
+    private func similarBlock(_ similar: [Transaction]) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            blockLabel("תנועות דומות")
+            VStack(spacing: Theme.Spacing.xs) {
+                ForEach(similar) { tx in
+                    HStack {
+                        Text(tx.date.formatted(.dateTime.locale(Locale(identifier: "he_IL")).day().month(.abbreviated)))
+                            .font(Theme.Typography.caption)
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                        Spacer(minLength: Theme.Spacing.sm)
+                        Text("\u{2066}\(tx.amount.formatted(.currency(code: tx.currencyCode)))\u{2069}")
+                            .font(Theme.Typography.caption)
+                            .foregroundStyle(Theme.Colors.textPrimary)
+                            .monospacedDigit()
+                    }
+                }
+            }
+        }
+    }
+
+    private var emptyHint: some View {
+        Text("אין עדיין תובנות לתנועה הזו — היא תופיע כאן כשיהיו לה תנועות דומות.")
+            .font(Theme.Typography.caption)
+            .foregroundStyle(Theme.Colors.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: Helpers
+
+    private var trimmedNote: String {
+        transaction.note.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// True when there's genuinely nothing to show — keeps the expanded area
+    /// from rendering as an empty box.
+    private func isEmpty(_ insights: TransactionInsights) -> Bool {
+        trimmedNote.isEmpty
+            && !insights.hasMeaningfulInsights
+            && transaction.attachments.isEmpty
+            && insights.similar.isEmpty
+    }
+
+    private func blockLabel(_ text: LocalizedStringKey) -> some View {
+        Text(text)
+            .font(Theme.Typography.caption)
+            .foregroundStyle(Theme.Colors.textSecondary)
+            .textCase(.uppercase)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func occurrenceLine(_ insights: TransactionInsights) -> String? {
+        guard insights.occurrenceCount > 1 else { return nil }
+        return "נרשמה \(timesText(insights.occurrenceCount))"
+    }
+
+    /// Hebrew count phrasing: 2 → "פעמיים", otherwise "N פעמים".
+    private func timesText(_ count: Int) -> String {
+        count == 2 ? "פעמיים" : "\(count) פעמים"
+    }
+
+    private func cadenceText(_ cadence: Cadence) -> String {
+        switch cadence {
+        case .weekly:    return "חוזרת בערך כל שבוע"
+        case .biweekly:  return "חוזרת בערך כל שבועיים"
+        case .monthly:   return "חוזרת בערך כל חודש"
+        case .quarterly: return "חוזרת בערך כל שלושה חודשים"
+        case .yearly:    return "חוזרת בערך פעם בשנה"
+        case .irregular(let days): return "חוזרת בערך כל \(days) ימים"
+        }
+    }
+
+    /// "X% more/less than usual" with the typical amount, or "typical" when
+    /// it's within ~5% of the average. `nil` when there's no baseline.
+    private func amountComparisonLine(_ insights: TransactionInsights) -> String? {
+        guard let delta = insights.amountDeltaFraction else { return nil }
+        let percent = Int((abs(delta) * 100).rounded())
+        guard let average = insights.averageAmount else { return nil }
+        let averageText = average.formatted(.currency(code: transaction.currencyCode))
+        if percent < 5 {
+            return "סכום אופייני (הממוצע: \(averageText))"
+        }
+        let direction = delta > 0 ? "יותר" : "פחות"
+        return "\u{2066}\(percent)%\u{2069} \(direction) מהרגיל (הממוצע: \(averageText))"
+    }
+
+    private func dayPatternText(_ pattern: DayPattern) -> String {
+        switch pattern {
+        case .weekend:      return "בדרך כלל בסופי שבוע"
+        case .startOfMonth: return "בדרך כלל בתחילת החודש"
+        case .midMonth:     return "בדרך כלל באמצע החודש"
+        case .endOfMonth:   return "בדרך כלל בסוף החודש"
+        }
+    }
+}
+
+/// One labelled insight: an accent glyph on the leading side, the Hebrew
+/// fact beside it.
+private struct InsightLine: View {
+    let symbol: String
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.sm) {
+            Image(systemName: symbol)
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.Colors.accent)
+                .frame(width: 18)
+            Text(text)
+                .font(Theme.Typography.body)
+                .foregroundStyle(Theme.Colors.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -674,7 +947,7 @@ private struct FiltersSheet: View {
     .modelContainer(
         for: [
             UserProfile.self, Account.self, Holding.self, Category.self,
-            Transaction.self, BudgetItem.self, Goal.self, FXRateSnapshot.self
+            Transaction.self, TransactionAttachment.self, BudgetItem.self, Goal.self, FXRateSnapshot.self
         ],
         inMemory: true
     )

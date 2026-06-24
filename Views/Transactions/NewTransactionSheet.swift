@@ -83,6 +83,13 @@ struct NewTransactionSheet: View {
     /// (coloured by `kind`) just before it dismisses.
     @State private var hasConfirmed: Bool = false
 
+    /// Files staged for this transaction (receipts, invoices). Held in
+    /// memory while the sheet is open, then materialized into
+    /// `TransactionAttachment` rows on confirm (`applyAttachments`). In edit
+    /// mode it's seeded from the row's existing attachments so the save can
+    /// diff keep/delete/insert.
+    @State private var attachmentDrafts: [AttachmentDraft] = []
+
     /// - Parameters:
     ///   - transaction: an existing row to edit, or `nil` to add a new
     ///     one. In edit mode every form field is seeded from the row via
@@ -100,6 +107,13 @@ struct NewTransactionSheet: View {
             _details = State(initialValue: transaction.note)
             _amount = State(initialValue: transaction.amount)
             _amountCurrencyCode = State(initialValue: transaction.currencyCode)
+            // Seed the staged attachments from the row's existing files
+            // (oldest first for a stable strip order). Each carries its
+            // backing row in `existing` so the save path can tell kept files
+            // from removed ones.
+            _attachmentDrafts = State(initialValue: transaction.attachments
+                .sorted { $0.createdAt < $1.createdAt }
+                .compactMap { AttachmentDraft(existing: $0) })
         }
     }
 
@@ -136,8 +150,11 @@ struct NewTransactionSheet: View {
                             detailsSection
                                 .appearStagger(index: 4, visible: hasAppeared)
                                 .transition(kindTransition)
-                            amountSection
+                            attachmentsSection
                                 .appearStagger(index: 5, visible: hasAppeared)
+                                .transition(kindTransition)
+                            amountSection
+                                .appearStagger(index: 6, visible: hasAppeared)
                                 .transition(kindTransition)
                         }
                     }
@@ -423,6 +440,15 @@ struct NewTransactionSheet: View {
         }
     }
 
+    /// Optional receipts / invoices. Income & expense only — same scope as
+    /// the free-text details above it; transfers stay attachment-free for now.
+    private var attachmentsSection: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            sectionLabel("קבצים מצורפים")
+            AttachmentsEditor(drafts: $attachmentDrafts)
+        }
+    }
+
     private var amountSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             sectionLabel(kind == .transfer ? "סכום להעברה" : "סכום")
@@ -697,6 +723,10 @@ struct NewTransactionSheet: View {
             saved = editingTransaction.map { existing in
                 applyEdit(to: existing, account: account, kindModel: kindModel, accountAmount: accountAmount)
             } ?? insertNew(account: account, kindModel: kindModel, accountAmount: accountAmount)
+            // Commit the staged files onto the saved row (insert new picks,
+            // delete ones the user removed). Transfers skip this — they have
+            // no attachments section, so `attachmentDrafts` is always empty.
+            applyAttachments(to: saved)
         }
 
         try? modelContext.save()
@@ -813,6 +843,32 @@ struct NewTransactionSheet: View {
         switch kind {
         case .income:  account.balance += accountAmount
         case .expense: account.balance -= accountAmount
+        }
+    }
+
+    /// Reconcile the staged attachment drafts with the row's persisted
+    /// attachments:
+    ///   * **delete** any existing attachment the user removed (present on
+    ///     the row but no longer backing a draft),
+    ///   * **insert** any brand-new pick (a draft with no `existing` row),
+    ///   * leave kept ones untouched.
+    /// For a brand-new transaction the row has no attachments yet, so this
+    /// collapses to "insert every draft".
+    private func applyAttachments(to transaction: Transaction) {
+        let keptIDs = Set(attachmentDrafts.compactMap { $0.existing?.persistentModelID })
+        for attachment in transaction.attachments where !keptIDs.contains(attachment.persistentModelID) {
+            modelContext.delete(attachment)
+        }
+        for draft in attachmentDrafts where draft.existing == nil {
+            // Setting `transaction:` wires the inverse relationship, so the
+            // file shows up in `transaction.attachments` immediately.
+            let attachment = TransactionAttachment(
+                filename: draft.filename,
+                data: draft.data,
+                typeIdentifier: draft.typeIdentifier,
+                transaction: transaction
+            )
+            modelContext.insert(attachment)
         }
     }
 }
@@ -988,7 +1044,7 @@ private struct TransferFlowArrow: View {
         .modelContainer(
             for: [
                 UserProfile.self, Account.self, Holding.self, Category.self,
-                Transaction.self, BudgetItem.self, Goal.self, FXRateSnapshot.self
+                Transaction.self, TransactionAttachment.self, BudgetItem.self, Goal.self, FXRateSnapshot.self
             ],
             inMemory: true
         )

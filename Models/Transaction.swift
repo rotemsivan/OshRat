@@ -33,6 +33,13 @@ final class Transaction {
     var category: Category?
     var account: Account?
 
+    /// Files the user attached to this row — photographed receipts, PDF
+    /// invoices, screenshots. Cascade: an attachment has no meaning without
+    /// its transaction, so deleting the row deletes its blobs too (no
+    /// orphaned external-storage files left behind).
+    @Relationship(deleteRule: .cascade, inverse: \TransactionAttachment.transaction)
+    var attachments: [TransactionAttachment] = []
+
     // MARK: - Transfer support
     //
     // A transfer between two accounts is modelled as a *single* row rather
@@ -103,6 +110,10 @@ final class Transaction {
     /// relationship) so it stays reliable even if an involved account is
     /// later deleted and its link nullified.
     var isTransfer: Bool { destinationAmount != nil }
+
+    /// Whether this row carries any attached files. Lets the list show a
+    /// small paperclip affordance without materializing the blobs.
+    var hasAttachments: Bool { !attachments.isEmpty }
 
     // MARK: - Manual balance-edit marker
 
