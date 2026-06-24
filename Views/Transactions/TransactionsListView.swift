@@ -19,7 +19,14 @@ struct TransactionsListView: View {
     /// when the user has Reduce Motion on.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @Query(sort: \Transaction.date, order: .reverse) private var transactions: [Transaction]
+    // Live rows only — soft-deleted transactions live in "Recently
+    // Deleted" (see `TrashService`) until restored or purged.
+    @Query(filter: #Predicate<Transaction> { $0.deletedAt == nil }, sort: \Transaction.date, order: .reverse)
+    private var transactions: [Transaction]
+    /// Soft-deleted transactions, surfaced as a count so the toolbar can
+    /// offer a "Recently Deleted" entry only when there's something to recover.
+    @Query(filter: #Predicate<Transaction> { $0.deletedAt != nil })
+    private var deletedTransactions: [Transaction]
     @Query(sort: \Category.name) private var categories: [Category]
     /// Newest snapshot first — `fxSnapshots.first` is the freshest cached
     /// rate set, used to reverse a deleted transaction's balance effect
@@ -37,15 +44,13 @@ struct TransactionsListView: View {
     /// The transaction whose editor sheet is open, or `nil`. Reuses the
     /// "new transaction" sheet in edit mode.
     @State private var editingTransaction: Transaction?
-    /// Set when the user taps "מחיקה" on a swipe action. Drives the
-    /// confirmation alert; never persists between renders, so `@State`
-    /// (not `@Binding`) is the right ownership — same pattern as the
-    /// accounts card on the dashboard.
-    @State private var transactionPendingDelete: Transaction?
     /// The row currently expanded into its insights/attachments card, or
     /// `nil` when every row is collapsed. At most one is open at a time, so
     /// a single optional id (rather than a set) is the right model.
     @State private var expandedID: PersistentIdentifier?
+    /// Drives the "Recently Deleted" sheet, opened from the toolbar when
+    /// there are soft-deleted transactions to recover.
+    @State private var isShowingRecentlyDeleted: Bool = false
 
     var body: some View {
         ZStack {
@@ -69,6 +74,20 @@ struct TransactionsListView: View {
                 }
                 .accessibilityLabel(Text("פילטרים"))
             }
+            // Only shown when there's something to recover, so the toolbar
+            // stays quiet in the common case. Opens the shared "Recently
+            // Deleted" screen (accounts + transactions).
+            if !deletedTransactions.isEmpty {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        isShowingRecentlyDeleted = true
+                    } label: {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .foregroundStyle(Theme.Colors.accent)
+                    }
+                    .accessibilityLabel(Text("נמחקו לאחרונה"))
+                }
+            }
         }
         .sheet(isPresented: $isShowingFilters) {
             FiltersSheet(
@@ -87,53 +106,42 @@ struct TransactionsListView: View {
             // the list just hands it the row.
             NewTransactionSheet(transaction: tx)
         }
-        .alert(
-            Text("מחיקת תנועה"),
-            isPresented: deleteAlertBinding,
-            presenting: transactionPendingDelete
-        ) { tx in
-            Button("מחיקה", role: .destructive) {
-                deleteTransaction(tx)
-            }
-            Button("ביטול", role: .cancel) {}
-        } message: { _ in
-            Text("אתה בטוח שברצונך למחוק את התנועה? יתרת החשבון תעודכן בהתאם.")
+        .sheet(isPresented: $isShowingRecentlyDeleted) {
+            RecentlyDeletedView()
         }
     }
 
     // MARK: - Delete
 
-    /// `.alert(presenting:)` wants a `Binding<Bool>` for `isPresented`;
-    /// bridge it through the optional pending transaction so dismissing
-    /// clears the pending row in one place. Mirrors `AssetsSummaryCard`.
-    private var deleteAlertBinding: Binding<Bool> {
-        Binding(
-            get: { transactionPendingDelete != nil },
-            set: { if !$0 { transactionPendingDelete = nil } }
-        )
-    }
-
-    /// Reverse the transaction's effect on its account balance, then
-    /// delete it. `withAnimation` wraps the SwiftData mutation so the
+    /// Soft-delete the transaction: reverse its effect on the account
+    /// balance (transfer-aware — both sides, or the single income/expense
+    /// effect) and hide the row, keeping it recoverable from "Recently
+    /// Deleted". `withAnimation` wraps the SwiftData mutation so the
     /// `@Query` refire collapses the row out instead of a hard cut.
     /// Older rows' `balanceAfter` snapshots are deliberately left as-is —
     /// the app treats them as point-in-time and tolerates that drift.
     private func deleteTransaction(_ tx: Transaction) {
         withAnimation {
-            // Transfer-aware: unwinds *both* sides of a transfer, or the
-            // single account effect of an income/expense row.
-            tx.reverseEffect(using: fxSnapshots.first)
-            modelContext.delete(tx)
+            TrashService.softDelete(tx, fx: fxSnapshots.first)
             try? modelContext.save()
         }
     }
 
     // MARK: - Expansion
 
+    /// Whether a row offers the inline insights card. Manual balance-edit
+    /// markers are bookkeeping rows, not real income/expense — they carry no
+    /// recurrence, amount-vs-average, or attachments worth surfacing, so they
+    /// stay collapsed and don't react to a tap.
+    private func isExpandable(_ tx: Transaction) -> Bool {
+        !tx.isManualBalanceEdit
+    }
+
     /// Toggle the tapped row's inline insights card open/closed. Opening a
     /// new row collapses the previous one (single optional id). The spring is
     /// dropped under Reduce Motion so the height change is an instant cut.
     private func toggleExpand(_ tx: Transaction) {
+        guard isExpandable(tx) else { return }
         let id = tx.persistentModelID
         let next: PersistentIdentifier? = (expandedID == id) ? nil : id
         if reduceMotion {
@@ -178,7 +186,28 @@ struct TransactionsListView: View {
                 .stroke(Theme.Colors.separator, lineWidth: 1)
         )
         .padding(.horizontal, Theme.Spacing.lg)
-        .padding(.vertical, Theme.Spacing.xs)
+        .padding(.vertical, Theme.Spacing.md)
+    }
+
+    /// A one-tap "clear filters" chip, shown only while type / category /
+    /// date filters are active (search has its own clear button). Lets the
+    /// user drop back to the full list without reopening the filter sheet.
+    /// Lives as the first row of the list (above the day headers).
+    private var filterChip: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) { clearFilters() }
+        } label: {
+            HStack(spacing: Theme.Spacing.xs) {
+                Image(systemName: "xmark.circle.fill")
+                Text("איפוס פילטרים")
+            }
+            .font(Theme.Typography.caption)
+            .foregroundStyle(Theme.Colors.accent)
+            .padding(.horizontal, Theme.Spacing.sm)
+            .background(Theme.Colors.accent.opacity(0.12), in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("איפוס כל הפילטרים"))
     }
 
     @ViewBuilder
@@ -213,19 +242,43 @@ struct TransactionsListView: View {
 
     private var list: some View {
         List {
+            // Quick "clear filters" chip, pinned above the day headers. It's
+            // its own headerless section so a tight per-section spacing
+            // override sits it close to the first day header — without
+            // touching the List's default day-to-day section spacing.
+            if hasActiveFilters {
+                Section {
+                    HStack {
+                        filterChip
+                        //Spacer()
+                    }
+                    .padding(.horizontal, Theme.Spacing.lg)
+                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Theme.Colors.surface)
+                }
+                .listSectionSpacing(Theme.Spacing.xs)
+            }
+
             ForEach(groupedByDay, id: \.day) { group in
                 Section {
                     ForEach(group.items) { tx in
                         VStack(spacing: 0) {
-                            TransactionRow(transaction: tx, isExpanded: expandedID == tx.persistentModelID)
+                            TransactionRow(
+                                transaction: tx,
+                                isExpanded: isExpandable(tx) && expandedID == tx.persistentModelID,
+                                showsDisclosure: isExpandable(tx)
+                            )
                                 // Make the whole row a tap target that toggles
                                 // its inline insights card. The swipe actions
                                 // below still work — a horizontal swipe and a
-                                // tap don't compete.
+                                // tap don't compete. Manual balance-edit rows
+                                // aren't expandable, so `toggleExpand` ignores
+                                // their taps.
                                 .contentShape(.rect)
                                 .onTapGesture { toggleExpand(tx) }
 
-                            if expandedID == tx.persistentModelID {
+                            if isExpandable(tx), expandedID == tx.persistentModelID {
                                 ExpandedTransactionCard(transaction: tx, allTransactions: transactions)
                                     .transition(reduceMotion
                                         ? .opacity
@@ -241,19 +294,20 @@ struct TransactionsListView: View {
                             // carries its own horizontal padding instead.
                             .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                             .listRowSeparator(.hidden)
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                 // Order matters: SwiftUI lays the first
                                 // item closest to the swipe edge, so Delete
                                 // first puts it at the trailing edge — the
-                                // destructive slot users expect. Mirrors the
-                                // accounts card on the dashboard.
+                                // destructive slot users expect, and the one
+                                // a full swipe triggers. Unified with the
+                                // accounts and budget lists.
                                 //
                                 // Icon-only (`Image`, not `Label`) for a
                                 // compact look that doesn't depend on row
                                 // height; `accessibilityLabel` keeps the
                                 // spoken name for VoiceOver.
                                 Button(role: .destructive) {
-                                    transactionPendingDelete = tx
+                                    deleteTransaction(tx)
                                 } label: {
                                     Image(systemName: "trash")
                                 }
@@ -291,6 +345,10 @@ struct TransactionsListView: View {
             }
         }
         .listStyle(.plain)
+        // A small top inset above the chip. Day-to-day section spacing stays
+        // at the List default — only the chip section overrides its own
+        // spacing (above) to sit tight against the first day header.
+        .contentMargins(.top, 10, for: .scrollContent)
         .scrollContentBackground(.hidden)
         // White (surface), not the gray screen background: the swipe
         // actions reveal whatever sits *behind* the row, so a surface
@@ -342,11 +400,16 @@ struct TransactionsListView: View {
         case .last90:
             return DateInterval(start: now.addingTimeInterval(-90 * 86400), end: now)
         case .custom:
-            // Guard against the user flipping start past end — clamp to
-            // the smaller range so we always return a valid interval.
-            let start = min(customRangeStart, customRangeEnd)
-            let end   = max(customRangeStart, customRangeEnd)
-            return DateInterval(start: start, end: end)
+            // Cover *whole* days: the range calendar stores each endpoint at
+            // start-of-day, so without this a transaction logged later on the
+            // end day (any time after midnight) would fall outside the range.
+            // Normalise to [start of the first day, start of the day after the
+            // last] and let `min`/`max` absorb a flipped start/end.
+            let calendar = Calendar.current
+            let lo = calendar.startOfDay(for: min(customRangeStart, customRangeEnd))
+            let hiDay = calendar.startOfDay(for: max(customRangeStart, customRangeEnd))
+            let end = calendar.date(byAdding: .day, value: 1, to: hiDay) ?? hiDay
+            return DateInterval(start: lo, end: end)
         }
     }
 
@@ -408,6 +471,10 @@ private struct TransactionRow: View {
     /// Whether this row's inline insights card is open — drives the
     /// disclosure chevron's direction.
     var isExpanded: Bool = false
+    /// Whether this row can expand into an insights card. Manual
+    /// balance-edit rows can't, so they hide the chevron and drop the
+    /// tap-to-expand affordance from VoiceOver.
+    var showsDisclosure: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -458,11 +525,17 @@ private struct TransactionRow: View {
 
             // Disclosure chevron — points down when collapsed, flips up when
             // the insights card is open. Hidden from VoiceOver since the whole
-            // row already exposes a button trait + hint.
+            // row already exposes a button trait + hint. Its width is *always*
+            // reserved (a fixed frame + opacity, rather than removing the view)
+            // so the amount column lines up across every row — otherwise a
+            // non-expandable row like a manual balance edit, which has no
+            // chevron, would let its amount slide left out of alignment.
             Image(systemName: "chevron.down")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(Theme.Colors.textSecondary)
                 .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                .frame(width: 12)
+                .opacity(showsDisclosure ? 1 : 0)
                 .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: isExpanded)
                 .accessibilityHidden(true)
         }
@@ -471,11 +544,20 @@ private struct TransactionRow: View {
         // padding to match the screen's horizontal rhythm.
         .padding(.horizontal, Theme.Spacing.lg)
         .padding(.vertical, Theme.Spacing.sm)
-        // One combined VoiceOver element — title, amount, balances — plus a
-        // button trait and a hint so the expand affordance is discoverable.
+        // One combined VoiceOver element — title, amount, balances. Expandable
+        // rows also carry a button trait + hint so the affordance is
+        // discoverable; manual-edit rows have nothing to expand, so they stay
+        // a plain, hint-free element.
         .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityHint(Text(isExpanded ? "הקש לסגירת התובנות" : "הקש להצגת תובנות וקבצים"))
+        .accessibilityAddTraits(showsDisclosure ? .isButton : [])
+        .accessibilityHint(disclosureHint)
+    }
+
+    /// VoiceOver hint for the row. Only expandable rows advertise the
+    /// tap-to-expand behaviour; manual-edit rows stay silent.
+    private var disclosureHint: Text {
+        guard showsDisclosure else { return Text(verbatim: "") }
+        return Text(isExpanded ? "הקש לסגירת התובנות" : "הקש להצגת תובנות וקבצים")
     }
 
     private var categoryBadge: some View {
@@ -895,6 +977,11 @@ private struct FiltersSheet: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    // Drop the grouped "card" backing so the segmented control
+                    // sits directly on the form background — the filled frame
+                    // around it read as visual clutter.
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: Theme.Spacing.xs, leading: 0, bottom: Theme.Spacing.xs, trailing: 0))
                 } header: {
                     Text("סוג תנועה")
                 }
@@ -918,8 +1005,17 @@ private struct FiltersSheet: View {
                     }
 
                     if rangeFilter == .custom {
-                        DatePicker("מתאריך", selection: $customRangeStart, displayedComponents: .date)
-                        DatePicker("עד תאריך", selection: $customRangeEnd, displayedComponents: .date)
+                        // One calendar: tap a start day, then an end day, and
+                        // the span in between is marked. Both dates are written
+                        // straight back to the filter bindings.
+                        DateRangeCalendar(start: $customRangeStart, end: $customRangeEnd)
+                            .listRowBackground(Color.clear)
+                            .listRowInsets(EdgeInsets(
+                                top: Theme.Spacing.sm,
+                                leading: Theme.Spacing.sm,
+                                bottom: Theme.Spacing.sm,
+                                trailing: Theme.Spacing.sm
+                            ))
                     }
                 } header: {
                     Text("טווח תאריכים")
@@ -937,6 +1033,312 @@ private struct FiltersSheet: View {
             }
         }
         .tint(Theme.Colors.accent)
+    }
+}
+
+// MARK: - Date range calendar
+
+/// A month calendar that picks a contiguous date range for the custom
+/// filter. The first tap sets the start (collapsing the range to that one
+/// day); the next tap on the same-or-later day sets the end, marking every
+/// day in between; a further tap starts a fresh range. Both endpoints are
+/// written straight back to the `start` / `end` bindings.
+///
+/// Mirrors the month-grid mechanics of `BudgetCalendarView` (six-week grid,
+/// RTL-aware weekday order, month paging) but trades the per-day budget dots
+/// for range highlighting.
+private struct DateRangeCalendar: View {
+    @Binding var start: Date
+    @Binding var end: Date
+
+    /// First day of the month on screen.
+    @State private var visibleMonth: Date
+    /// After a fresh start is set, the next tap completes the range by
+    /// setting the end. Reset to `false` once a range is complete, so the
+    /// following tap begins a new selection.
+    @State private var selectingEnd: Bool = false
+    /// When true the day grid is swapped for month + year wheels, so the
+    /// user can jump straight to any month instead of paging one at a time.
+    @State private var isPickingMonth: Bool = false
+    /// Lets the horizontal swipe map to previous / next month the right way
+    /// round under RTL.
+    @Environment(\.layoutDirection) private var layoutDirection
+
+    private let calendar: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale(identifier: "he_IL")
+        return calendar
+    }()
+
+    init(start: Binding<Date>, end: Binding<Date>) {
+        _start = start
+        _end = end
+        _visibleMonth = State(initialValue: Self.startOfMonth(for: start.wrappedValue))
+    }
+
+    var body: some View {
+        VStack(spacing: Theme.Spacing.sm) {
+            header
+            if isPickingMonth {
+                MonthYearPicker(month: $visibleMonth)
+            } else {
+                weekdayHeader
+                LazyVGrid(columns: Self.columns, spacing: Theme.Spacing.xs) {
+                    ForEach(gridDays, id: \.self) { day in
+                        dayCell(day)
+                            .contentShape(.rect)
+                            .onTapGesture { tap(day) }
+                    }
+                }
+                // Swipe the grid left / right to page months (RTL-aware), so
+                // navigation isn't only the chevrons.
+                .contentShape(.rect)
+                .gesture(monthSwipe)
+            }
+            summary
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: Header
+
+    private var header: some View {
+        HStack {
+            navButton(systemName: "chevron.backward", label: "החודש הקודם") { shiftMonth(by: -1) }
+                .opacity(isPickingMonth ? 0 : 1)
+                .disabled(isPickingMonth)
+            Spacer()
+            // Tap the label to reveal the month / year wheels and jump anywhere.
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { isPickingMonth.toggle() }
+            } label: {
+                HStack(spacing: Theme.Spacing.xs) {
+                    Text(monthYearLabel)
+                        .font(Theme.Typography.body)
+                        .foregroundStyle(Theme.Colors.textPrimary)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Theme.Colors.accent)
+                        .rotationEffect(.degrees(isPickingMonth ? 180 : 0))
+                }
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("בחירת חודש ושנה"))
+            Spacer()
+            navButton(systemName: "chevron.forward", label: "החודש הבא") { shiftMonth(by: 1) }
+                .opacity(isPickingMonth ? 0 : 1)
+                .disabled(isPickingMonth)
+        }
+    }
+
+    private func navButton(
+        systemName: String,
+        label: LocalizedStringKey,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(Theme.Typography.body)
+                .foregroundStyle(Theme.Colors.accent)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(label))
+    }
+
+    private var weekdayHeader: some View {
+        HStack(spacing: Theme.Spacing.xs) {
+            ForEach(Array(orderedWeekdays.enumerated()), id: \.offset) { _, symbol in
+                Text(symbol)
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
+    // MARK: Day cell
+
+    private func dayCell(_ day: Date) -> some View {
+        let d = calendar.startOfDay(for: day)
+        let inMonth = calendar.isDate(day, equalTo: visibleMonth, toGranularity: .month)
+        let lo = calendar.startOfDay(for: min(start, end))
+        let hi = calendar.startOfDay(for: max(start, end))
+        let inSpan = d >= lo && d <= hi
+        let isEndpoint = d == lo || d == hi
+        // The band reaches a cell's leading edge whenever the range continues
+        // to earlier days, and the trailing edge whenever it continues to
+        // later days. Because `LazyVGrid` fills leading→trailing (and mirrors
+        // under RTL), "earlier" is always the leading side — so this is
+        // direction-agnostic. The two half-fills, with zero column spacing,
+        // join into one continuous band; at a week's edge a row simply runs to
+        // its own edge, which reads as the band wrapping to the next line.
+        let fillLeading = inSpan && d > lo
+        let fillTrailing = inSpan && d < hi
+
+        // Full-width ZStack (not a `.background` on the 32-pt number) so the
+        // band's two half-rectangles span the whole cell and meet the
+        // neighbours' — that's what makes the highlight read as one band.
+        return ZStack {
+            if inSpan {
+                HStack(spacing: 0) {
+                    Rectangle().fill(fillLeading ? bandColor : Color.clear)
+                    Rectangle().fill(fillTrailing ? bandColor : Color.clear)
+                }
+                .frame(height: 32)
+            }
+            if isEndpoint {
+                Circle().fill(Theme.Colors.accent).frame(width: 32, height: 32)
+            }
+            Text(dayNumber(day))
+                .font(Theme.Typography.body)
+                .monospacedDigit()
+                .foregroundStyle(numberColor(isEndpoint: isEndpoint, inSpan: inSpan))
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 32)
+        .padding(.vertical, 2)
+        .opacity(inMonth ? 1 : 0.3)
+        .accessibilityElement(children: .ignore)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAddTraits(isEndpoint ? .isSelected : [])
+        .accessibilityLabel(Text(accessibilityLabel(day)))
+    }
+
+    /// Faint accent wash for the range band — light enough that the day
+    /// numbers stay readable on top.
+    private var bandColor: Color { Theme.Colors.accent.opacity(0.18) }
+
+    private func numberColor(isEndpoint: Bool, inSpan: Bool) -> Color {
+        // Endpoints sit on a solid accent disc (white reads best); in-between
+        // days keep the normal label colour for contrast on the faint band.
+        isEndpoint ? .white : Theme.Colors.textPrimary
+    }
+
+    // MARK: Summary
+
+    private var summary: some View {
+        HStack(spacing: Theme.Spacing.xs) {
+            Image(systemName: "calendar")
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+            Text(summaryText)
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+            Spacer()
+        }
+    }
+
+    private var summaryText: String {
+        let currentYear = calendar.component(.year, from: .now)
+        if selectingEnd {
+            // Show the start's year if it isn't the current one, so a date
+            // being carried into the hint never reads ambiguously.
+            let needsYear = calendar.component(.year, from: start) != currentYear
+            return "מ-\(shortDate(start, includeYear: needsYear)) · בחרו תאריך סיום"
+        }
+        let lo = min(start, end)
+        let hi = max(start, end)
+        // Surface the year when the two endpoints span different years (so a
+        // cross-year range is unambiguous) or when the range sits outside the
+        // current year entirely.
+        let needsYear = calendar.component(.year, from: lo) != calendar.component(.year, from: hi)
+            || calendar.component(.year, from: lo) != currentYear
+        if calendar.isDate(lo, inSameDayAs: hi) {
+            return shortDate(lo, includeYear: needsYear)
+        }
+        return "\(shortDate(lo, includeYear: needsYear)) – \(shortDate(hi, includeYear: needsYear))"
+    }
+
+    // MARK: Interaction
+
+    private func tap(_ day: Date) {
+        let d = calendar.startOfDay(for: day)
+        // Tapping a spill-over day flips to its month, so a range can be
+        // dragged across the month boundary.
+        if !calendar.isDate(day, equalTo: visibleMonth, toGranularity: .month) {
+            visibleMonth = Self.startOfMonth(for: day, calendar: calendar)
+        }
+        if selectingEnd && d >= calendar.startOfDay(for: start) {
+            end = d
+            selectingEnd = false
+        } else {
+            start = d
+            end = d
+            selectingEnd = true
+        }
+    }
+
+    private func shiftMonth(by delta: Int) {
+        guard let shifted = calendar.date(byAdding: .month, value: delta, to: visibleMonth) else { return }
+        visibleMonth = Self.startOfMonth(for: shifted, calendar: calendar)
+    }
+
+    /// A mostly-horizontal swipe pages the month. Under RTL a rightward drag
+    /// goes forward (later) — the mirror of the LTR convention — so it lines
+    /// up with the visual direction of the next-month chevron.
+    private var monthSwipe: some Gesture {
+        DragGesture(minimumDistance: 24)
+            .onEnded { value in
+                let dx = value.translation.width
+                guard abs(dx) > abs(value.translation.height) else { return }
+                let forward = layoutDirection == .rightToLeft ? (dx > 0) : (dx < 0)
+                shiftMonth(by: forward ? 1 : -1)
+            }
+    }
+
+    // MARK: Derived data
+
+    /// Six weeks of days from the first day of the grid's first week, so the
+    /// grid height stays constant from month to month.
+    private var gridDays: [Date] {
+        guard let monthInterval = calendar.dateInterval(of: .month, for: visibleMonth),
+              let firstWeek = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.start)
+        else { return [] }
+        var days: [Date] = []
+        var cursor = firstWeek.start
+        for _ in 0..<42 {
+            days.append(cursor)
+            guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else { break }
+            cursor = next
+        }
+        return days
+    }
+
+    /// Weekday header symbols in display order (honours `firstWeekday`).
+    private var orderedWeekdays: [String] {
+        let symbols = calendar.veryShortWeekdaySymbols   // index 0 == Sunday
+        let offset = calendar.firstWeekday - 1
+        return (0..<7).map { symbols[($0 + offset) % 7] }
+    }
+
+    private func dayNumber(_ day: Date) -> String {
+        day.formatted(.dateTime.locale(Locale(identifier: "he_IL")).day())
+    }
+
+    private func shortDate(_ day: Date, includeYear: Bool) -> String {
+        let he = Locale(identifier: "he_IL")
+        return includeYear
+            ? day.formatted(.dateTime.locale(he).day().month(.abbreviated).year())
+            : day.formatted(.dateTime.locale(he).day().month(.abbreviated))
+    }
+
+    private var monthYearLabel: String {
+        visibleMonth.formatted(.dateTime.locale(Locale(identifier: "he_IL")).month(.wide).year())
+    }
+
+    private func accessibilityLabel(_ day: Date) -> String {
+        day.formatted(.dateTime.locale(Locale(identifier: "he_IL")).weekday(.wide).day().month(.wide))
+    }
+
+    // Zero column spacing so adjacent range-band fills meet with no gap; the
+    // 32-pt day discs are inset within each (wider) cell, so cells still read
+    // as distinct.
+    private static let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+
+    private static func startOfMonth(for date: Date, calendar: Calendar = .current) -> Date {
+        calendar.dateInterval(of: .month, for: date)?.start ?? date
     }
 }
 

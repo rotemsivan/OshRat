@@ -9,11 +9,12 @@ import SwiftUI
 /// still display in each account's *own* currency — that's where you
 /// look when you want a per-account read.
 ///
-/// Each account row supports two swipe actions on the trailing edge:
-///   * **עריכה** — opens the same `AccountEditorSheet` as the pencil
-///   * **מחיקה** — pops a confirmation alert; on confirm, the parent
-///     deletes via SwiftData inside a `withAnimation` block so the
-///     row collapses smoothly.
+/// Tapping an account row opens its `AccountEditorSheet` (unified with
+/// the budget and transaction lists). The trailing edge swipes to a
+/// trash icon that, after a confirmation alert, soft-deletes the account
+/// (the parent hides it via `TrashService` inside a `withAnimation`
+/// block so the row collapses smoothly, and it stays recoverable from
+/// "Recently Deleted"). The leading edge swipes to the favourite toggle.
 struct AssetsSummaryCard: View {
     let accounts: [Account]
     let preferredCurrencyCode: String
@@ -33,10 +34,17 @@ struct AssetsSummaryCard: View {
     /// intent; `HomeView` owns the sheet and the SwiftData insert, exactly
     /// like the edit/delete/favourite handlers above.
     let onAddAccount: () -> Void
+    /// How many accounts are currently soft-deleted. When > 0 the card
+    /// shows a small "Recently Deleted" entry so they can be recovered.
+    let deletedAccountCount: Int
+    /// Opens the shared "Recently Deleted" screen. Parent owns the sheet.
+    let onShowRecentlyDeleted: () -> Void
 
-    /// Set when the user taps "מחיקה" on a swipe action. Drives the
-    /// confirmation alert below — never persists between renders, so
-    /// `@State` (not `@Binding`) is the right ownership.
+    /// Set when the user triggers the delete swipe. Drives the confirmation
+    /// alert below — deleting an account is weighty enough (it pulls the
+    /// account out of every total) to warrant a confirm, even though it's
+    /// now recoverable. Never persists between renders, so `@State` is the
+    /// right ownership.
     @State private var accountPendingDelete: Account?
 
     var body: some View {
@@ -53,6 +61,8 @@ struct AssetsSummaryCard: View {
                 separator
                 accountRows
             }
+
+            recentlyDeletedLink
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
         .cardStyle()
@@ -66,7 +76,26 @@ struct AssetsSummaryCard: View {
             }
             Button("ביטול", role: .cancel) {}
         } message: { _ in
-            Text("אתה בטוח שברצונך למחוק את החשבון?")
+            Text("אפשר לשחזר את החשבון מ״נמחקו לאחרונה״ תוך 30 יום.")
+        }
+    }
+
+    /// Small footer entry into "Recently Deleted", shown only when there's
+    /// at least one soft-deleted account to recover — so the card stays
+    /// clean in the common case.
+    @ViewBuilder
+    private var recentlyDeletedLink: some View {
+        if deletedAccountCount > 0 {
+            Button(action: onShowRecentlyDeleted) {
+                Label(
+                    "נמחקו לאחרונה (\(deletedAccountCount))",
+                    systemImage: "clock.arrow.circlepath"
+                )
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.accent)
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -147,54 +176,52 @@ struct AssetsSummaryCard: View {
     private var accountRows: some View {
         List {
             ForEach(sortedAccounts) { account in
-                AccountSummaryRow(account: account)
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(
-                        top: 0,
-                        leading: 0,
-                        bottom: Theme.Spacing.sm,
-                        trailing: 0
-                    ))
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    // Order matters: SwiftUI lays the first item out
-                    // closest to the swipe edge. Putting Delete first
-                    // means it sits at the trailing edge — the
-                    // "destructive" position users expect.
-                    //
-                    // Icon-only (an `Image`, not a `Label`) so the action
-                    // reads the same compact way regardless of row height,
-                    // matching the transactions list. `accessibilityLabel`
-                    // keeps the spoken name for VoiceOver.
+                // Tap-to-edit, unified with the budget and transaction
+                // lists. `.plain` so the row keeps its custom styling
+                // rather than taking on a system button tint.
+                Button {
+                    onEditAccount(account)
+                } label: {
+                    AccountSummaryRow(account: account)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint(Text("הקש לעריכה"))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(
+                    top: 0,
+                    leading: 0,
+                    bottom: Theme.Spacing.sm,
+                    trailing: 0
+                ))
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    // Delete is the only trailing action now that editing
+                    // moved to a row tap. Icon-only (an `Image`, not a
+                    // `Label`) for a compact look that matches the other
+                    // lists. Unlike the budget/transaction lists this one
+                    // routes through a confirmation alert first — deleting
+                    // an account is weightier — so the swipe sets the
+                    // pending account rather than deleting outright.
                     Button(role: .destructive) {
                         accountPendingDelete = account
                     } label: {
                         Image(systemName: "trash")
                     }
                     .accessibilityLabel(Text("מחיקה"))
-
-                    Button {
-                        onEditAccount(account)
-                    } label: {
-                        Image(systemName: "pencil")
-                    }
-                    .tint(Theme.Colors.accent)
-                    .accessibilityLabel(Text("עריכה"))
                 }
-                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                        // Leading edge = visual right under RTL — the
-                        // side opposite Edit/Delete, so favourite
-                        // doesn't compete with the destructive action.
-                        // Full swipe is enabled so the common case
-                        // ("make this my go-to") is a single gesture.
-                        Button {
-                            onToggleFavorite(account)
-                        } label: {
-                            Image(systemName: account.isFavorite ? "star.slash.fill" : "star.fill")
-                        }
-                        .tint(.yellow)
-                        .accessibilityLabel(Text(account.isFavorite ? "ביטול מועדף" : "מועדף"))
+                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                    // Leading edge = visual right under RTL — the side
+                    // opposite delete, so favourite doesn't compete with
+                    // the destructive action. Full swipe makes the common
+                    // case ("make this my go-to") a single gesture.
+                    Button {
+                        onToggleFavorite(account)
+                    } label: {
+                        Image(systemName: account.isFavorite ? "star.slash.fill" : "star.fill")
                     }
+                    .tint(.yellow)
+                    .accessibilityLabel(Text(account.isFavorite ? "ביטול מועדף" : "מועדף"))
+                }
             }
         }
         .listStyle(.plain)
@@ -211,8 +238,8 @@ struct AssetsSummaryCard: View {
     // MARK: - Alert plumbing
 
     /// `.alert(presenting:)` needs a `Binding<Bool>` for `isPresented`;
-    /// we bridge it through the optional `accountPendingDelete` so the
-    /// "dismiss" path clears the pending account in one place.
+    /// bridge it through the optional pending account so the dismiss path
+    /// clears it in one place.
     private var deleteAlertBinding: Binding<Bool> {
         Binding(
             get: { accountPendingDelete != nil },
@@ -302,8 +329,9 @@ struct AssetsSummaryCard: View {
 
 /// One account row — icon, name, total. The total is in the
 /// *account's own* currency: this is the per-account read, separate
-/// from the unified hero above. Edit and delete are reached via the
-/// trailing swipe actions wired up by the parent.
+/// from the unified hero above. Tapping the row edits the account;
+/// delete and favourite are the trailing/leading swipe actions wired
+/// up by the parent.
 private struct AccountSummaryRow: View {
     let account: Account
 
@@ -395,7 +423,9 @@ private struct AccountSummaryRow: View {
             onEditAccount: { _ in },
             onDeleteAccount: { _ in },
             onToggleFavorite: { _ in },
-            onAddAccount: {}
+            onAddAccount: {},
+            deletedAccountCount: 0,
+            onShowRecentlyDeleted: {}
         )
         .padding(Theme.Spacing.lg)
     }

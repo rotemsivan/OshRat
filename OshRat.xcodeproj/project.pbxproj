@@ -42,6 +42,8 @@
 		5EFACE0100000000000000A2 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
 		5EFACE0100000000000000A3 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
 		5EFACE0100000000000000A4 /* TransactionInsights.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F2 /* TransactionInsights.swift */; };
+		5E17150100000000000000A2 /* TrashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F2 /* TrashService.swift */; };
+		5E17150100000000000000A3 /* RecentlyDeletedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F3 /* RecentlyDeletedView.swift */; };
 		5EFACE0100000000000000A5 /* TransactionAttachments.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F3 /* TransactionAttachments.swift */; };
 		5E31E5522FD16B6D00FF83C8 /* SeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5472FD16B6D00FF83C8 /* SeedData.swift */; };
 		5E31E5532FD16B6D00FF83C8 /* Account.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5422FD16B6D00FF83C8 /* Account.swift */; };
@@ -74,9 +76,14 @@
 		5E8EB3A72FD2F8E70037E1F3 /* FXRateSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8EB3A42FD2F8E70037E1F3 /* FXRateSnapshot.swift */; };
 		5E8EB3AB2FD2F9B30037E1F3 /* FXRatesService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8EB3A92FD2F9070037E1F3 /* FXRatesService.swift */; };
 		5E8EB3AC2FD2F9B30037E1F3 /* CurrencyConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8EB3AA2FD2F9240037E1F3 /* CurrencyConverter.swift */; };
+		5E17150100000000000000C1 /* CurrencyConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8EB3AA2FD2F9240037E1F3 /* CurrencyConverter.swift */; };
+		5E17150100000000000000C2 /* CurrencyConverter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8EB3AA2FD2F9240037E1F3 /* CurrencyConverter.swift */; };
+		5E17150100000000000000C3 /* IsraeliHolidays.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F1 /* IsraeliHolidays.swift */; };
+		5E17150100000000000000C4 /* IsraeliHolidays.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F1 /* IsraeliHolidays.swift */; };
 		5EA1C0022FDA200000000002 /* WelcomeMascotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EA1C0012FDA200000000001 /* WelcomeMascotView.swift */; };
 		5ECC1F6E2FDDC729006BAC51 /* TransactionsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECC1F6D2FDDC729006BAC51 /* TransactionsListView.swift */; };
 		5ECC1F702FDDCC37006BAC51 /* HebrewTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECC1F6F2FDDCC37006BAC51 /* HebrewTextField.swift */; };
+		5E17150100000000000000A4 /* MonthYearPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F4 /* MonthYearPicker.swift */; };
 		5ED3E0E82FD1BB4D003083F0 /* Holding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0E72FD1BB4D003083F0 /* Holding.swift */; };
 		5ED3E0E92FD1BB4D003083F0 /* Holding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0E72FD1BB4D003083F0 /* Holding.swift */; };
 		5ED3E0EA2FD1BB4D003083F0 /* Holding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0E72FD1BB4D003083F0 /* Holding.swift */; };
@@ -144,6 +151,8 @@
 		5E31E5492FD16B6D00FF83C8 /* Transaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Transaction.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F1 /* TransactionAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionAttachment.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F2 /* TransactionInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionInsights.swift; sourceTree = "<group>"; };
+		5E17150100000000000000F2 /* TrashService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrashService.swift; sourceTree = "<group>"; };
+		5E17150100000000000000F3 /* RecentlyDeletedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentlyDeletedView.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F3 /* TransactionAttachments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionAttachments.swift; sourceTree = "<group>"; };
 		5E31E54A2FD16B6D00FF83C8 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
 		5E47939D2FD2014100568427 /* IncomeSourceEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomeSourceEditorSheet.swift; sourceTree = "<group>"; };
@@ -160,6 +169,7 @@
 		5EA1C0012FDA200000000001 /* WelcomeMascotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeMascotView.swift; sourceTree = "<group>"; };
 		5ECC1F6D2FDDC729006BAC51 /* TransactionsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionsListView.swift; sourceTree = "<group>"; };
 		5ECC1F6F2FDDCC37006BAC51 /* HebrewTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HebrewTextField.swift; sourceTree = "<group>"; };
+		5E17150100000000000000F4 /* MonthYearPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthYearPicker.swift; sourceTree = "<group>"; };
 		5ED3E0E72FD1BB4D003083F0 /* Holding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Holding.swift; sourceTree = "<group>"; };
 		5ED3E0EB2FD1BB9D003083F0 /* HoldingEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoldingEditorView.swift; sourceTree = "<group>"; };
 		5ED3E0EE2FD1BE69003083F0 /* GreetingHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreetingHeaderView.swift; sourceTree = "<group>"; };
@@ -241,8 +251,17 @@
 				5E78E4D92FDA02B400867892 /* Transactions */,
 				5EAA170100000000000000A1 /* Analytics */,
 				5EBD610100000000000000A1 /* Budget */,
+				5E17150100000000000000D3 /* RecentlyDeleted */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		5E17150100000000000000D3 /* RecentlyDeleted */ = {
+			isa = PBXGroup;
+			children = (
+				5E17150100000000000000F3 /* RecentlyDeletedView.swift */,
+			);
+			path = RecentlyDeleted;
 			sourceTree = "<group>";
 		};
 		5EBD610100000000000000A1 /* Budget */ = {
@@ -333,6 +352,7 @@
 				5E4793A62FD207EA00568427 /* Theme.swift */,
 				5E13B1952FD5BD0700C87118 /* DecimalField.swift */,
 				5ECC1F6F2FDDCC37006BAC51 /* HebrewTextField.swift */,
+				5E17150100000000000000F4 /* MonthYearPicker.swift */,
 			);
 			path = DesignSystem;
 			sourceTree = "<group>";
@@ -356,6 +376,7 @@
 				5E8EB3A92FD2F9070037E1F3 /* FXRatesService.swift */,
 				5E8EB3AA2FD2F9240037E1F3 /* CurrencyConverter.swift */,
 				5E17150100000000000000F1 /* IsraeliHolidays.swift */,
+				5E17150100000000000000F2 /* TrashService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -582,10 +603,13 @@
 				5EFACE0100000000000000A1 /* TransactionAttachment.swift in Sources */,
 				5EFACE0100000000000000A4 /* TransactionInsights.swift in Sources */,
 				5EFACE0100000000000000A5 /* TransactionAttachments.swift in Sources */,
+				5E17150100000000000000A2 /* TrashService.swift in Sources */,
+				5E17150100000000000000A3 /* RecentlyDeletedView.swift in Sources */,
 				5E8EB3A72FD2F8E70037E1F3 /* FXRateSnapshot.swift in Sources */,
 				5E4793A22FD201AC00568427 /* BudgetStepView.swift in Sources */,
 				5ED3E0EC2FD1BB9D003083F0 /* HoldingEditorView.swift in Sources */,
 				5ECC1F702FDDCC37006BAC51 /* HebrewTextField.swift in Sources */,
+				5E17150100000000000000A4 /* MonthYearPicker.swift in Sources */,
 				5E31E5522FD16B6D00FF83C8 /* SeedData.swift in Sources */,
 				5ED3E0F72FD1BEE2003083F0 /* HomeView.swift in Sources */,
 				5E8EB3AB2FD2F9B30037E1F3 /* FXRatesService.swift in Sources */,
@@ -611,6 +635,8 @@
 				5E8EB3A62FD2F8E70037E1F3 /* FXRateSnapshot.swift in Sources */,
 				5E31E5642FD16B6D00FF83C8 /* SeedData.swift in Sources */,
 				5E31E5652FD16B6D00FF83C8 /* Account.swift in Sources */,
+				5E17150100000000000000C1 /* CurrencyConverter.swift in Sources */,
+				5E17150100000000000000C3 /* IsraeliHolidays.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -629,6 +655,8 @@
 				5E8EB3A52FD2F8E70037E1F3 /* FXRateSnapshot.swift in Sources */,
 				5E31E55B2FD16B6D00FF83C8 /* SeedData.swift in Sources */,
 				5E31E55C2FD16B6D00FF83C8 /* Account.swift in Sources */,
+				5E17150100000000000000C2 /* CurrencyConverter.swift in Sources */,
+				5E17150100000000000000C4 /* IsraeliHolidays.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

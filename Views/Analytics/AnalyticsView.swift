@@ -29,8 +29,12 @@ extension EnvironmentValues {
 /// All the number-crunching lives in `AnalyticsReport`; this view just
 /// feeds the right slice of it into each station and animates them in.
 struct AnalyticsView: View {
-    @Query(sort: \Transaction.date, order: .reverse) private var transactions: [Transaction]
-    @Query(sort: \Account.name) private var accounts: [Account]
+    // Live rows only — soft-deleted accounts/transactions (see
+    // `TrashService`) are excluded from every analytic.
+    @Query(filter: #Predicate<Transaction> { $0.deletedAt == nil }, sort: \Transaction.date, order: .reverse)
+    private var transactions: [Transaction]
+    @Query(filter: #Predicate<Account> { $0.deletedAt == nil }, sort: \Account.name)
+    private var accounts: [Account]
     @Query private var profiles: [UserProfile]
     @Query(sort: \FXRateSnapshot.fetchedAt, order: .reverse) private var fxSnapshots: [FXRateSnapshot]
 

@@ -30,6 +30,11 @@ struct BudgetCalendarView: View {
     /// Date a newly-added line is seeded around (the tapped day).
     @State private var addSeedDate: Date = .now
     @State private var isChoosingKind = false
+    /// When true the calendar card shows month + year wheels instead of the
+    /// day grid, so the user can jump straight to any month.
+    @State private var isPickingMonth = false
+    /// Lets the horizontal swipe map to previous / next month correctly under RTL.
+    @Environment(\.layoutDirection) private var layoutDirection
 
     @State private var editingIncome: IncomeSourceDraft?
     @State private var pendingIncomeItem: BudgetItem?
@@ -106,9 +111,24 @@ struct BudgetCalendarView: View {
             Spacer()
 
             VStack(spacing: 2) {
-                Text(monthYearLabel)
-                    .font(Theme.Typography.sectionTitle)
-                    .foregroundStyle(Theme.Colors.textPrimary)
+                // Tap the month label to reveal the month / year wheels and
+                // jump straight to any month.
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) { isPickingMonth.toggle() }
+                } label: {
+                    HStack(spacing: Theme.Spacing.xs) {
+                        Text(monthYearLabel)
+                            .font(Theme.Typography.sectionTitle)
+                            .foregroundStyle(Theme.Colors.textPrimary)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Theme.Colors.accent)
+                            .rotationEffect(.degrees(isPickingMonth ? 180 : 0))
+                    }
+                    .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("בחירת חודש ושנה"))
                 if !isViewingCurrentMonth {
                     Button("חזרה להיום", action: jumpToToday)
                         .font(Theme.Typography.caption)
@@ -136,20 +156,27 @@ struct BudgetCalendarView: View {
 
     private var calendarCard: some View {
         VStack(spacing: Theme.Spacing.sm) {
-            weekdayHeader
-            LazyVGrid(columns: Self.columns, spacing: Theme.Spacing.xs) {
-                ForEach(gridDays, id: \.self) { day in
-                    CalendarDayCell(
-                        date: day,
-                        isInMonth: calendar.isDate(day, equalTo: visibleMonth, toGranularity: .month),
-                        isToday: calendar.isDateInToday(day),
-                        isSelected: selectedDay.map { calendar.isDate($0, inSameDayAs: day) } ?? false,
-                        isSaturday: calendar.component(.weekday, from: day) == 7,
-                        items: itemsByDay[calendar.startOfDay(for: day)] ?? [],
-                        holiday: holidaysByDay[calendar.startOfDay(for: day)]
-                    )
-                    .onTapGesture { select(day) }
+            if isPickingMonth {
+                MonthYearPicker(month: $visibleMonth)
+            } else {
+                weekdayHeader
+                LazyVGrid(columns: Self.columns, spacing: Theme.Spacing.xs) {
+                    ForEach(gridDays, id: \.self) { day in
+                        CalendarDayCell(
+                            date: day,
+                            isInMonth: calendar.isDate(day, equalTo: visibleMonth, toGranularity: .month),
+                            isToday: calendar.isDateInToday(day),
+                            isSelected: selectedDay.map { calendar.isDate($0, inSameDayAs: day) } ?? false,
+                            isSaturday: calendar.component(.weekday, from: day) == 7,
+                            items: itemsByDay[calendar.startOfDay(for: day)] ?? [],
+                            holiday: holidaysByDay[calendar.startOfDay(for: day)]
+                        )
+                        .onTapGesture { select(day) }
+                    }
                 }
+                // Swipe the grid left / right to page months (RTL-aware).
+                .contentShape(.rect)
+                .gesture(monthSwipe)
             }
         }
         .cardStyle()
@@ -228,6 +255,18 @@ struct BudgetCalendarView: View {
     private func shiftMonth(by delta: Int) {
         guard let shifted = calendar.date(byAdding: .month, value: delta, to: visibleMonth) else { return }
         visibleMonth = Self.startOfMonth(for: shifted, calendar: calendar)
+    }
+
+    /// A mostly-horizontal swipe pages the month (RTL-aware), so the user can
+    /// flick between months instead of only tapping the chevrons.
+    private var monthSwipe: some Gesture {
+        DragGesture(minimumDistance: 24)
+            .onEnded { value in
+                let dx = value.translation.width
+                guard abs(dx) > abs(value.translation.height) else { return }
+                let forward = layoutDirection == .rightToLeft ? (dx > 0) : (dx < 0)
+                shiftMonth(by: forward ? 1 : -1)
+            }
     }
 
     private func jumpToToday() {

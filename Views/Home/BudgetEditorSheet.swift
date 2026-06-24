@@ -88,8 +88,19 @@ struct BudgetEditorSheet: View {
                         IncomeItemRow(item: item)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityHint(Text("הקש לעריכה"))
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        // Trash icon + full swipe to delete — the same
+                        // delete gesture used across the accounts and
+                        // transactions lists.
+                        Button(role: .destructive) {
+                            deleteIncome(item)
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .accessibilityLabel(Text("מחיקה"))
+                    }
                 }
-                .onDelete(perform: deleteIncome(at:))
             }
 
             Button {
@@ -119,8 +130,16 @@ struct BudgetEditorSheet: View {
                         ExpenseItemRow(item: item)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityHint(Text("הקש לעריכה"))
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            deleteExpense(item)
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .accessibilityLabel(Text("מחיקה"))
+                    }
                 }
-                .onDelete(perform: deleteExpense(at:))
             }
 
             Button {
@@ -175,25 +194,16 @@ struct BudgetEditorSheet: View {
         try? modelContext.save()
     }
 
-    private func deleteIncome(at offsets: IndexSet) {
-        // Resolve indices against the filtered array we displayed, so
-        // a delete here doesn't accidentally remove the wrong row from
-        // the broader budgetItems query.
-        let items = incomeItems
+    private func deleteIncome(_ item: BudgetItem) {
         withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
+            modelContext.delete(item)
             try? modelContext.save()
         }
     }
 
-    private func deleteExpense(at offsets: IndexSet) {
-        let items = expenseItems
+    private func deleteExpense(_ item: BudgetItem) {
         withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
+            modelContext.delete(item)
             try? modelContext.save()
         }
     }

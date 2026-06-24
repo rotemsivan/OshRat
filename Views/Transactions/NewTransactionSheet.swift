@@ -36,7 +36,10 @@ struct NewTransactionSheet: View {
     /// when the user has Reduce Motion on.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @Query(sort: \Account.name) private var accounts: [Account]
+    // Soft-deleted accounts (see `TrashService`) can't be picked for a
+    // new or edited transaction, so they're filtered out here.
+    @Query(filter: #Predicate<Account> { $0.deletedAt == nil }, sort: \Account.name)
+    private var accounts: [Account]
     @Query(sort: \Category.name) private var categories: [Category]
     @Query private var profiles: [UserProfile]
     /// Newest snapshot first; the head of the array is the freshest FX
@@ -69,6 +72,10 @@ struct NewTransactionSheet: View {
     @State private var category: Category?
     @State private var title: String = ""
     @State private var details: String = ""
+    /// When the transaction happened. Defaults to "now" for a new entry,
+    /// seeded from the row in edit mode. The picker is capped at the
+    /// present (`...Date.now`) so a transaction can never be future-dated.
+    @State private var date: Date = .now
     @State private var amount: Decimal = 0
     /// Currency the user is typing the amount in. Starts as the source
     /// account's currency (so the common case is zero-conversion) but
@@ -105,6 +112,7 @@ struct NewTransactionSheet: View {
             _category = State(initialValue: transaction.category)
             _title = State(initialValue: transaction.title)
             _details = State(initialValue: transaction.note)
+            _date = State(initialValue: transaction.date)
             _amount = State(initialValue: transaction.amount)
             _amountCurrencyCode = State(initialValue: transaction.currencyCode)
             // Seed the staged attachments from the row's existing files
@@ -137,6 +145,9 @@ struct NewTransactionSheet: View {
                             titleSection
                                 .appearStagger(index: 3, visible: hasAppeared)
                                 .transition(kindTransition)
+                            dateSection
+                                .appearStagger(index: 4, visible: hasAppeared)
+                                .transition(kindTransition)
                         } else {
                             accountSection
                                 .appearStagger(index: 1, visible: hasAppeared)
@@ -155,6 +166,9 @@ struct NewTransactionSheet: View {
                                 .transition(kindTransition)
                             amountSection
                                 .appearStagger(index: 6, visible: hasAppeared)
+                                .transition(kindTransition)
+                            dateSection
+                                .appearStagger(index: 7, visible: hasAppeared)
                                 .transition(kindTransition)
                         }
                     }
@@ -440,6 +454,36 @@ struct NewTransactionSheet: View {
         }
     }
 
+    /// When the transaction happened. The picker is bounded to `...Date.now`
+    /// so future dates can't be entered — a ledger only records what has
+    /// already occurred. Date-only (no time) matches how the list groups and
+    /// labels rows by day.
+    private var dateSection: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            sectionLabel("תאריך")
+            HStack(spacing: Theme.Spacing.sm) {
+                Image(systemName: "calendar")
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                DatePicker(
+                    "תאריך התנועה",
+                    selection: $date,
+                    in: ...Date.now,
+                    displayedComponents: .date
+                )
+                .labelsHidden()
+                .environment(\.locale, Locale(identifier: "he_IL"))
+                Spacer()
+            }
+            .padding(Theme.Spacing.md)
+            .background(Theme.Colors.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                    .stroke(Theme.Colors.separator, lineWidth: 1)
+            )
+        }
+    }
+
     /// Optional receipts / invoices. Income & expense only — same scope as
     /// the free-text details above it; transfers stay attachment-free for now.
     private var attachmentsSection: some View {
@@ -600,6 +644,9 @@ struct NewTransactionSheet: View {
     }
 
     private var canConfirm: Bool {
+        // Defensive: the date picker is already capped at `...Date.now`, but
+        // re-check here so a future date can never slip through to a save.
+        guard date <= Date.now else { return false }
         if kind == .transfer {
             // Need two *distinct* accounts, a positive amount, and a rate
             // that can express it in the destination's currency — without
@@ -756,7 +803,9 @@ struct NewTransactionSheet: View {
 
         let transfer = Transaction(
             amount: amount,
-            date: now,
+            // The user-chosen date (defaults to today); accounts still stamp
+            // `lastUpdated = now` above since the balance moved just now.
+            date: date,
             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
             note: details.trimmingCharacters(in: .whitespacesAndNewlines),
             currencyCode: amountCurrencyCode,
@@ -792,7 +841,7 @@ struct NewTransactionSheet: View {
         let transaction = Transaction(
             amount: amount,
             kind: kindModel,
-            date: .now,
+            date: date,
             title: title.trimmingCharacters(in: .whitespacesAndNewlines),
             note: details.trimmingCharacters(in: .whitespacesAndNewlines),
             currencyCode: amountCurrencyCode,
@@ -810,8 +859,8 @@ struct NewTransactionSheet: View {
     /// then apply the freshly-entered impact to the chosen account. When
     /// the account is unchanged this collapses to just the delta; when it
     /// changes, the old account is made whole and the new one absorbs the
-    /// full amount. The row's `date` is left untouched so it keeps its
-    /// place in the history.
+    /// full amount. The row's `date` is updated too, so editing can correct
+    /// when the transaction happened (still bounded to today or earlier).
     private func applyEdit(to existing: Transaction, account: Account, kindModel: TransactionKind, accountAmount: Decimal) -> Transaction {
         // Reverse first — `balanceEffect` reads the row's *current* (old)
         // amount/kind/currency and account, so it has to run before the
@@ -827,6 +876,7 @@ struct NewTransactionSheet: View {
 
         existing.amount = amount
         existing.kind = kindModel
+        existing.date = date
         existing.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         existing.note = details.trimmingCharacters(in: .whitespacesAndNewlines)
         existing.currencyCode = amountCurrencyCode

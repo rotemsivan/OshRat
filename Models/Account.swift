@@ -22,6 +22,14 @@ final class Account {
     /// flow clears it off the others when a new favourite is picked.
     var isFavorite: Bool = false
 
+    /// When the account was soft-deleted, or `nil` while it's live.
+    /// Deleting an account doesn't remove the row — it hides it (every
+    /// account `@Query` filters `deletedAt == nil`) so it can be restored
+    /// from "Recently Deleted". `TrashService.purgeExpired` hard-deletes
+    /// rows past the retention window. Optional + default `nil` keeps the
+    /// change additive and CloudKit-compatible.
+    var deletedAt: Date?
+
     /// Transactions linked to this account. Deleting the account just nullifies
     /// the link on its transactions rather than deleting them.
     @Relationship(deleteRule: .nullify, inverse: \Transaction.account)

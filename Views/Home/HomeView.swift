@@ -19,8 +19,17 @@ struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
 
     @Query private var profiles: [UserProfile]
-    @Query(sort: \Account.name) private var accounts: [Account]
-    @Query(sort: \Transaction.date, order: .reverse) private var transactions: [Transaction]
+    // Live rows only — soft-deleted accounts/transactions sit in
+    // "Recently Deleted" (see `TrashService`) until restored or purged,
+    // so every dashboard total ignores them.
+    @Query(filter: #Predicate<Account> { $0.deletedAt == nil }, sort: \Account.name)
+    private var accounts: [Account]
+    @Query(filter: #Predicate<Transaction> { $0.deletedAt == nil }, sort: \Transaction.date, order: .reverse)
+    private var transactions: [Transaction]
+    /// Soft-deleted accounts, surfaced only as a count so the assets card
+    /// can offer a "Recently Deleted" entry when there's something to recover.
+    @Query(filter: #Predicate<Account> { $0.deletedAt != nil })
+    private var deletedAccounts: [Account]
     @Query private var budgetItems: [BudgetItem]
     /// Sorted newest first so `fxSnapshots.first` is always the freshest
     /// cached snapshot (or nil if we've never successfully fetched).
@@ -40,6 +49,9 @@ struct HomeView: View {
     /// `isAddingTransaction` — the sheet sources its own data via
     /// `@Query` and doesn't need a per-presentation seed value.
     @State private var isEditingBudget: Bool = false
+    /// Drives the "Recently Deleted" sheet, opened from the assets card
+    /// when there are soft-deleted accounts to recover.
+    @State private var isShowingRecentlyDeleted: Bool = false
 
     var body: some View {
         ZStack {
@@ -102,6 +114,9 @@ struct HomeView: View {
         .sheet(isPresented: $isEditingBudget) {
             BudgetEditorSheet()
         }
+        .sheet(isPresented: $isShowingRecentlyDeleted) {
+            RecentlyDeletedView()
+        }
         .sheet(isPresented: $isAddingAccount) {
             AccountEditorSheet(
                 // Seed the draft in the user's preferred currency, matching
@@ -136,6 +151,12 @@ struct HomeView: View {
         .task {
             await FXRatesService.refreshIfNeeded(in: modelContext)
         }
+        // Sweep out anything that's sat in "Recently Deleted" past the
+        // retention window. Cheap on a hand-entered ledger, so doing it on
+        // appearance is plenty — there's no background scheduler in the MVP.
+        .task {
+            TrashService.purgeExpired(in: modelContext)
+        }
     }
 
     /// Dashboard branch of the tab switch — the original home-screen
@@ -154,15 +175,14 @@ struct HomeView: View {
                         editingAccount = account
                     },
                     onDeleteAccount: { account in
-                        // `withAnimation` wraps the SwiftData mutation
-                        // so the @Query refire animates the row out
-                        // (collapse + fade) instead of a hard cut.
-                        // The cascade rule on `Account.holdings`
-                        // takes care of nested deletes; transactions
-                        // pointing at this account get their link
-                        // nullified.
+                        // Soft delete: the account is hidden (and drops out
+                        // of every total) but kept for recovery from
+                        // "Recently Deleted". `withAnimation` wraps the
+                        // mutation so the @Query refire animates the row
+                        // out instead of a hard cut. Its holdings and
+                        // transactions stay attached for a later restore.
                         withAnimation {
-                            modelContext.delete(account)
+                            TrashService.softDelete(account)
                             try? modelContext.save()
                         }
                     },
@@ -183,7 +203,9 @@ struct HomeView: View {
                             try? modelContext.save()
                         }
                     },
-                    onAddAccount: { isAddingAccount = true }
+                    onAddAccount: { isAddingAccount = true },
+                    deletedAccountCount: deletedAccounts.count,
+                    onShowRecentlyDeleted: { isShowingRecentlyDeleted = true }
                 )
 
                 BudgetSummaryCard(

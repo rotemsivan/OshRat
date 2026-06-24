@@ -77,6 +77,15 @@ final class Transaction {
     /// balance, exactly as before).
     var destinationBalanceAfter: Decimal?
 
+    /// When this row was soft-deleted, or `nil` while it's live. Deleting
+    /// a transaction reverses its balance effect and hides the row (every
+    /// transaction `@Query` filters `deletedAt == nil`) so it can be
+    /// restored from "Recently Deleted", which re-applies the effect.
+    /// `TrashService.purgeExpired` hard-deletes rows past the retention
+    /// window. Optional + default `nil` keeps the change additive and
+    /// CloudKit-compatible.
+    var deletedAt: Date?
+
     init(
         amount: Decimal = 0,
         kind: TransactionKind = .expense,
@@ -197,6 +206,29 @@ extension Transaction {
             }
         } else if let account, let effect = balanceEffect(using: snapshot) {
             account.balance -= effect
+            account.lastUpdated = .now
+        }
+    }
+
+    /// Re-apply this transaction's effect on its account balance(s) — the
+    /// exact inverse of `reverseEffect`, used when a soft-deleted row is
+    /// restored from "Recently Deleted". A delete reversed the effect (the
+    /// money came back); restoring puts it back. Transfer-aware and FX-free
+    /// for the same reasons as `reverseEffect`: the transfer figures were
+    /// captured at creation, and a cross-currency ordinary row that can't be
+    /// expressed in the account's currency is left untouched.
+    func reapplyEffect(using snapshot: FXRateSnapshot?) {
+        if isTransfer {
+            if let source = account {
+                source.balance -= amount
+                source.lastUpdated = .now
+            }
+            if let destination = destinationAccount {
+                destination.balance += destinationAmount ?? amount
+                destination.lastUpdated = .now
+            }
+        } else if let account, let effect = balanceEffect(using: snapshot) {
+            account.balance += effect
             account.lastUpdated = .now
         }
     }
