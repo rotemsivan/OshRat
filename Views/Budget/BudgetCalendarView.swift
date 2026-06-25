@@ -11,6 +11,13 @@ private let holidayTint = Color(light: Color(hex: "7E57C2"), dark: Color(hex: "B
 /// planned for it and lets the user add more; the header rolls the whole
 /// month into planned income / expense / net.
 ///
+/// The month grid itself is Apple's native `UICalendarView` (the same one the
+/// Calendar and Reminders apps use), wrapped in `BudgetMonthCalendar` below.
+/// We adopt it instead of a hand-rolled grid so month navigation, the
+/// today/selection styling, and RTL all come straight from the system. The
+/// one thing the system can't do — paint per-day budget dots and flag
+/// Shabbat / holidays — we add back through its decoration delegate.
+///
 /// Adding and editing reuse the very same income/expense editor sheets as
 /// the dashboard budget editor (now schedule-aware), so a line created here
 /// behaves identically to one created during onboarding.
@@ -22,7 +29,10 @@ struct BudgetCalendarView: View {
     @Query private var profiles: [UserProfile]
     @Query(sort: \FXRateSnapshot.fetchedAt, order: .reverse) private var fxSnapshots: [FXRateSnapshot]
 
-    /// First day of the month currently on screen.
+    /// First day of the month currently on screen. Mirrors the native
+    /// calendar's visible month (it drives the header summary and which
+    /// month's dots we compute); the calendar owns navigation, this just
+    /// follows it.
     @State private var visibleMonth: Date = Self.startOfMonth(for: .now)
     /// Day the user has tapped (start-of-day), if any.
     @State private var selectedDay: Date? = Calendar.current.startOfDay(for: .now)
@@ -30,11 +40,6 @@ struct BudgetCalendarView: View {
     /// Date a newly-added line is seeded around (the tapped day).
     @State private var addSeedDate: Date = .now
     @State private var isChoosingKind = false
-    /// When true the calendar card shows month + year wheels instead of the
-    /// day grid, so the user can jump straight to any month.
-    @State private var isPickingMonth = false
-    /// Lets the horizontal swipe map to previous / next month correctly under RTL.
-    @Environment(\.layoutDirection) private var layoutDirection
 
     @State private var editingIncome: IncomeSourceDraft?
     @State private var pendingIncomeItem: BudgetItem?
@@ -46,14 +51,13 @@ struct BudgetCalendarView: View {
             Theme.Colors.background.ignoresSafeArea()
             ScrollView {
                 VStack(spacing: Theme.Spacing.lg) {
-                    monthHeader
+                    calendarCard
                     MonthPlanSummary(
                         income: monthTotals.income,
                         expense: monthTotals.expense,
                         currencyCode: preferredCurrencyCode,
                         fxUnavailable: monthTotals.fxUnavailable
                     )
-                    calendarCard
                     selectedDaySection
                 }
                 .padding(.horizontal, Theme.Spacing.lg)
@@ -93,105 +97,17 @@ struct BudgetCalendarView: View {
         }
     }
 
-    // MARK: - Header
-
-    private var monthHeader: some View {
-        HStack {
-            Button {
-                shiftMonth(by: -1)
-            } label: {
-                Image(systemName: "chevron.backward")
-                    .font(Theme.Typography.sectionTitle)
-                    .foregroundStyle(Theme.Colors.accent)
-                    .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text("החודש הקודם"))
-
-            Spacer()
-
-            VStack(spacing: 2) {
-                // Tap the month label to reveal the month / year wheels and
-                // jump straight to any month.
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) { isPickingMonth.toggle() }
-                } label: {
-                    HStack(spacing: Theme.Spacing.xs) {
-                        Text(monthYearLabel)
-                            .font(Theme.Typography.sectionTitle)
-                            .foregroundStyle(Theme.Colors.textPrimary)
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Theme.Colors.accent)
-                            .rotationEffect(.degrees(isPickingMonth ? 180 : 0))
-                    }
-                    .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text("בחירת חודש ושנה"))
-                if !isViewingCurrentMonth {
-                    Button("חזרה להיום", action: jumpToToday)
-                        .font(Theme.Typography.caption)
-                        .buttonStyle(.plain)
-                        .foregroundStyle(Theme.Colors.accent)
-                }
-            }
-
-            Spacer()
-
-            Button {
-                shiftMonth(by: 1)
-            } label: {
-                Image(systemName: "chevron.forward")
-                    .font(Theme.Typography.sectionTitle)
-                    .foregroundStyle(Theme.Colors.accent)
-                    .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text("החודש הבא"))
-        }
-    }
-
-    // MARK: - Calendar grid
+    // MARK: - Calendar
 
     private var calendarCard: some View {
-        VStack(spacing: Theme.Spacing.sm) {
-            if isPickingMonth {
-                MonthYearPicker(month: $visibleMonth)
-            } else {
-                weekdayHeader
-                LazyVGrid(columns: Self.columns, spacing: Theme.Spacing.xs) {
-                    ForEach(gridDays, id: \.self) { day in
-                        CalendarDayCell(
-                            date: day,
-                            isInMonth: calendar.isDate(day, equalTo: visibleMonth, toGranularity: .month),
-                            isToday: calendar.isDateInToday(day),
-                            isSelected: selectedDay.map { calendar.isDate($0, inSameDayAs: day) } ?? false,
-                            isSaturday: calendar.component(.weekday, from: day) == 7,
-                            items: itemsByDay[calendar.startOfDay(for: day)] ?? [],
-                            holiday: holidaysByDay[calendar.startOfDay(for: day)]
-                        )
-                        .onTapGesture { select(day) }
-                    }
-                }
-                // Swipe the grid left / right to page months (RTL-aware).
-                .contentShape(.rect)
-                .gesture(monthSwipe)
-            }
-        }
+        BudgetMonthCalendar(
+            selectedDay: $selectedDay,
+            visibleMonth: $visibleMonth,
+            calendar: calendar,
+            decorations: decorations
+        )
+        .frame(maxWidth: .infinity)
         .cardStyle()
-    }
-
-    private var weekdayHeader: some View {
-        HStack(spacing: Theme.Spacing.xs) {
-            ForEach(orderedWeekdays, id: \.symbol) { weekday in
-                Text(weekday.symbol)
-                    .font(Theme.Typography.caption)
-                    // Saturday matches the grid's non-business tint.
-                    .foregroundStyle(weekday.isSaturday ? holidayTint : Theme.Colors.textSecondary)
-                    .frame(maxWidth: .infinity)
-            }
-        }
     }
 
     // MARK: - Selected-day detail
@@ -241,38 +157,6 @@ struct BudgetCalendarView: View {
     }
 
     // MARK: - Actions
-
-    private func select(_ day: Date) {
-        // Tapping a spill-over day from an adjacent month flips the visible
-        // month to that day's month, so the user can plan straight across
-        // the month boundary.
-        if !calendar.isDate(day, equalTo: visibleMonth, toGranularity: .month) {
-            visibleMonth = Self.startOfMonth(for: day, calendar: calendar)
-        }
-        selectedDay = calendar.startOfDay(for: day)
-    }
-
-    private func shiftMonth(by delta: Int) {
-        guard let shifted = calendar.date(byAdding: .month, value: delta, to: visibleMonth) else { return }
-        visibleMonth = Self.startOfMonth(for: shifted, calendar: calendar)
-    }
-
-    /// A mostly-horizontal swipe pages the month (RTL-aware), so the user can
-    /// flick between months instead of only tapping the chevrons.
-    private var monthSwipe: some Gesture {
-        DragGesture(minimumDistance: 24)
-            .onEnded { value in
-                let dx = value.translation.width
-                guard abs(dx) > abs(value.translation.height) else { return }
-                let forward = layoutDirection == .rightToLeft ? (dx > 0) : (dx < 0)
-                shiftMonth(by: forward ? 1 : -1)
-            }
-    }
-
-    private func jumpToToday() {
-        visibleMonth = Self.startOfMonth(for: .now, calendar: calendar)
-        selectedDay = calendar.startOfDay(for: .now)
-    }
 
     private func beginAddForSelectedDay() {
         addSeedDate = selectedDay ?? .now
@@ -363,44 +247,73 @@ struct BudgetCalendarView: View {
         return (comps.month ?? 1, comps.year ?? 2000)
     }
 
-    private var isViewingCurrentMonth: Bool {
-        calendar.isDate(visibleMonth, equalTo: .now, toGranularity: .month)
-    }
-
-    /// Scheduled lines that resolve to a concrete day in the visible month,
-    /// bucketed by that day. Undated recurring lines (a plain monthly budget)
-    /// aren't pinned to a day, so they don't appear on the grid — they still
-    /// roll into the month total below.
-    private var itemsByDay: [Date: [BudgetItem]] {
-        let (month, year) = visibleMonthComponents
-        var buckets: [Date: [BudgetItem]] = [:]
-        for item in budgetItems {
-            guard let date = item.occurrenceDate(inMonth: month, year: year, calendar: calendar) else { continue }
-            buckets[calendar.startOfDay(for: date), default: []].append(item)
-        }
-        return buckets
-    }
-
+    /// Budget lines that resolve to the tapped day. Computed from the
+    /// selected day's *own* month (not the visible month) so the detail list
+    /// stays correct even if the user has paged the calendar elsewhere while
+    /// keeping an earlier day selected.
     private var selectedDayItems: [BudgetItem] {
         guard let selectedDay else { return [] }
-        return itemsByDay[calendar.startOfDay(for: selectedDay)] ?? []
-    }
-
-    /// Israeli holidays falling on the visible grid, keyed by day, so the
-    /// same lookup drives both the grid tint and the detail header.
-    private var holidaysByDay: [Date: IsraeliHoliday] {
-        var map: [Date: IsraeliHoliday] = [:]
-        for day in gridDays {
-            if let holiday = IsraeliHolidays.holiday(for: day) {
-                map[calendar.startOfDay(for: day)] = holiday
-            }
+        let comps = calendar.dateComponents([.month, .year], from: selectedDay)
+        let month = comps.month ?? 1
+        let year = comps.year ?? 2000
+        return budgetItems.filter { item in
+            guard let date = item.occurrenceDate(inMonth: month, year: year, calendar: calendar) else { return false }
+            return calendar.isDate(date, inSameDayAs: selectedDay)
         }
-        return map
     }
 
     private var selectedDayHoliday: IsraeliHoliday? {
         guard let selectedDay else { return nil }
-        return holidaysByDay[calendar.startOfDay(for: selectedDay)]
+        return IsraeliHolidays.holiday(for: selectedDay)
+    }
+
+    /// Per-day decoration data for the native calendar, keyed by start-of-day.
+    /// We compute the visible month plus its two neighbours so paging shows
+    /// the dots immediately rather than a beat after the month settles. All
+    /// the budget/holiday logic stays here in SwiftUI; the wrapper's delegate
+    /// just renders dots from this plain dictionary (no SwiftData crosses into
+    /// UIKit).
+    private var decorations: [Date: CalendarDayDecoration] {
+        var result: [Date: CalendarDayDecoration] = [:]
+
+        for offset in -1...1 {
+            guard let monthDate = calendar.date(byAdding: .month, value: offset, to: visibleMonth),
+                  let interval = calendar.dateInterval(of: .month, for: monthDate) else { continue }
+            let comps = calendar.dateComponents([.month, .year], from: monthDate)
+            let month = comps.month ?? 1
+            let year = comps.year ?? 2000
+
+            // Budget lines that land on a concrete day this month.
+            for item in budgetItems {
+                guard let date = item.occurrenceDate(inMonth: month, year: year, calendar: calendar) else { continue }
+                let day = calendar.startOfDay(for: date)
+                result[day, default: CalendarDayDecoration()].dotColors.append(budgetDotColor(for: item))
+            }
+
+            // Shabbat + Israeli holidays, day by day.
+            var cursor = interval.start
+            while cursor < interval.end {
+                let day = calendar.startOfDay(for: cursor)
+                let isSaturday = calendar.component(.weekday, from: day) == 7
+                let holiday = IsraeliHolidays.holiday(for: day)
+                if isSaturday || holiday != nil {
+                    var decoration = result[day] ?? CalendarDayDecoration()
+                    decoration.isHoliday = holiday != nil
+                    decoration.isNonBusiness = isSaturday || (holiday?.isRestDay == true)
+                    result[day] = decoration
+                }
+                guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else { break }
+                cursor = next
+            }
+        }
+
+        // Cap the budget dots so a busy day's cluster stays tidy under the
+        // (small) decoration area.
+        for (day, var decoration) in result {
+            decoration.dotColors = Array(decoration.dotColors.prefix(3))
+            result[day] = decoration
+        }
+        return result
     }
 
     /// Planned income / expense for the whole visible month, converted into
@@ -432,37 +345,6 @@ struct BudgetCalendarView: View {
         return CurrencyConverter.convert(amount, from: currency, to: preferredCurrencyCode, using: snapshot)
     }
 
-    /// Six weeks of days starting from the first day of the grid's first
-    /// week, so the grid height stays constant from month to month.
-    private var gridDays: [Date] {
-        guard let monthInterval = calendar.dateInterval(of: .month, for: visibleMonth),
-              let firstWeek = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.start)
-        else { return [] }
-        var days: [Date] = []
-        var cursor = firstWeek.start
-        for _ in 0..<42 {
-            days.append(cursor)
-            guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else { break }
-            cursor = next
-        }
-        return days
-    }
-
-    /// Weekday header symbols in display order, each flagged if it's
-    /// Saturday (weekday 7), so the header can tint it like the grid.
-    private var orderedWeekdays: [(symbol: String, isSaturday: Bool)] {
-        let symbols = calendar.veryShortWeekdaySymbols   // index 0 == Sunday
-        let offset = calendar.firstWeekday - 1
-        return (0..<7).map { position in
-            let weekdayIndex = (offset + position) % 7
-            return (symbols[weekdayIndex], weekdayIndex == 6)
-        }
-    }
-
-    private var monthYearLabel: String {
-        visibleMonth.formatted(.dateTime.locale(Locale(identifier: "he_IL")).month(.wide).year())
-    }
-
     private var selectedDayLabel: String {
         guard let selectedDay else { return "" }
         return selectedDay.formatted(
@@ -470,121 +352,233 @@ struct BudgetCalendarView: View {
         )
     }
 
-    private static let columns = Array(repeating: GridItem(.flexible(), spacing: Theme.Spacing.xs), count: 7)
-
     private static func startOfMonth(for date: Date, calendar: Calendar = .current) -> Date {
         calendar.dateInterval(of: .month, for: date)?.start ?? date
     }
 }
 
-// MARK: - Day cell
+/// Dot colour for a budget line on the calendar: income green, a "want"
+/// expense its calmer orange, everything else the expense red. Shared by the
+/// month-grid decorations and the selected-day rows so a line reads the same
+/// colour wherever it appears.
+private func budgetDotColor(for item: BudgetItem) -> Color {
+    switch item.kind {
+    case .income:
+        return Theme.Colors.income
+    case .expense:
+        return item.category?.nature == .want ? Theme.Colors.wants : Theme.Colors.expense
+    }
+}
 
-/// One day in the month grid. Highlights today with an accent ring and the
-/// selected day with a filled accent disc, and shows up to three coloured
-/// dots for the budget lines that land on it.
-private struct CalendarDayCell: View {
-    let date: Date
-    let isInMonth: Bool
-    let isToday: Bool
-    let isSelected: Bool
-    let isSaturday: Bool
-    let items: [BudgetItem]
-    let holiday: IsraeliHoliday?
+// MARK: - Native month calendar
 
-    private var isHoliday: Bool { holiday != nil }
+/// Plain, value-type description of what a single day should show on the
+/// calendar — its budget dots plus whether it's a Shabbat / holiday day.
+/// Computed in SwiftUI and handed to the UIKit calendar, so no SwiftData
+/// model ever crosses into UIKit. `Equatable` so the wrapper can reload only
+/// the days whose decoration actually changed.
+private struct CalendarDayDecoration: Equatable {
+    var dotColors: [Color] = []
+    /// A non-business day (Shabbat or a rest-day holiday) — the days the
+    /// income business-day shift cares about. Gets the violet marker.
+    var isNonBusiness: Bool = false
+    /// Any holiday (including the working-day ones like Hanukkah/Purim), so
+    /// even a festival that doesn't move a salary still reads as special.
+    var isHoliday: Bool = false
 
-    /// Saturday and rest-day holidays are non-business days — they get the
-    /// stronger "violet disc" treatment; working-day holidays only tint the
-    /// number, so a day off still reads differently from a working festival.
-    private var isNonBusiness: Bool { isSaturday || (holiday?.isRestDay == true) }
+    var hasContent: Bool { !dotColors.isEmpty || isNonBusiness || isHoliday }
+}
 
-    private var dayNumber: String {
-        date.formatted(.dateTime.locale(Locale(identifier: "he_IL")).day())
+/// SwiftUI wrapper over `UICalendarView`. The calendar owns navigation,
+/// selection styling and RTL; we feed it a single selected day, mirror the
+/// visible month back out (for the header summary), and supply per-day dots
+/// through the decoration delegate.
+private struct BudgetMonthCalendar: UIViewRepresentable {
+    @Binding var selectedDay: Date?
+    @Binding var visibleMonth: Date
+    let calendar: Calendar
+    let decorations: [Date: CalendarDayDecoration]
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeUIView(context: Context) -> UICalendarView {
+        let view = UICalendarView()
+        view.calendar = calendar
+        view.locale = Locale(identifier: "he_IL")
+        view.tintColor = UIColor(Theme.Colors.accent)
+        view.delegate = context.coordinator
+        // The app is pinned RTL on every device; match it so the weekday
+        // columns read right-to-left like the rest of the app, regardless of
+        // the device language.
+        view.semanticContentAttribute = .forceRightToLeft
+
+        let selection = UICalendarSelectionSingleDate(delegate: context.coordinator)
+        selection.setSelected(dayComponents(selectedDay), animated: false)
+        view.selectionBehavior = selection
+
+        view.setVisibleDateComponents(monthComponents(visibleMonth), animated: false)
+        context.coordinator.lastDecorations = decorations
+        return view
     }
 
-    var body: some View {
-        VStack(spacing: 3) {
-            Text(dayNumber)
-                .font(Theme.Typography.body)
-                .monospacedDigit()
-                .foregroundStyle(numberColor)
-                .frame(width: 30, height: 30)
-                .background(numberBackground)
-                .overlay(numberRing)
+    func updateUIView(_ uiView: UICalendarView, context: Context) {
+        // Refresh the coordinator's view of the bindings/decorations each pass.
+        context.coordinator.parent = self
 
-            dots
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 2)
-        .opacity(isInMonth ? 1 : 0.35)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(accessibilityText))
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-
-    private var dots: some View {
-        HStack(spacing: 3) {
-            ForEach(Array(dotColors.enumerated()), id: \.offset) { _, color in
-                Circle()
-                    .fill(color)
-                    .frame(width: 5, height: 5)
+        // Keep the native selection in step with the binding. We never push
+        // the *visible month* in (the calendar owns navigation), so there's
+        // no risk of fighting the user's paging.
+        if let selection = uiView.selectionBehavior as? UICalendarSelectionSingleDate {
+            let desired = dayComponents(selectedDay)
+            if !Self.sameDay(selection.selectedDate, desired) {
+                selection.setSelected(desired, animated: false)
             }
         }
-        // Reserve the dot row's height even when empty so every cell is the
-        // same height and the grid rows stay aligned.
-        .frame(height: 6)
-    }
 
-    @ViewBuilder
-    private var numberBackground: some View {
-        if isSelected {
-            Circle().fill(Theme.Colors.accent)
-        } else if isNonBusiness {
-            // Faint violet disc marks a non-business day (Shabbat or a rest
-            // holiday) without competing with the accent disc/ring.
-            Circle().fill(holidayTint.opacity(0.18))
+        // Reload dots only when the data actually changed (a line added/edited,
+        // or a neighbouring month scrolled into the precompute window),
+        // touching just the affected days so the grid never flashes.
+        if context.coordinator.lastDecorations != decorations {
+            let changed = Set(context.coordinator.lastDecorations.keys).union(decorations.keys)
+            context.coordinator.lastDecorations = decorations
+            if !changed.isEmpty {
+                uiView.reloadDecorations(forDateComponents: changed.map { dayComponents($0) }, animated: false)
+            }
         }
     }
 
-    @ViewBuilder
-    private var numberRing: some View {
-        // Only show the "today" ring when nothing else fills the disc.
-        if isToday && !isSelected && !isNonBusiness {
-            Circle().stroke(Theme.Colors.accent, lineWidth: 1.5)
+    /// Take the width SwiftUI offers and report the height the calendar needs
+    /// at that width. Without this, `UICalendarView`'s large intrinsic width
+    /// pushes the whole column wider than the screen (the cards lose their
+    /// margins) and its decoration area mis-lays-out (the dots vanish).
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UICalendarView, context: Context) -> CGSize? {
+        let proposedWidth = proposal.width ?? uiView.intrinsicContentSize.width
+        guard proposedWidth.isFinite, proposedWidth > 0 else { return nil }
+        let fitted = uiView.systemLayoutSizeFitting(
+            CGSize(width: proposedWidth, height: 0),
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel
+        )
+        return CGSize(width: proposedWidth, height: fitted.height)
+    }
+
+    // MARK: Component helpers
+
+    private func monthComponents(_ date: Date) -> DateComponents {
+        calendar.dateComponents([.year, .month], from: date)
+    }
+
+    private func dayComponents(_ date: Date) -> DateComponents {
+        calendar.dateComponents([.year, .month, .day], from: date)
+    }
+
+    private func dayComponents(_ date: Date?) -> DateComponents? {
+        date.map { dayComponents($0) }
+    }
+
+    /// Compares two day selections on year/month/day alone — the calendar may
+    /// hand back extra fields, so a full `==` would spuriously differ.
+    private static func sameDay(_ a: DateComponents?, _ b: DateComponents?) -> Bool {
+        a?.year == b?.year && a?.month == b?.month && a?.day == b?.day
+    }
+
+    // MARK: Coordinator
+
+    final class Coordinator: NSObject, UICalendarViewDelegate, UICalendarSelectionSingleDateDelegate {
+        var parent: BudgetMonthCalendar
+        /// Last decoration set handed to the calendar, so `updateUIView` can
+        /// reload only when it genuinely changes.
+        var lastDecorations: [Date: CalendarDayDecoration] = [:]
+
+        init(_ parent: BudgetMonthCalendar) { self.parent = parent }
+
+        func calendarView(
+            _ calendarView: UICalendarView,
+            decorationFor dateComponents: DateComponents
+        ) -> UICalendarView.Decoration? {
+            guard let date = parent.calendar.date(from: dateComponents) else { return nil }
+            let day = parent.calendar.startOfDay(for: date)
+            guard let decoration = parent.decorations[day], decoration.hasContent else { return nil }
+            return .customView { BudgetMonthCalendar.decorationView(decoration) }
+        }
+
+        func dateSelection(
+            _ selection: UICalendarSelectionSingleDate,
+            didSelectDate dateComponents: DateComponents?
+        ) {
+            guard let dateComponents, let date = parent.calendar.date(from: dateComponents) else {
+                parent.selectedDay = nil
+                return
+            }
+            parent.selectedDay = parent.calendar.startOfDay(for: date)
+        }
+
+        func calendarView(
+            _ calendarView: UICalendarView,
+            didChangeVisibleDateComponentsFrom previousDateComponents: DateComponents
+        ) {
+            guard let date = parent.calendar.date(from: calendarView.visibleDateComponents) else { return }
+            let month = parent.calendar.dateInterval(of: .month, for: date)?.start ?? date
+            // Defer the binding write out of the layout pass UIKit is in the
+            // middle of, so SwiftUI doesn't warn about mutating state mid-update.
+            DispatchQueue.main.async {
+                if !self.parent.calendar.isDate(self.parent.visibleMonth, equalTo: month, toGranularity: .month) {
+                    self.parent.visibleMonth = month
+                }
+            }
         }
     }
 
-    // Priority: selected (white on accent) > non-business / holiday (violet)
-    // > today (accent) > normal.
-    private var numberColor: Color {
-        if isSelected { return .white }
-        if isNonBusiness || isHoliday { return holidayTint }
-        if isToday { return Theme.Colors.accent }
-        return Theme.Colors.textPrimary
-    }
+    // MARK: Decoration view
 
-    /// Up to three dots, one per line, coloured by kind/nature.
-    private var dotColors: [Color] {
-        items.prefix(3).map { Self.dotColor(for: $0) }
+    /// The small dot cluster shown under a day number: a violet dot for a
+    /// Shabbat / holiday day, then one dot per budget line (income green,
+    /// expense red, want orange), already capped by the host.
+    private static func decorationView(_ decoration: CalendarDayDecoration) -> UIView {
+        var colors: [UIColor] = []
+        if decoration.isNonBusiness || decoration.isHoliday {
+            colors.append(UIColor(holidayTint))
+        }
+        colors.append(contentsOf: decoration.dotColors.map { UIColor($0) })
+        return DecorationDotsView(colors: colors)
     }
+}
 
-    private static func dotColor(for item: BudgetItem) -> Color {
-        switch item.kind {
-        case .income:
-            return Theme.Colors.income
-        case .expense:
-            return item.category?.nature == .want ? Theme.Colors.wants : Theme.Colors.expense
+/// A fixed row of small coloured dots, used as a `UICalendarView` decoration.
+/// A hand-laid-out `UIView` rather than a `UIStackView` on purpose: the
+/// calendar sizes a custom decoration from its `intrinsicContentSize`, and a
+/// stack view reports none — which collapsed the dots to nothing.
+private final class DecorationDotsView: UIView {
+    private let colors: [UIColor]
+    private let dotSize: CGFloat = 6
+    private let spacing: CGFloat = 2
+
+    init(colors: [UIColor]) {
+        self.colors = colors
+        super.init(frame: .zero)
+        for color in colors {
+            let dot = UIView()
+            dot.backgroundColor = color
+            dot.layer.cornerRadius = dotSize / 2
+            addSubview(dot)
         }
     }
 
-    private var accessibilityText: String {
-        var parts = [date.formatted(.dateTime.locale(Locale(identifier: "he_IL")).day().month(.wide))]
-        if let holiday { parts.append(holiday.name) }
-        if !items.isEmpty {
-            // Localized so VoiceOver reads a grammatical count (פריט אחד / N פריטים).
-            parts.append(String(localized: "\(items.count) פריטים"))
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override var intrinsicContentSize: CGSize {
+        guard !colors.isEmpty else { return .zero }
+        let width = CGFloat(colors.count) * dotSize + CGFloat(colors.count - 1) * spacing
+        return CGSize(width: width, height: dotSize)
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let y = (bounds.height - dotSize) / 2
+        for (index, dot) in subviews.enumerated() {
+            dot.frame = CGRect(x: CGFloat(index) * (dotSize + spacing), y: y, width: dotSize, height: dotSize)
         }
-        return parts.joined(separator: ", ")
     }
 }
 
@@ -598,7 +592,7 @@ private struct CalendarItemRow: View {
     var body: some View {
         HStack(spacing: Theme.Spacing.sm) {
             Circle()
-                .fill(dotColor)
+                .fill(budgetDotColor(for: item))
                 .frame(width: 10, height: 10)
 
             VStack(alignment: .leading, spacing: 2) {
@@ -619,15 +613,6 @@ private struct CalendarItemRow: View {
                 .foregroundStyle(Theme.Colors.textPrimary)
                 .monospacedDigit()
                 .lineLimit(1)
-        }
-    }
-
-    private var dotColor: Color {
-        switch item.kind {
-        case .income:
-            return Theme.Colors.income
-        case .expense:
-            return item.category?.nature == .want ? Theme.Colors.wants : Theme.Colors.expense
         }
     }
 
