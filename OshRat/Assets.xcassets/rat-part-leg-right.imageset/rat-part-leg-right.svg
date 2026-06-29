@@ -1,0 +1,14 @@
+<svg width="360" height="660" viewBox="0 0 360 660" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="fur" cx="42%" cy="34%" r="78%">
+      <stop offset="0%" stop-color="#B4B4BC"/><stop offset="100%" stop-color="#80808A"/>
+    </radialGradient>
+    <linearGradient id="suit" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#33405F"/><stop offset="100%" stop-color="#1E2740"/>
+    </linearGradient>
+  </defs>
+
+  <!-- RIGHT LEG + SHOE -->
+  <path d="M210 430 L212 588 L180 588 L180 448 Z" fill="url(#suit)" stroke="#161D33" stroke-width="1.5"/>
+  <ellipse cx="202" cy="594" rx="31" ry="13" fill="#14182A"/>
+</svg>

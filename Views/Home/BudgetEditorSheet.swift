@@ -4,7 +4,7 @@ import SwiftData
 /// Post-onboarding budget editor. Lets the user revisit every budget
 /// line they entered during the wizard — add new ones, tweak amounts,
 /// fix categories, delete what no longer applies. Reachable from the
-/// pencil button on `BudgetSummaryCard`.
+/// pencil button on `BudgetVsActualCard`.
 ///
 /// Structure mirrors `BudgetStepView`: a single `List` with two
 /// sections (income → expenses), each row tap-to-edit, swipe-to-delete,

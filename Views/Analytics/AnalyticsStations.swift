@@ -1,107 +1,59 @@
 import SwiftUI
 
-// MARK: - Station 1 · This month
+// MARK: - Station · Income & expenses
 
-/// The most basic read: this month's income, expenses, the split between
-/// them, and the resulting net — plus how many entries you logged.
-struct MonthlyStationView: View {
+/// Income vs. expenses for the selected period — the split between them, the
+/// resulting net, and how many entries were logged. Period-aware: it follows
+/// the month/year the user picks at the top of the screen.
+struct IncomeExpenseStationView: View {
     let report: AnalyticsReport
 
     private var isEmpty: Bool {
-        report.monthTransactionCount == 0
+        report.periodTransactionCount == 0
     }
 
     var body: some View {
-        StationCard(title: "החודש", subtitle: Self.currentMonthLabel) {
+        StationCard(title: "הכנסות והוצאות", subtitle: report.periodLabel) {
             if isEmpty {
-                StationEmptyText("עדיין לא נרשמו תנועות החודש.")
+                StationEmptyText("לא נרשמו תנועות בתקופה זו.")
             } else {
                 VStack(alignment: .trailing, spacing: Theme.Spacing.sm) {
-                    AnalyticsAmountRow(title: "הכנסות", amount: report.monthIncome,
+                    AnalyticsAmountRow(title: "הכנסות", amount: report.periodIncome,
                                        code: report.currencyCode, dotColor: Theme.Colors.income)
-                    AnalyticsAmountRow(title: "הוצאות", amount: report.monthExpense,
+                    AnalyticsAmountRow(title: "הוצאות", amount: report.periodExpense,
                                        code: report.currencyCode, dotColor: Theme.Colors.expense)
 
                     SplitBar(segments: [
-                        .init(value: report.monthIncome, color: Theme.Colors.income),
-                        .init(value: report.monthExpense, color: Theme.Colors.expense)
+                        .init(value: report.periodIncome, color: Theme.Colors.income),
+                        .init(value: report.periodExpense, color: Theme.Colors.expense)
                     ])
 
-                    NetRow(net: report.monthNet, code: report.currencyCode)
+                    NetRow(net: report.periodNet, code: report.currencyCode)
 
-                    Label("\(report.monthTransactionCount) תנועות החודש", systemImage: "list.bullet")
+                    Label("\(report.periodTransactionCount) תנועות בתקופה", systemImage: "list.bullet")
                         .font(Theme.Typography.caption)
                         .foregroundStyle(Theme.Colors.textSecondary)
                 }
             }
         }
     }
-
-    private static var currentMonthLabel: String {
-        Date.now.formatted(.dateTime.locale(Locale(identifier: "he_IL")).month(.wide))
-    }
 }
 
-// MARK: - Station 2 · This year
+// MARK: - Station · Period-over-period comparison
 
-/// Zooming out to the whole year, with a fair "typical month" average so a
-/// single big month doesn't distort the picture.
-struct YearlyStationView: View {
-    let report: AnalyticsReport
-
-    private var isEmpty: Bool {
-        report.yearIncome == 0 && report.yearExpense == 0
-    }
-
-    var body: some View {
-        StationCard(title: "השנה", subtitle: Self.currentYearLabel) {
-            if isEmpty {
-                StationEmptyText("עדיין לא נרשמו תנועות השנה.")
-            } else {
-                VStack(alignment: .trailing, spacing: Theme.Spacing.sm) {
-                    AnalyticsAmountRow(title: "הכנסות", amount: report.yearIncome,
-                                       code: report.currencyCode, dotColor: Theme.Colors.income)
-                    AnalyticsAmountRow(title: "הוצאות", amount: report.yearExpense,
-                                       code: report.currencyCode, dotColor: Theme.Colors.expense)
-                    NetRow(net: report.yearNet, code: report.currencyCode)
-
-                    Divider().overlay(Theme.Colors.separator)
-
-                    HStack {
-                        Text("ממוצע הוצאה חודשית")
-                            .font(Theme.Typography.body)
-                            .foregroundStyle(Theme.Colors.textSecondary)
-                        Spacer()
-                        Text(report.avgMonthlyExpenseThisYear.formattedCurrency(report.currencyCode))
-                            .font(Theme.Typography.amount)
-                            .foregroundStyle(Theme.Colors.textPrimary)
-                            .monospacedDigit()
-                    }
-                }
-            }
-        }
-    }
-
-    private static var currentYearLabel: String {
-        Date.now.formatted(.dateTime.locale(Locale(identifier: "he_IL")).year())
-    }
-}
-
-// MARK: - Station 3 · Month-over-month comparison
-
-/// The first comparative insight: how this month stacks up against the
-/// last one, framed encouragingly (spending less / earning more is good).
+/// How the selected period stacks up against the one before it (last month /
+/// last year), framed encouragingly — spending less or earning more is good.
 struct ComparisonStationView: View {
     let report: AnalyticsReport
 
     private var hasBaseline: Bool {
-        report.prevMonthIncome > 0 || report.prevMonthExpense > 0
+        report.prevPeriodIncome > 0 || report.prevPeriodExpense > 0
     }
 
     var body: some View {
-        StationCard(title: "מול החודש שעבר") {
+        StationCard(title: title) {
             if !hasBaseline {
-                StationEmptyText("אין עדיין חודש קודם להשוואה — חזרו בחודש הבא!")
+                StationEmptyText(noBaselineText)
             } else {
                 VStack(alignment: .trailing, spacing: Theme.Spacing.md) {
                     TrendRow(label: "הוצאות", fraction: report.expenseChangeFraction,
@@ -120,17 +72,29 @@ struct ComparisonStationView: View {
         }
     }
 
+    private var isMonth: Bool { report.scope == .month }
+
+    private var title: LocalizedStringKey {
+        isMonth ? "מול החודש הקודם" : "מול השנה הקודמת"
+    }
+
+    private var noBaselineText: LocalizedStringKey {
+        isMonth ? "אין חודש קודם להשוואה." : "אין שנה קודמת להשוואה."
+    }
+
     /// A friendly one-liner about the expense trend — the metric the user
     /// most wants to hear about.
     private var headline: String? {
         guard let change = report.expenseChangeFraction else { return nil }
         let percent = abs(change).formatted(.percent.precision(.fractionLength(0)))
+        let fromLabel = isMonth ? "מהחודש הקודם" : "מהשנה הקודמת"
+        let toLabel = isMonth ? "לחודש הקודם" : "לשנה הקודמת"
         if change < -0.001 {
-            return "כל הכבוד! הוצאת \(percent) פחות מהחודש שעבר."
+            return "כל הכבוד! הוצאת \(percent) פחות \(fromLabel)."
         } else if change > 0.001 {
-            return "הוצאת \(percent) יותר מהחודש שעבר — שווה לשים לב."
+            return "הוצאת \(percent) יותר \(fromLabel) — שווה לשים לב."
         } else {
-            return "ההוצאות שלך כמעט זהות לחודש שעבר."
+            return "ההוצאות שלך כמעט זהות \(toLabel)."
         }
     }
 }
@@ -151,9 +115,9 @@ struct CategoryStationView: View {
     }
 
     var body: some View {
-        StationCard(title: "לאן הולך הכסף", subtitle: "השנה") {
+        StationCard(title: "לאן הולך הכסף", subtitle: report.periodLabel) {
             if slices.isEmpty {
-                StationEmptyText("עדיין אין הוצאות מסווגות השנה.")
+                StationEmptyText("אין הוצאות מסווגות בתקופה זו.")
             } else {
                 VStack(alignment: .trailing, spacing: Theme.Spacing.md) {
                     ForEach(slices) { slice in
@@ -183,7 +147,7 @@ struct NeedsWantsStationView: View {
     }
 
     var body: some View {
-        StationCard(title: "צרכים מול רצונות", subtitle: "השנה") {
+        StationCard(title: "צרכים מול רצונות", subtitle: report.periodLabel) {
             if isEmpty {
                 StationEmptyText("עדיין אין מספיק הוצאות כדי לפצל לצרכים ורצונות.")
             } else {
@@ -468,11 +432,13 @@ struct RecordRow: View {
                 Text(record.title)
                     .font(Theme.Typography.body)
                     .foregroundStyle(Theme.Colors.textPrimary)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(record.detail)
                     .font(Theme.Typography.caption)
                     .foregroundStyle(Theme.Colors.textSecondary)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Spacer(minLength: Theme.Spacing.sm)
@@ -483,7 +449,11 @@ struct RecordRow: View {
                     .foregroundStyle(tint)
                     .monospacedDigit()
                     .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                    // Reserve the amount's full width first so it's never
+                    // truncated; the title (lower priority) takes the rest and
+                    // wraps onto a second line instead.
+                    .fixedSize(horizontal: true, vertical: false)
+                    .layoutPriority(1)
             }
         }
     }

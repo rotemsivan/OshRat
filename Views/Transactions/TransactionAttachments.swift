@@ -61,10 +61,13 @@ struct AttachmentDraft: Identifiable {
 /// to be full-resolution, and keeping blobs small matters for the on-device
 /// store (and any future iCloud sync, where originals would eat quota).
 private enum AttachmentLimits {
-    static let maxImageDimension: CGFloat = 2000
-    static let jpegQuality: CGFloat = 0.7
+    // `nonisolated` so the constants stay reachable from the off-actor decode
+    // task; under default main-actor isolation they'd otherwise be inferred
+    // `@MainActor`.
+    nonisolated static let maxImageDimension: CGFloat = 2000
+    nonisolated static let jpegQuality: CGFloat = 0.7
     /// Smaller cap for the on-screen thumbnails the tiles decode.
-    static let thumbnailDimension: CGFloat = 240
+    nonisolated static let thumbnailDimension: CGFloat = 240
 }
 
 private extension UIImage {
@@ -72,7 +75,11 @@ private extension UIImage {
     /// points; returns self when it's already small enough. Drawing through
     /// a renderer also normalizes EXIF orientation, so a sideways camera
     /// shot comes back upright.
-    func downscaled(toMaxDimension maxDimension: CGFloat) -> UIImage {
+    ///
+    /// `nonisolated` so it can run on the detached decode task off the main
+    /// actor — under default main-actor isolation it would otherwise be
+    /// inferred `@MainActor`, forcing the resize back onto the main thread.
+    nonisolated func downscaled(toMaxDimension maxDimension: CGFloat) -> UIImage {
         let longest = max(size.width, size.height)
         guard longest > maxDimension, longest > 0 else { return self }
         let scale = maxDimension / longest

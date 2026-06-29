@@ -8,11 +8,11 @@ import Foundation
 /// SwiftUI here on purpose — it's just numbers, so it can be unit-tested
 /// and re-used without dragging a view in.
 ///
-/// The roadmap is meant to read *gradually*, from basic to advanced, so
-/// the fields are grouped in the order the user meets them:
-///   1. This month → 2. This year → 3. Month-over-month comparison →
-///   4. Spending by category → 5. Needs vs wants → 6. All-time records →
-///   7. Assets.
+/// Most stations are scoped to a **selected period** — a single month or a
+/// single year the user picks at the top of the screen (`AnalyticsPeriod`).
+/// "Where the money goes", "needs vs wants", "income & expenses" and the
+/// period-over-period comparison all reslice to that window. Records stay
+/// all-time and assets stay "right now", since neither is a per-period idea.
 struct AnalyticsReport {
 
     // MARK: Currency / FX
@@ -23,31 +23,33 @@ struct AnalyticsReport {
     /// unavailable" note the dashboard uses.
     let fxUnavailable: Bool
 
+    // MARK: Selected period
+
+    /// Whether the user is looking at a month or a year — lets stations
+    /// phrase the previous-period comparison correctly.
+    let scope: AnalyticsPeriod.Scope
+    /// Hebrew label for the selected period ("יוני 2026" / "2026").
+    let periodLabel: String
+
     // MARK: Totals
 
+    /// All-time count, for the header's "you've logged N entries" line.
     let totalTransactions: Int
 
-    // This month
-    let monthIncome: Decimal
-    let monthExpense: Decimal
-    let monthTransactionCount: Int
+    // Selected period.
+    let periodIncome: Decimal
+    let periodExpense: Decimal
+    let periodTransactionCount: Int
 
-    // Previous calendar month — the baseline for the comparison station.
-    let prevMonthIncome: Decimal
-    let prevMonthExpense: Decimal
+    // The period immediately before the selected one — the baseline for the
+    // comparison station (previous month, or previous year).
+    let prevPeriodIncome: Decimal
+    let prevPeriodExpense: Decimal
 
-    // This year
-    let yearIncome: Decimal
-    let yearExpense: Decimal
-    /// Number of distinct months *this year* that have at least one real
-    /// transaction. Used as the divisor for a fair "typical month"
-    /// average instead of always dividing by 12.
-    let activeMonthsThisYear: Int
-
-    // Where the money goes (this year, expenses only), biggest first.
+    // Where the money goes (selected period, expenses only), biggest first.
     let categoryBreakdown: [CategorySlice]
 
-    // Needs vs wants (this year, expenses only).
+    // Needs vs wants (selected period, expenses only).
     let needsTotal: Decimal
     let wantsTotal: Decimal
 
@@ -60,31 +62,26 @@ struct AnalyticsReport {
 
     // MARK: Derived
 
-    var monthNet: Decimal { monthIncome - monthExpense }
-    var prevMonthNet: Decimal { prevMonthIncome - prevMonthExpense }
-    var yearNet: Decimal { yearIncome - yearExpense }
-
-    var avgMonthlyExpenseThisYear: Decimal {
-        guard activeMonthsThisYear > 0 else { return 0 }
-        return yearExpense / Decimal(activeMonthsThisYear)
-    }
+    var periodNet: Decimal { periodIncome - periodExpense }
+    var prevPeriodNet: Decimal { prevPeriodIncome - prevPeriodExpense }
 
     /// Whether there's enough to render the roadmap at all. A brand-new
     /// user with no accounts and no transactions sees an empty state
-    /// instead.
+    /// instead. Deliberately *not* period-scoped — the page still opens on
+    /// an empty past month as long as the user has any history at all.
     var hasAnyData: Bool {
         totalTransactions > 0 || !assetAllocation.isEmpty
     }
 
-    /// Signed month-over-month change of expenses, as a fraction
-    /// (-0.2 == "20% less than last month"). `nil` when there's no
-    /// prior-month baseline to compare against.
+    /// Signed period-over-period change of expenses, as a fraction
+    /// (-0.2 == "20% less than the previous period"). `nil` when there's no
+    /// prior-period baseline to compare against.
     var expenseChangeFraction: Double? {
-        Self.changeFraction(from: prevMonthExpense, to: monthExpense)
+        Self.changeFraction(from: prevPeriodExpense, to: periodExpense)
     }
 
     var incomeChangeFraction: Double? {
-        Self.changeFraction(from: prevMonthIncome, to: monthIncome)
+        Self.changeFraction(from: prevPeriodIncome, to: periodIncome)
     }
 
     static func changeFraction(from old: Decimal, to new: Decimal) -> Double? {
@@ -141,13 +138,15 @@ struct FinancialRecord: Identifiable {
 
 extension AnalyticsReport {
 
-    /// Crunches the raw model objects into the report. `calendar` and
-    /// `now` are injectable so tests can pin a deterministic "today".
+    /// Crunches the raw model objects into the report for a given `period`.
+    /// `calendar` and `now` are injectable so tests can pin a deterministic
+    /// "today" (and so records/assets, which ignore the period, stay stable).
     init(
         transactions: [Transaction],
         accounts: [Account],
         preferredCurrency: String,
         fxSnapshot: FXRateSnapshot?,
+        period: AnalyticsPeriod,
         calendar: Calendar = .current,
         now: Date = .now
     ) {
@@ -175,59 +174,42 @@ extension AnalyticsReport {
         // neither income nor expense and would distort every statistic.
         let real = transactions.filter { !$0.isManualBalanceEdit && !$0.isTransfer }
 
-        let monthInterval = calendar.dateInterval(of: .month, for: now)
-        let yearInterval = calendar.dateInterval(of: .year, for: now)
-        let prevMonthInterval = calendar.date(byAdding: .month, value: -1, to: now)
-            .flatMap { calendar.dateInterval(of: .month, for: $0) }
+        let periodInterval = period.interval(calendar)
+        let prevInterval = period.previous(calendar).interval(calendar)
 
-        // MARK: This month / previous month
+        // MARK: Selected period + previous period + category + needs/wants
 
-        var mIncome = Decimal(0), mExpense = Decimal(0)
-        var pIncome = Decimal(0), pExpense = Decimal(0)
-        var monthCount = 0
-
-        for tx in real {
-            if let interval = monthInterval, interval.contains(tx.date) {
-                monthCount += 1
-                if let value = convert(tx.amount, tx.currencyCode) {
-                    if tx.kind == .income { mIncome += value } else { mExpense += value }
-                }
-            } else if let interval = prevMonthInterval, interval.contains(tx.date) {
-                if let value = convert(tx.amount, tx.currencyCode) {
-                    if tx.kind == .income { pIncome += value } else { pExpense += value }
-                }
-            }
-        }
-
-        // MARK: This year + category + needs/wants
-
-        var yIncome = Decimal(0), yExpense = Decimal(0)
+        var income = Decimal(0), expense = Decimal(0)
+        var prevIncome = Decimal(0), prevExpense = Decimal(0)
+        var periodCount = 0
         var needs = Decimal(0), wants = Decimal(0)
-        var activeMonths = Set<Int>()
         // Keyed by category name so two transactions in "כלכלת בית" merge.
         var categoryTotals: [String: (amount: Decimal, color: String, symbol: String)] = [:]
 
         for tx in real {
-            guard let interval = yearInterval, interval.contains(tx.date) else { continue }
-            activeMonths.insert(calendar.component(.month, from: tx.date))
-            guard let value = convert(tx.amount, tx.currencyCode) else { continue }
+            if let periodInterval, periodInterval.contains(tx.date) {
+                periodCount += 1
+                guard let value = convert(tx.amount, tx.currencyCode) else { continue }
+                switch tx.kind {
+                case .income:
+                    income += value
+                case .expense:
+                    expense += value
+                    let name = tx.category?.name ?? "ללא קטגוריה"
+                    let color = tx.category?.colorHex ?? "#9E9E9E"
+                    let symbol = tx.category?.symbolName ?? "questionmark"
+                    let existing = categoryTotals[name]?.amount ?? 0
+                    categoryTotals[name] = (amount: existing + value, color: color, symbol: symbol)
 
-            switch tx.kind {
-            case .income:
-                yIncome += value
-            case .expense:
-                yExpense += value
-                let name = tx.category?.name ?? "ללא קטגוריה"
-                let color = tx.category?.colorHex ?? "#9E9E9E"
-                let symbol = tx.category?.symbolName ?? "questionmark"
-                let existing = categoryTotals[name]?.amount ?? 0
-                categoryTotals[name] = (amount: existing + value, color: color, symbol: symbol)
-
-                switch tx.category?.nature {
-                case .need: needs += value
-                case .want: wants += value
-                default: break
+                    switch tx.category?.nature {
+                    case .need: needs += value
+                    case .want: wants += value
+                    default: break
+                    }
                 }
+            } else if let prevInterval, prevInterval.contains(tx.date) {
+                guard let value = convert(tx.amount, tx.currencyCode) else { continue }
+                if tx.kind == .income { prevIncome += value } else { prevExpense += value }
             }
         }
 
@@ -239,8 +221,8 @@ extension AnalyticsReport {
                     amount: entry.amount,
                     colorHex: entry.color,
                     symbolName: entry.symbol,
-                    fraction: yExpense > 0
-                        ? (entry.amount as NSDecimalNumber).doubleValue / (yExpense as NSDecimalNumber).doubleValue
+                    fraction: expense > 0
+                        ? (entry.amount as NSDecimalNumber).doubleValue / (expense as NSDecimalNumber).doubleValue
                         : 0
                 )
             }
@@ -272,6 +254,9 @@ extension AnalyticsReport {
             byType[account.type, default: 0] += accountTotal
         }
 
+        // Ordered by the same fixed account-type rank the assets summary card
+        // uses (everyday → wallet → savings → investment), not by amount, so
+        // the two screens read the asset mix in the same order.
         let allocation: [AssetSlice] = byType
             .filter { $0.value > 0 }
             .map { type, amount in
@@ -285,20 +270,19 @@ extension AnalyticsReport {
                         : 0
                 )
             }
-            .sorted { $0.amount > $1.amount }
+            .sorted { Self.typeRank($0.id) < Self.typeRank($1.id) }
 
         // MARK: Assign
 
         self.currencyCode = preferredCurrency
+        self.scope = period.scope
+        self.periodLabel = period.label(calendar)
         self.totalTransactions = real.count
-        self.monthIncome = mIncome
-        self.monthExpense = mExpense
-        self.monthTransactionCount = monthCount
-        self.prevMonthIncome = pIncome
-        self.prevMonthExpense = pExpense
-        self.yearIncome = yIncome
-        self.yearExpense = yExpense
-        self.activeMonthsThisYear = activeMonths.count
+        self.periodIncome = income
+        self.periodExpense = expense
+        self.periodTransactionCount = periodCount
+        self.prevPeriodIncome = prevIncome
+        self.prevPeriodExpense = prevExpense
         self.categoryBreakdown = categorySlices
         self.needsTotal = needs
         self.wantsTotal = wants
@@ -455,6 +439,87 @@ extension AnalyticsReport {
         case .digitalWallet: return "wallet.bifold"
         case .savings:       return "lock"
         case .investment:    return "chart.line.uptrend.xyaxis"
+        }
+    }
+
+    /// Lower rank sorts earlier, mirroring `AssetsSummaryCard.typeRank` so the
+    /// allocation list reads in the same order on both screens. Keyed off the
+    /// stored `AccountType.rawValue`; unknown values sort last.
+    private static func typeRank(_ typeRaw: String) -> Int {
+        switch AccountType(rawValue: typeRaw) {
+        case .current:       return 0
+        case .digitalWallet: return 1
+        case .savings:       return 2
+        case .investment:    return 3
+        case .none:          return 4
+        }
+    }
+}
+
+// MARK: - Selected period
+
+/// The window the analytics roadmap is scoped to: a single month or a single
+/// year, anchored on a date inside it. A small value type (no SwiftUI) so the
+/// view can step it, toggle its scope, and hand it to `AnalyticsReport`.
+struct AnalyticsPeriod: Equatable {
+    enum Scope: String, CaseIterable, Identifiable {
+        case month, year
+        var id: String { rawValue }
+        var hebrewLabel: String { self == .month ? "חודש" : "שנה" }
+    }
+
+    var scope: Scope
+    /// Any date inside the selected period; the period is the whole month or
+    /// year that contains it.
+    var anchor: Date
+
+    /// The current month, the sensible default the screen opens on.
+    static func current(_ now: Date = .now) -> AnalyticsPeriod {
+        AnalyticsPeriod(scope: .month, anchor: now)
+    }
+
+    private var unit: Calendar.Component { scope == .month ? .month : .year }
+
+    /// The date range this period covers.
+    func interval(_ calendar: Calendar = .current) -> DateInterval? {
+        calendar.dateInterval(of: unit, for: anchor)
+    }
+
+    /// The same scope, shifted one unit earlier / later.
+    func previous(_ calendar: Calendar = .current) -> AnalyticsPeriod {
+        shifted(by: -1, calendar)
+    }
+
+    func next(_ calendar: Calendar = .current) -> AnalyticsPeriod {
+        shifted(by: 1, calendar)
+    }
+
+    private func shifted(by amount: Int, _ calendar: Calendar) -> AnalyticsPeriod {
+        let components = scope == .month
+            ? DateComponents(month: amount)
+            : DateComponents(year: amount)
+        let moved = calendar.date(byAdding: components, to: anchor) ?? anchor
+        return AnalyticsPeriod(scope: scope, anchor: moved)
+    }
+
+    /// Whether we can step forward without entering a period that's entirely
+    /// in the future — there's no data there, so the screen stops at "now".
+    func canStepForward(now: Date = .now, calendar: Calendar = .current) -> Bool {
+        guard let interval = interval(calendar) else { return false }
+        // Already showing the live period? Then forward would be the future.
+        // Otherwise we're in the past (the period ended before now) and may
+        // advance. `end` is exclusive, so a past period satisfies `end <= now`.
+        return !interval.contains(now) && interval.end <= now
+    }
+
+    /// Hebrew label for the period: "יוני 2026" for a month, "2026" for a year.
+    func label(_ calendar: Calendar = .current) -> String {
+        let locale = Locale(identifier: "he_IL")
+        switch scope {
+        case .month:
+            return anchor.formatted(.dateTime.locale(locale).month(.wide).year())
+        case .year:
+            return anchor.formatted(.dateTime.locale(locale).year())
         }
     }
 }

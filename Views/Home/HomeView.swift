@@ -52,6 +52,12 @@ struct HomeView: View {
     /// Drives the "Recently Deleted" sheet, opened from the assets card
     /// when there are soft-deleted accounts to recover.
     @State private var isShowingRecentlyDeleted: Bool = false
+    /// Drives the budget-overrun alert. Auto-raised at most **once per app
+    /// session** (the inline banner on the card carries the warning the rest
+    /// of the time) — `hasShownOverrunAlert` is the latch. Both live on the
+    /// long-lived `HomeView` so they survive tab switches.
+    @State private var overrunAlertPresented: Bool = false
+    @State private var hasShownOverrunAlert: Bool = false
 
     var body: some View {
         ZStack {
@@ -208,17 +214,9 @@ struct HomeView: View {
                     onShowRecentlyDeleted: { isShowingRecentlyDeleted = true }
                 )
 
-                BudgetSummaryCard(
-                    budgetItems: budgetItems,
-                    preferredCurrencyCode: preferredCurrencyCode,
-                    fxSnapshot: fxSnapshots.first,
+                BudgetVsActualCard(
+                    report: budgetReport,
                     onEdit: { isEditingBudget = true }
-                )
-
-                MonthlySummaryCard(
-                    transactions: transactions,
-                    preferredCurrencyCode: preferredCurrencyCode,
-                    fxSnapshot: fxSnapshots.first
                 )
             }
             .padding(.horizontal, Theme.Spacing.lg)
@@ -229,6 +227,25 @@ struct HomeView: View {
             .padding(.bottom, HomeBottomBar.barHeight + HomeBottomBar.homeButtonDiameter + Theme.Spacing.lg)
         }
         .scrollIndicators(.hidden)
+        // Raise the overrun alert once per session. `initial: true` checks on
+        // first appearance too (the @Query data is ready synchronously); the
+        // latch keeps it from re-firing as the user moves around the app.
+        .onChange(of: budgetReport.hasOverrun, initial: true) { _, isOverBudget in
+            if isOverBudget, !hasShownOverrunAlert {
+                overrunAlertPresented = true
+                hasShownOverrunAlert = true
+            }
+        }
+        .alert(
+            Text("חריגה מהתקציב"),
+            isPresented: $overrunAlertPresented,
+            presenting: budgetReport.overrunSummary
+        ) { _ in
+            Button("הבנתי", role: .cancel) {}
+            Button("לתקציב") { isEditingBudget = true }
+        } message: { summary in
+            Text(overrunMessage(summary))
+        }
     }
 
     private var headerRow: some View {
@@ -295,6 +312,34 @@ struct HomeView: View {
 
     private var preferredCurrencyCode: String {
         profiles.first?.preferredCurrencyCode ?? "ILS"
+    }
+
+    /// This month's plan-vs-reality, rebuilt from the live `@Query` data.
+    /// Cheap on a hand-entered ledger, so recomputing per render is fine; it
+    /// feeds both the merged card and the overrun alert from one source.
+    private var budgetReport: BudgetVsActual {
+        BudgetVsActual(
+            budgetItems: budgetItems,
+            transactions: transactions,
+            preferredCurrency: preferredCurrencyCode,
+            fxSnapshot: fxSnapshots.first
+        )
+    }
+
+    /// Multi-line Hebrew breakdown for the overrun alert: each budgeted
+    /// category that ran over, plus a total line when the whole expense plan
+    /// was blown.
+    private func overrunMessage(_ summary: OverrunSummary) -> String {
+        let code = preferredCurrencyCode
+        var lines = summary.lines.map { line in
+            "\(line.bucket.hebrewLabel): \(line.actual.formattedCurrency(code)) מתוך \(line.planned.formattedCurrency(code)) — חריגה של \(line.overAmount.formattedCurrency(code))"
+        }
+        if summary.isTotalOver {
+            lines.append(
+                "סך ההוצאות: \(summary.totalActual.formattedCurrency(code)) מתוך \(summary.totalPlanned.formattedCurrency(code)) — חריגה של \(summary.totalOverAmount.formattedCurrency(code))"
+            )
+        }
+        return lines.joined(separator: "\n")
     }
 }
 

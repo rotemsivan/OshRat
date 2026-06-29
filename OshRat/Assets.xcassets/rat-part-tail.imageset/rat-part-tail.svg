@@ -1,0 +1,13 @@
+<svg width="360" height="660" viewBox="0 0 360 660" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="fur" cx="42%" cy="34%" r="78%">
+      <stop offset="0%" stop-color="#B4B4BC"/><stop offset="100%" stop-color="#80808A"/>
+    </radialGradient>
+    <linearGradient id="suit" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#33405F"/><stop offset="100%" stop-color="#1E2740"/>
+    </linearGradient>
+  </defs>
+
+  <!-- TAIL (behind) -->
+  <path d="M198 470 Q278 486 296 424 Q304 392 284 382" fill="none" stroke="#A0A0A8" stroke-width="13" stroke-linecap="round"/>
+</svg>

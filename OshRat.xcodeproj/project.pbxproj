@@ -66,7 +66,7 @@
 		5E47939E2FD2014100568427 /* IncomeSourceEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E47939D2FD2014100568427 /* IncomeSourceEditorSheet.swift */; };
 		5E4793A02FD2017300568427 /* PlannedExpenseEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E47939F2FD2017300568427 /* PlannedExpenseEditorSheet.swift */; };
 		5E4793A22FD201AC00568427 /* BudgetStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E4793A12FD201AC00568427 /* BudgetStepView.swift */; };
-		5E4793A42FD2021F00568427 /* BudgetSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E4793A32FD2021F00568427 /* BudgetSummaryCard.swift */; };
+		5E4793A42FD2021F00568427 /* BudgetVsActualCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E4793A32FD2021F00568427 /* BudgetVsActualCard.swift */; };
 		5E78E4DB2FDA02D600867892 /* SlideToConfirm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E78E4DA2FDA02D600867892 /* SlideToConfirm.swift */; };
 		5E78E4DD2FDA02F600867892 /* BigAmountField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E78E4DC2FDA02F600867892 /* BigAmountField.swift */; };
 		5E78E4DF2FDA033E00867892 /* NewTransactionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E78E4DE2FDA033E00867892 /* NewTransactionSheet.swift */; };
@@ -89,7 +89,7 @@
 		5ED3E0EC2FD1BB9D003083F0 /* HoldingEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0EB2FD1BB9D003083F0 /* HoldingEditorView.swift */; };
 		5ED3E0EF2FD1BE69003083F0 /* GreetingHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0EE2FD1BE69003083F0 /* GreetingHeaderView.swift */; };
 		5ED3E0F12FD1BE8C003083F0 /* AssetsSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0F02FD1BE8C003083F0 /* AssetsSummaryCard.swift */; };
-		5ED3E0F32FD1BEB4003083F0 /* MonthlySummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0F22FD1BEB4003083F0 /* MonthlySummaryCard.swift */; };
+		5ED3E0F32FD1BEB4003083F0 /* BudgetVsActual.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0F22FD1BEB4003083F0 /* BudgetVsActual.swift */; };
 		5ED3E0F52FD1BECE003083F0 /* HomeBottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0F42FD1BECE003083F0 /* HomeBottomBar.swift */; };
 		5ED3E0F72FD1BEE2003083F0 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0F62FD1BEE2003083F0 /* HomeView.swift */; };
 /* End PBXBuildFile section */
@@ -157,7 +157,7 @@
 		5E47939D2FD2014100568427 /* IncomeSourceEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomeSourceEditorSheet.swift; sourceTree = "<group>"; };
 		5E47939F2FD2017300568427 /* PlannedExpenseEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannedExpenseEditorSheet.swift; sourceTree = "<group>"; };
 		5E4793A12FD201AC00568427 /* BudgetStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetStepView.swift; sourceTree = "<group>"; };
-		5E4793A32FD2021F00568427 /* BudgetSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetSummaryCard.swift; sourceTree = "<group>"; };
+		5E4793A32FD2021F00568427 /* BudgetVsActualCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetVsActualCard.swift; sourceTree = "<group>"; };
 		5E4793A62FD207EA00568427 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		5E78E4DA2FDA02D600867892 /* SlideToConfirm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlideToConfirm.swift; sourceTree = "<group>"; };
 		5E78E4DC2FDA02F600867892 /* BigAmountField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BigAmountField.swift; sourceTree = "<group>"; };
@@ -172,7 +172,7 @@
 		5ED3E0EB2FD1BB9D003083F0 /* HoldingEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoldingEditorView.swift; sourceTree = "<group>"; };
 		5ED3E0EE2FD1BE69003083F0 /* GreetingHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreetingHeaderView.swift; sourceTree = "<group>"; };
 		5ED3E0F02FD1BE8C003083F0 /* AssetsSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssetsSummaryCard.swift; sourceTree = "<group>"; };
-		5ED3E0F22FD1BEB4003083F0 /* MonthlySummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthlySummaryCard.swift; sourceTree = "<group>"; };
+		5ED3E0F22FD1BEB4003083F0 /* BudgetVsActual.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetVsActual.swift; sourceTree = "<group>"; };
 		5ED3E0F42FD1BECE003083F0 /* HomeBottomBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeBottomBar.swift; sourceTree = "<group>"; };
 		5ED3E0F62FD1BEE2003083F0 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -400,9 +400,9 @@
 			children = (
 				5ED3E0EE2FD1BE69003083F0 /* GreetingHeaderView.swift */,
 				5ED3E0F02FD1BE8C003083F0 /* AssetsSummaryCard.swift */,
-				5ED3E0F22FD1BEB4003083F0 /* MonthlySummaryCard.swift */,
+				5ED3E0F22FD1BEB4003083F0 /* BudgetVsActual.swift */,
 				5ED3E0F42FD1BECE003083F0 /* HomeBottomBar.swift */,
-				5E4793A32FD2021F00568427 /* BudgetSummaryCard.swift */,
+				5E4793A32FD2021F00568427 /* BudgetVsActualCard.swift */,
 				5ED3E0F62FD1BEE2003083F0 /* HomeView.swift */,
 				5E0A2E852FE04B62004441B5 /* BudgetEditorSheet.swift */,
 			);
@@ -585,14 +585,14 @@
 				5E2626C82FD1846400180F49 /* WelcomeView.swift in Sources */,
 				5EA1C0022FDA200000000002 /* WelcomeMascotView.swift in Sources */,
 				5E2626C92FD1846400180F49 /* AccountsStepView.swift in Sources */,
-				5E4793A42FD2021F00568427 /* BudgetSummaryCard.swift in Sources */,
+				5E4793A42FD2021F00568427 /* BudgetVsActualCard.swift in Sources */,
 				5E8EB3A32FD2F5060037E1F3 /* Theme.swift in Sources */,
 				5ED3E0EF2FD1BE69003083F0 /* GreetingHeaderView.swift in Sources */,
 				5ED3E0F52FD1BECE003083F0 /* HomeBottomBar.swift in Sources */,
 				5E2626CA2FD1846400180F49 /* OnboardingFlowView.swift in Sources */,
 				5E2626CB2FD1846400180F49 /* OnboardingViewModel.swift in Sources */,
 				5E2626CC2FD1846400180F49 /* PersonalDetailsStepView.swift in Sources */,
-				5ED3E0F32FD1BEB4003083F0 /* MonthlySummaryCard.swift in Sources */,
+				5ED3E0F32FD1BEB4003083F0 /* BudgetVsActual.swift in Sources */,
 				5E2626CD2FD1846400180F49 /* AccountEditorSheet.swift in Sources */,
 				5E78E4DF2FDA033E00867892 /* NewTransactionSheet.swift in Sources */,
 				5E31E5502FD16B6D00FF83C8 /* Category.swift in Sources */,

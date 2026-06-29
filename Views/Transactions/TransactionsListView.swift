@@ -664,7 +664,7 @@ private struct TransactionRow: View {
     /// always lands on the visual left of the number. Without the
     /// isolate, inside the Hebrew RTL view the sign inherits RTL
     /// direction and ends up on the visual right (same bug fixed in
-    /// `BudgetSummaryCard.formattedNet` / `MonthlySummaryCard.formattedNet`).
+    /// the shared `Decimal.formattedSignedCurrency`).
     private var formattedAmount: String {
         let base = transaction.amount.formatted(.currency(code: transaction.currencyCode))
         // A transfer is neither + nor − to net worth — money just moves

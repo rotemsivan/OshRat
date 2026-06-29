@@ -129,7 +129,7 @@ final class Transaction {
     /// Title used for the bookkeeping row that gets inserted whenever
     /// the user manually adjusts an account's cash balance. Centralised
     /// here so the creator (`AccountDraft.apply(to:in:)`) and consumers
-    /// that want to exclude these rows (e.g. `MonthlySummaryCard`)
+    /// that want to exclude these rows (e.g. `BudgetVsActualCard`)
     /// agree on a single literal. Not added as a stored Bool field
     /// because doing so would touch the SwiftData schema; a marker
     /// title is enough and keeps CloudKit-compatibility cleaner.
