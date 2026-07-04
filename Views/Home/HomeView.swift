@@ -52,6 +52,11 @@ struct HomeView: View {
     /// Drives the "Recently Deleted" sheet, opened from the assets card
     /// when there are soft-deleted accounts to recover.
     @State private var isShowingRecentlyDeleted: Bool = false
+    /// The period the budget card shows: the card's segmented control picks
+    /// the unit (month/year) and the surrounding carousel steps the anchor
+    /// back and forward in time — same vocabulary as the Analytics roadmap.
+    /// Lives here because HomeView builds the report.
+    @State private var budgetPeriod: AnalyticsPeriod = .current()
     /// Drives the budget-overrun alert. Auto-raised at most **once per app
     /// session** (the inline banner on the card carries the warning the rest
     /// of the time) — `hasShownOverrunAlert` is the latch. Both live on the
@@ -151,6 +156,16 @@ struct HomeView: View {
                 onCancel: {}
             )
         }
+        // Deep link from the home-screen widget: `oshrat://new-transaction`
+        // opens the same sheet as the FAB. Handled here (not in
+        // `OshRatApp`) because this view already owns the sheet's state.
+        // If the user hasn't onboarded yet, `ContentView` never mounts
+        // `HomeView`, so the URL is quietly ignored — correct, since
+        // there's no account to log a transaction against.
+        .onOpenURL { url in
+            guard url.scheme == "oshrat", url.host() == "new-transaction" else { return }
+            isAddingTransaction = true
+        }
         // Refresh once per dashboard appearance. The service itself
         // gates on cache freshness, so this is cheap when the cache
         // is still warm.
@@ -214,10 +229,18 @@ struct HomeView: View {
                     onShowRecentlyDeleted: { isShowingRecentlyDeleted = true }
                 )
 
-                BudgetVsActualCard(
-                    report: budgetReport,
+                // Swipeable previous/next-period carousel. Negative padding
+                // cancels the VStack's gutter so the row spans the full
+                // screen; the neighbouring months/years then peek in
+                // prominently from both edges (the centre card is a touch
+                // narrower than the cards above on purpose — that's the
+                // "this slides" cue).
+                BudgetCardCarousel(
+                    period: $budgetPeriod,
+                    makeReport: { report(for: $0) },
                     onEdit: { isEditingBudget = true }
                 )
+                .padding(.horizontal, -Theme.Spacing.lg)
             }
             .padding(.horizontal, Theme.Spacing.lg)
             .padding(.top, Theme.Spacing.md)
@@ -230,7 +253,10 @@ struct HomeView: View {
         // Raise the overrun alert once per session. `initial: true` checks on
         // first appearance too (the @Query data is ready synchronously); the
         // latch keeps it from re-firing as the user moves around the app.
-        .onChange(of: budgetReport.hasOverrun, initial: true) { _, isOverBudget in
+        // Keyed to the *monthly* report on purpose: the alert warns about
+        // this month's budget, so toggling the card to the year view must
+        // neither trigger nor re-word it.
+        .onChange(of: monthlyBudgetReport.hasOverrun, initial: true) { _, isOverBudget in
             if isOverBudget, !hasShownOverrunAlert {
                 overrunAlertPresented = true
                 hasShownOverrunAlert = true
@@ -239,7 +265,7 @@ struct HomeView: View {
         .alert(
             Text("חריגה מהתקציב"),
             isPresented: $overrunAlertPresented,
-            presenting: budgetReport.overrunSummary
+            presenting: monthlyBudgetReport.overrunSummary
         ) { _ in
             Button("הבנתי", role: .cancel) {}
             Button("לתקציב") { isEditingBudget = true }
@@ -314,15 +340,25 @@ struct HomeView: View {
         profiles.first?.preferredCurrencyCode ?? "ILS"
     }
 
-    /// This month's plan-vs-reality, rebuilt from the live `@Query` data.
-    /// Cheap on a hand-entered ledger, so recomputing per render is fine; it
-    /// feeds both the merged card and the overrun alert from one source.
-    private var budgetReport: BudgetVsActual {
+    /// Always *this month's* plan-vs-reality, backing the overrun alert —
+    /// its semantics ("this month's budget was breached") must not follow
+    /// the card as the user browses other periods or the year view. Cheap on
+    /// a hand-entered ledger, so recomputing per render is fine.
+    private var monthlyBudgetReport: BudgetVsActual {
+        report(for: .current())
+    }
+
+    /// Plan-vs-reality for an arbitrary period (any month or year, past or
+    /// future), rebuilt from the live `@Query` data. Feeds the carousel's
+    /// centre card and its peeking neighbours.
+    private func report(for period: AnalyticsPeriod) -> BudgetVsActual {
         BudgetVsActual(
             budgetItems: budgetItems,
             transactions: transactions,
             preferredCurrency: preferredCurrencyCode,
-            fxSnapshot: fxSnapshots.first
+            fxSnapshot: fxSnapshots.first,
+            scope: period.scope,
+            now: period.anchor
         )
     }
 

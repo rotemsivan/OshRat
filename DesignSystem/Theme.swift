@@ -80,7 +80,13 @@ enum Theme {
         static let sectionTitle = Font.custom(Fonts.bold,    size: 22, relativeTo: .headline)
         static let amount       = Font.custom(Fonts.bold,    size: 18, relativeTo: .title2)
         static let body         = Font.custom(Fonts.regular, size: 17, relativeTo: .body)
+        /// A step below `body` for dense secondary content, e.g. the note and
+        /// insight lines inside the expanded transaction card.
+        static let bodySmall    = Font.custom(Fonts.regular, size: 14, relativeTo: .subheadline)
         static let caption      = Font.custom(Fonts.regular, size: 13, relativeTo: .caption)
+        /// ~15% smaller than `caption`, for tight secondary text like the
+        /// filename on an attachment tile. Still scales with Dynamic Type.
+        static let captionSmall = Font.custom(Fonts.regular, size: 11, relativeTo: .caption2)
     }
 
     // MARK: Fonts

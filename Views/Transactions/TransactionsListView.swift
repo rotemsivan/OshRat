@@ -51,6 +51,9 @@ struct TransactionsListView: View {
     /// Drives the "Recently Deleted" sheet, opened from the toolbar when
     /// there are soft-deleted transactions to recover.
     @State private var isShowingRecentlyDeleted: Bool = false
+    /// Row briefly tinted after a "similar transaction" jump, so the eye
+    /// lands on the right line once the scroll settles. Cleared ~1.5s later.
+    @State private var highlightedID: PersistentIdentifier?
 
     var body: some View {
         ZStack {
@@ -240,7 +243,57 @@ struct TransactionsListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    /// Jump from a "similar transaction" line in an expanded card to the
+    /// original row: make sure it's visible (active filters or a search
+    /// could exclude it), then scroll to it, expand it, and flash a
+    /// highlight so the landing spot is unmissable.
+    private func jump(to target: Transaction, proxy: ScrollViewProxy) {
+        let id = target.persistentModelID
+        if !filtered.contains(where: { $0.persistentModelID == id }) {
+            clearFilters()
+            search = ""
+        }
+        // Defer one runloop tick so the List has re-rendered with the
+        // target row before we scroll — matters when filters were just
+        // cleared and the row didn't exist a moment ago.
+        DispatchQueue.main.async {
+            if reduceMotion {
+                expandedID = id
+                proxy.scrollTo(id, anchor: .center)
+            } else {
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+                    expandedID = id
+                    proxy.scrollTo(id, anchor: .center)
+                }
+            }
+            highlightedID = id
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                withAnimation(.easeOut(duration: 0.4)) {
+                    // Guarded so a second jump fired in the meantime keeps
+                    // its own highlight.
+                    if highlightedID == id { highlightedID = nil }
+                }
+            }
+        }
+    }
+
+    /// Surface colour normally; a soft accent wash while this row is the
+    /// landing spot of a similar-transaction jump.
+    private func rowBackground(_ tx: Transaction) -> Color {
+        highlightedID == tx.persistentModelID
+            ? Theme.Colors.accent.opacity(0.12)
+            : Theme.Colors.surface
+    }
+
     private var list: some View {
+        // The reader exists solely for the similar-transaction jumps —
+        // `jump(to:proxy:)` scrolls the List to the tapped row.
+        ScrollViewReader { proxy in
+            listContent(proxy: proxy)
+        }
+    }
+
+    private func listContent(proxy: ScrollViewProxy) -> some View {
         List {
             // Quick "clear filters" chip, pinned above the day headers. It's
             // its own headerless section so a tight per-section spacing
@@ -279,13 +332,21 @@ struct TransactionsListView: View {
                                 .onTapGesture { toggleExpand(tx) }
 
                             if isExpandable(tx), expandedID == tx.persistentModelID {
-                                ExpandedTransactionCard(transaction: tx, allTransactions: transactions)
+                                ExpandedTransactionCard(
+                                    transaction: tx,
+                                    allTransactions: transactions,
+                                    onSelectSimilar: { similar in
+                                        jump(to: similar, proxy: proxy)
+                                    }
+                                )
                                     .transition(reduceMotion
                                         ? .opacity
                                         : .opacity.combined(with: .move(edge: .top)))
                             }
                         }
-                            .listRowBackground(Theme.Colors.surface)
+                            // Anchor for `proxy.scrollTo` in similar-transaction jumps.
+                            .id(tx.persistentModelID)
+                            .listRowBackground(rowBackground(tx))
                             // Full-bleed surface row (zero horizontal inset)
                             // so the swipe actions reveal the white row
                             // itself rather than the gray gutter an inset
@@ -702,6 +763,10 @@ private struct TransactionRow: View {
 private struct ExpandedTransactionCard: View {
     let transaction: Transaction
     let allTransactions: [Transaction]
+    /// Called when the user taps a row in the "תנועות דומות" block, with
+    /// the tapped transaction. The list answers by scrolling to and
+    /// expanding that original row. Nil renders the block as plain text.
+    var onSelectSimilar: ((Transaction) -> Void)? = nil
 
     /// Relative-time formatter pinned to Hebrew, e.g. "לפני 8 ימים".
     private static let relativeFormatter: RelativeDateTimeFormatter = {
@@ -737,7 +802,7 @@ private struct ExpandedTransactionCard: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
             blockLabel("פירוט")
             Text(trimmedNote)
-                .font(Theme.Typography.body)
+                .font(Theme.Typography.bodySmall)
                 .foregroundStyle(Theme.Colors.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -782,18 +847,27 @@ private struct ExpandedTransactionCard: View {
             blockLabel("תנועות דומות")
             VStack(spacing: Theme.Spacing.xs) {
                 ForEach(similar) { tx in
-                    HStack {
-                        Text(tx.date.formatted(.dateTime.locale(Locale(identifier: "he_IL")).day().month(.abbreviated)))
-                            .font(Theme.Typography.caption)
-                            .foregroundStyle(Theme.Colors.textSecondary)
-                        Spacer(minLength: Theme.Spacing.sm)
-                        Text("\u{2066}\(tx.amount.formatted(.currency(code: tx.currencyCode)))\u{2069}")
-                            .font(Theme.Typography.caption)
-                            .foregroundStyle(Theme.Colors.textPrimary)
-                            .monospacedDigit()
-                    }
+                    similarRow(tx)
                 }
             }
+        }
+    }
+
+    /// One similar-transaction line. When the card has an `onSelectSimilar`
+    /// handler the line is a button that jumps the list to the original row;
+    /// otherwise it renders as a plain (non-interactive) mini row.
+    @ViewBuilder
+    private func similarRow(_ tx: Transaction) -> some View {
+        if let onSelectSimilar {
+            Button {
+                onSelectSimilar(tx)
+            } label: {
+                SimilarTransactionRow(transaction: tx, isLink: true)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint(Text("מעבר לתנועה המקורית ברשימה"))
+        } else {
+            SimilarTransactionRow(transaction: tx, isLink: false)
         }
     }
 
@@ -881,15 +955,135 @@ private struct InsightLine: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.sm) {
             Image(systemName: symbol)
-                .font(.system(size: 13))
+                .font(.system(size: 12))
                 .foregroundStyle(Theme.Colors.accent)
                 .frame(width: 18)
             Text(text)
-                .font(Theme.Typography.body)
+                .font(Theme.Typography.bodySmall)
                 .foregroundStyle(Theme.Colors.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+// MARK: - Similar transaction mini row
+
+/// A compact echo of `TransactionRow` for the "תנועות דומות" block: the same
+/// category badge, title, and kind-coloured signed amount, scaled down and
+/// sitting on its own surface tile so it reads as an embedded list row inside
+/// the expanded card. The date takes the subtitle slot (the list gets its
+/// dates from the day headers; here each row needs its own).
+private struct SimilarTransactionRow: View {
+    let transaction: Transaction
+    /// Whether the row is a tap-to-jump link — adds the forward chevron.
+    let isLink: Bool
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.sm) {
+            badge
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(displayTitle)
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .lineLimit(1)
+                Text(transaction.date.formatted(
+                    .dateTime.locale(Locale(identifier: "he_IL")).day().month(.wide).year()
+                ))
+                    .font(Theme.Typography.captionSmall)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: Theme.Spacing.sm)
+
+            Text(formattedAmount)
+                .font(Theme.Typography.caption)
+                .bold()
+                .foregroundStyle(amountColor)
+                .monospacedDigit()
+                .lineLimit(1)
+
+            if isLink {
+                // `chevron.forward` auto-mirrors, so it points toward the
+                // "go there" direction under the app's RTL layout.
+                Image(systemName: "chevron.forward")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(Theme.Colors.accent)
+            }
+        }
+        .padding(.horizontal, Theme.Spacing.sm)
+        .padding(.vertical, Theme.Spacing.xs)
+        // Surface tile on the card's grey backdrop — the same figure/ground
+        // relationship as a list row on the screen background.
+        .background(
+            Theme.Colors.surface,
+            in: RoundedRectangle(cornerRadius: Theme.Radius.button, style: .continuous)
+        )
+        .contentShape(.rect)
+        .accessibilityElement(children: .combine)
+    }
+
+    // Badge, title, and amount below intentionally mirror `TransactionRow`'s
+    // rules (smaller sizes) so the mini row is recognisably "the same row".
+
+    private var badge: some View {
+        ZStack {
+            Circle()
+                .fill(badgeBackground)
+                .frame(width: 26, height: 26)
+            Image(systemName: badgeSymbol)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(badgeForeground)
+        }
+    }
+
+    private var badgeSymbol: String {
+        if transaction.isTransfer { return "arrow.left.arrow.right" }
+        return transaction.category?.symbolName ?? "circle.dashed"
+    }
+
+    private var badgeBackground: Color {
+        if transaction.isTransfer { return Theme.Colors.accent.opacity(0.18) }
+        switch transaction.kind {
+        case .income:  return Theme.Colors.income.opacity(0.18)
+        case .expense: return Theme.Colors.expense.opacity(0.18)
+        }
+    }
+
+    private var badgeForeground: Color {
+        if transaction.isTransfer { return Theme.Colors.accent }
+        switch transaction.kind {
+        case .income:  return Theme.Colors.income
+        case .expense: return Theme.Colors.expense
+        }
+    }
+
+    private var displayTitle: String {
+        let trimmed = transaction.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty { return trimmed }
+        if transaction.isTransfer { return "העברה" }
+        return transaction.category?.name ?? "ללא שם"
+    }
+
+    /// Same bidi-isolate treatment as the list row, so the sign stays on the
+    /// visual left of the number inside the RTL layout.
+    private var formattedAmount: String {
+        let base = transaction.amount.formatted(.currency(code: transaction.currencyCode))
+        if transaction.isTransfer {
+            return "\u{2066}\(base)\u{2069}"
+        }
+        let sign = transaction.kind == .income ? "+" : "-"
+        return "\u{2066}\(sign)\(base)\u{2069}"
+    }
+
+    private var amountColor: Color {
+        if transaction.isTransfer { return Theme.Colors.accent }
+        switch transaction.kind {
+        case .income:  return Theme.Colors.income
+        case .expense: return Theme.Colors.expense
+        }
     }
 }
 

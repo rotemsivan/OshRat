@@ -8,6 +8,17 @@
 	<array>
 		<string>he</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.rotem.OshRat</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>oshrat</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>כדי לצלם קבלות וחשבוניות ולצרף אותן לתנועות שלך. התמונות נשמרות במכשיר בלבד.</string>
 	<key>UIAppFonts</key>

@@ -1,11 +1,12 @@
 import Foundation
 
-/// A pure, testable comparison of *this month's* plan against what actually
-/// happened — the data behind the merged dashboard card (and, later, an
-/// Analytics station).
+/// A pure, testable comparison of the current period's plan against what
+/// actually happened — the data behind the merged dashboard card (and, later,
+/// an Analytics station). The period is either *this month* (the default) or
+/// *this year*, matching the Analytics חודש/שנה toggle.
 ///
-/// It rolls every budget line's contribution to the current month and every
-/// real transaction this month into three buckets — **income**, **needs**,
+/// It rolls every budget line's contribution to the period and every real
+/// transaction inside it into three buckets — **income**, **needs**,
 /// **wants** — each carrying both its planned figure and its actual figure in
 /// the user's preferred currency. From those it derives whether the user has
 /// gone over budget, by how much, and in which buckets.
@@ -149,13 +150,17 @@ struct OverrunSummary {
 
 extension BudgetVsActual {
 
-    /// Crunches the raw model objects into the comparison. `calendar` and
-    /// `now` are injectable so tests can pin a deterministic "today".
+    /// Crunches the raw model objects into the comparison. The period is the
+    /// `scope`-sized window (month or year) containing `now` — pass an
+    /// arbitrary anchor date to report on a past or future period (the
+    /// dashboard carousel does), or leave the defaults for "this month".
+    /// `calendar` and `now` are also how tests pin a deterministic "today".
     init(
         budgetItems: [BudgetItem],
         transactions: [Transaction],
         preferredCurrency: String,
         fxSnapshot: FXRateSnapshot?,
+        scope: AnalyticsPeriod.Scope = .month,
         calendar: Calendar = .current,
         now: Date = .now
     ) {
@@ -178,33 +183,42 @@ extension BudgetVsActual {
         let comps = calendar.dateComponents([.month, .year], from: now)
         let month = comps.month ?? 1
         let year = comps.year ?? 2000
+        /// The months the plan side sums over: just the current one, or every
+        /// month of the current year. `plannedAmount(inMonth:year:)` already
+        /// attributes each line to its right months, so the yearly figure is
+        /// simply the twelve monthly contributions added up.
+        let plannedMonths: [Int] = scope == .month ? [month] : Array(1...12)
 
-        // MARK: Planned — each line's contribution to *this* month, bucketed.
+        // MARK: Planned — each line's contribution to the period, bucketed.
 
         var plannedIncome = Decimal(0)
         var plannedNeeds = Decimal(0)
         var plannedWants = Decimal(0)
         for item in budgetItems {
-            let monthly = item.plannedAmount(inMonth: month, year: year)
-            guard monthly != 0, let converted = convert(monthly, item.currencyCode) else { continue }
-            switch item.kind {
-            case .income:
-                plannedIncome += converted
-            case .expense:
-                if item.category?.nature == .want {
-                    plannedWants += converted
-                } else {
-                    plannedNeeds += converted   // need + neutral/none lean into needs
+            for plannedMonth in plannedMonths {
+                let monthly = item.plannedAmount(inMonth: plannedMonth, year: year)
+                guard monthly != 0, let converted = convert(monthly, item.currencyCode) else { continue }
+                switch item.kind {
+                case .income:
+                    plannedIncome += converted
+                case .expense:
+                    if item.category?.nature == .want {
+                        plannedWants += converted
+                    } else {
+                        plannedNeeds += converted   // need + neutral/none lean into needs
+                    }
                 }
             }
         }
 
-        // MARK: Actual — this month's real transactions, bucketed identically.
+        // MARK: Actual — the period's real transactions, bucketed identically.
 
-        let monthInterval = calendar.dateInterval(of: .month, for: now)
+        let periodInterval = calendar.dateInterval(
+            of: scope == .month ? .month : .year, for: now
+        )
 
-        func isThisMonthReal(_ tx: Transaction) -> Bool {
-            guard let monthInterval, monthInterval.contains(tx.date) else { return false }
+        func isInPeriodReal(_ tx: Transaction) -> Bool {
+            guard let periodInterval, periodInterval.contains(tx.date) else { return false }
             // Manual balance-edit rows and transfers are bookkeeping, not
             // income/expense — excluded exactly like the other dashboard cards.
             return !tx.isManualBalanceEdit && !tx.isTransfer
@@ -213,7 +227,7 @@ extension BudgetVsActual {
         var actualIncome = Decimal(0)
         var actualNeeds = Decimal(0)
         var actualWants = Decimal(0)
-        for tx in transactions where isThisMonthReal(tx) {
+        for tx in transactions where isInPeriodReal(tx) {
             guard let converted = convert(tx.amount, tx.currencyCode) else { continue }
             switch tx.kind {
             case .income:
@@ -230,7 +244,7 @@ extension BudgetVsActual {
         // MARK: Flags
 
         let crossBudget = budgetItems.contains { $0.currencyCode != preferredCurrency }
-        let crossTx = transactions.contains { isThisMonthReal($0) && $0.currencyCode != preferredCurrency }
+        let crossTx = transactions.contains { isInPeriodReal($0) && $0.currencyCode != preferredCurrency }
 
         // MARK: Assign
 
@@ -242,7 +256,8 @@ extension BudgetVsActual {
         self.hasAnyActivity = actualIncome > 0 || actualNeeds > 0 || actualWants > 0
         self.hasCrossCurrency = crossBudget || crossTx
         self.hasScheduledExtras = budgetItems.contains { item in
-            !item.landsEveryMonth && item.appliesTo(month: month, year: year)
+            !item.landsEveryMonth
+                && plannedMonths.contains { item.appliesTo(month: $0, year: year) }
         }
         // Set last so every `convert` call above has had its chance to flip it.
         self.fxUnavailable = fxMissing

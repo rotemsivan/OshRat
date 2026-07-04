@@ -315,7 +315,7 @@ struct AttachmentTile: View {
                     .font(.system(size: 22, weight: .regular))
                     .foregroundStyle(Theme.Colors.accent)
                 Text(filename)
-                    .font(Theme.Typography.caption)
+                    .font(Theme.Typography.captionSmall)
                     .foregroundStyle(Theme.Colors.textSecondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -440,7 +440,7 @@ struct AttachmentsEditor: View {
                 Image(systemName: "plus")
                     .font(.system(size: 20, weight: .semibold))
                 Text("הוספה")
-                    .font(Theme.Typography.caption)
+                    .font(Theme.Typography.captionSmall)
             }
             .foregroundStyle(Theme.Colors.accent)
             .frame(width: tileSide, height: tileSide)
