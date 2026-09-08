@@ -461,7 +461,11 @@ private struct RoadmapMascot: View {
     /// replayed each time `activeStation` changes. The magic numbers are tuning
     /// knobs — bump the angles or squash factors to taste.
     private var rig: some View {
-        Color.clear
+        // Capture the sizes locally: the keyframeAnimator content closure is
+        // Sendable and can't reach the main-actor-isolated `width`/`height`.
+        let width = width
+        let height = height
+        return Color.clear
             .frame(width: width, height: height)
             .keyframeAnimator(initialValue: HopState(), trigger: activeStation) { _, hop in
                 RatRig(legTuck: hop.legTuck, headTilt: hop.headTilt, tailFlick: hop.tailFlick)
