@@ -272,10 +272,17 @@ struct BudgetCardCarousel: View {
     /// gesture handling of our own.
     @State private var scrolledOffset: Int?
 
-    /// How many periods either side of the base the pager can reach. 20
-    /// years of months is past any real use, and `LazyHStack` only builds
-    /// the pages on screen, so the unvisited offsets cost an `Int` each.
-    private static let reach = 240
+    /// How many periods either side of the base stay mounted. Deliberately
+    /// small: every page rebuilds a whole `BudgetVsActual` from the entire
+    /// ledger, and `defaultScrollAnchor` has to measure the full row to
+    /// centre it — so the window size *is* the cost, and a wide one hangs
+    /// the main thread rather than paging lazily.
+    private static let window = 6
+    /// Settle this far from centre and the window re-bases around the page
+    /// on screen, which keeps the pager endless without ever mounting more
+    /// than `2 * window + 1` cards. Leaves headroom beyond it so a fast
+    /// multi-page flick doesn't hit the end before the re-base lands.
+    private static let rebaseThreshold = 3
 
     /// Gap between pages. Narrower than the dashboard gutter on purpose: the
     /// difference is how much of the neighbouring card peeks past the screen
@@ -300,7 +307,7 @@ struct BudgetCardCarousel: View {
             // layout that puts the past on the visual right and the future
             // on the visual left, matching how the steppers used to read.
             LazyHStack(alignment: .top, spacing: spacing) {
-                ForEach(-Self.reach...Self.reach, id: \.self) { offset in
+                ForEach(-Self.window...Self.window, id: \.self) { offset in
                     let pagePeriod = basePeriod.shifted(by: offset)
                     BudgetVsActualCard(
                         report: makeReport(pagePeriod),
@@ -327,6 +334,15 @@ struct BudgetCardCarousel: View {
             guard let offset else { return }
             let landed = basePeriod.shifted(by: offset)
             if landed != period { period = landed }
+            // Walked far enough out that the end of the window is in sight:
+            // re-centre on the page that's on screen. The card at the new
+            // offset 0 is the one already displayed, and its neighbours
+            // shift with it, so the swap changes no pixels. Re-entering this
+            // handler with offset 0 is a no-op, so it can't loop.
+            if abs(offset) >= Self.rebaseThreshold {
+                basePeriod = landed
+                scrolledOffset = 0
+            }
         }
         .onChange(of: period.scope) {
             // `period` already carries the new scope; re-base the sequence
