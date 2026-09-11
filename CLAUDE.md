@@ -107,3 +107,17 @@ There is **no Settings screen yet** — preferences are currently hardcoded to s
 ## Current status
 
 Onboarding, the dashboard (assets / budget / monthly cards), transactions (list, add, transfers), the Analytics roadmap, and the budget calendar with scheduled items are all implemented. Transaction rows in the list **expand inline** on tap into an insights card (recurrence/cadence, amount-vs-average, last-seen, day pattern, similar past rows — all computed in the pure `TransactionInsights` value type) that also surfaces the note and any **file attachments** (receipts/invoices added from Camera/Photos/Files, viewed via QuickLook). Navigation is a custom glass bottom bar (`HomeBottomBar`) with Home / Transactions / Analytics / Calendar; `HomeView` switches between them and owns the shared chrome (bottom bar, FAB, sheets). Not yet built: the Goals UI, and the rat/mouse visual theme.
+
+## Planned / later (not in the current build)
+
+1. CloudKit sync (multi-Apple-device). For when multi-device is wanted — needs the paid Apple Developer Program:
+
+- Switch the container to ModelConfiguration(schema:, cloudKitDatabase: .automatic).
+- Xcode capabilities: iCloud → CloudKit (container iCloud.com.rotem.OshRat) and Background Modes → Remote notifications.
+- Use the CloudSyncStatus helper to show a quiet "local-only" banner when iCloud is unavailable — never block the app; it must keep working offline / signed out.
+- Fix first-launch category seeding to run once per iCloud account using NSUbiquitousKeyValueStore, to avoid duplicate default categories across devices.
+- If the container fails to build with a CloudKit relationship error, make the to-many transactions relationships on Account and Category optional ([Transaction]?).
+- Before any App Store release, deploy the CloudKit schema from Development to Production in the CloudKit Console.
+
+2. Gamification / XP. Local-only engine: a UserProgress model (XP, level, streaks) + an Achievement catalog + a ProgressService called from the existing data-write points; wire the mascot poses to reward moments. No backend for the solo version.
+3. App Store launch. Enroll in the paid program; prepare App Privacy details + a privacy-policy URL; Hebrew/RTL screenshots; TestFlight; then submit. Keep manual-entry only (no bank APIs) for v1. Optional later: a small "Pro" tier via StoreKit (sync, advanced insights, export) — worth gating premium features behind a simple isPro check early so adding purchases later is easy.
