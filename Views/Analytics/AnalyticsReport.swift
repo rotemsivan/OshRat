@@ -264,13 +264,13 @@ extension AnalyticsReport {
                     id: type.rawValue,
                     typeLabel: type.hebrewLabel,
                     amount: amount,
-                    symbolName: Self.symbol(for: type),
+                    symbolName: type.symbolName,
                     fraction: worth > 0
                         ? (amount as NSDecimalNumber).doubleValue / (worth as NSDecimalNumber).doubleValue
                         : 0
                 )
             }
-            .sorted { Self.typeRank($0.id) < Self.typeRank($1.id) }
+            .sorted { Self.typeSortRank($0.id) < Self.typeSortRank($1.id) }
 
         // MARK: Assign
 
@@ -433,26 +433,11 @@ extension AnalyticsReport {
         )
     }
 
-    private static func symbol(for type: AccountType) -> String {
-        switch type {
-        case .current:       return "banknote"
-        case .digitalWallet: return "wallet.bifold"
-        case .savings:       return "lock"
-        case .investment:    return "chart.line.uptrend.xyaxis"
-        }
-    }
-
-    /// Lower rank sorts earlier, mirroring `AssetsSummaryCard.typeRank` so the
-    /// allocation list reads in the same order on both screens. Keyed off the
-    /// stored `AccountType.rawValue`; unknown values sort last.
-    private static func typeRank(_ typeRaw: String) -> Int {
-        switch AccountType(rawValue: typeRaw) {
-        case .current:       return 0
-        case .digitalWallet: return 1
-        case .savings:       return 2
-        case .investment:    return 3
-        case .none:          return 4
-        }
+    /// `AssetSlice.id` is stored as `AccountType.rawValue`, so the
+    /// allocation list sorts by `AccountType.sortRank` through this
+    /// raw-value lookup. Unknown values sort last.
+    private static func typeSortRank(_ typeRaw: String) -> Int {
+        AccountType(rawValue: typeRaw)?.sortRank ?? .max
     }
 }
 

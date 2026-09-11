@@ -262,23 +262,11 @@ struct AssetsSummaryCard: View {
             // Favourite first, regardless of its type.
             if lhs.isFavorite != rhs.isFavorite { return lhs.isFavorite }
             // Then by the fixed type order.
-            let lRank = Self.typeRank(lhs.type)
-            let rRank = Self.typeRank(rhs.type)
+            let lRank = lhs.type.sortRank
+            let rRank = rhs.type.sortRank
             if lRank != rRank { return lRank < rRank }
             // Stable, predictable tiebreak within a group.
             return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
-        }
-    }
-
-    /// Lower rank sorts earlier. Deliberately has no `default`, so adding a
-    /// new `AccountType` becomes a compile error here until it's given an
-    /// explicit slot in the order.
-    private static func typeRank(_ type: AccountType) -> Int {
-        switch type {
-        case .current:       return 0
-        case .digitalWallet: return 1   // liquid like cash, so it sits by current
-        case .savings:       return 2
-        case .investment:    return 3
         }
     }
 
@@ -337,7 +325,7 @@ private struct AccountSummaryRow: View {
 
     var body: some View {
         HStack(spacing: Theme.Spacing.sm) {
-            Image(systemName: symbolName)
+            Image(systemName: account.type.symbolName)
                 .foregroundStyle(Theme.Colors.accent)
                 .frame(width: 24)
 
@@ -401,15 +389,6 @@ private struct AccountSummaryRow: View {
             return "\(account.type.hebrewLabel) • \(holdings)"
         }
         return account.type.hebrewLabel
-    }
-
-    private var symbolName: String {
-        switch account.type {
-        case .current:       return "banknote"
-        case .digitalWallet: return "wallet.bifold"
-        case .savings:       return "lock"
-        case .investment:    return "chart.line.uptrend.xyaxis"
-        }
     }
 }
 

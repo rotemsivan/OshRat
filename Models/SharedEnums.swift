@@ -24,9 +24,8 @@ enum TransactionKind: String, Codable, CaseIterable, Identifiable {
 /// The kind of financial account the user is tracking.
 ///
 /// Declaration order is also the order `allCases` feeds the type picker
-/// and (mirrored in `AssetsSummaryCard.typeRank`) the dashboard list:
-/// everyday liquid money first (current + digital wallet), then savings
-/// and investments.
+/// and (see `sortRank` below) the dashboard list: everyday liquid money
+/// first (current + digital wallet), then savings and investments.
 enum AccountType: String, Codable, CaseIterable, Identifiable {
     case current        // עו״ש
     case digitalWallet  // ארנק דיגיטלי — Bit / PayBox / PayPal balance, etc.
@@ -42,6 +41,32 @@ enum AccountType: String, Codable, CaseIterable, Identifiable {
         case .digitalWallet: return "ארנק דיגיטלי"
         case .savings:       return "חיסכון"
         case .investment:    return "השקעות"
+        }
+    }
+
+    /// SF Symbol shown for this account type, consistent everywhere an
+    /// account appears (assets card, transaction editor, onboarding,
+    /// analytics allocation list).
+    var symbolName: String {
+        switch self {
+        case .current:       return "banknote"
+        case .digitalWallet: return "wallet.bifold"
+        case .savings:       return "lock"
+        case .investment:    return "chart.line.uptrend.xyaxis"
+        }
+    }
+
+    /// Fixed sort order for the dashboard and analytics allocation list:
+    /// everyday liquid money first (current + digital wallet), then
+    /// savings, then investments. Lower rank sorts earlier. Deliberately
+    /// has no `default`, so adding a new case becomes a compile error
+    /// here until it's given an explicit slot in the order.
+    var sortRank: Int {
+        switch self {
+        case .current:       return 0
+        case .digitalWallet: return 1   // liquid like cash, so it sits by current
+        case .savings:       return 2
+        case .investment:    return 3
         }
     }
 

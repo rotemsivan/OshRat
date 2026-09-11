@@ -320,7 +320,7 @@ struct NewTransactionSheet: View {
                 Button {
                     onPick(option)
                 } label: {
-                    Label(option.name, systemImage: accountSymbol(option.type))
+                    Label(option.name, systemImage: option.type.symbolName)
                 }
             }
         } label: {
@@ -329,7 +329,7 @@ struct NewTransactionSheet: View {
                     .font(Theme.Typography.caption)
                     .foregroundStyle(Theme.Colors.textSecondary)
                 HStack(spacing: Theme.Spacing.xs) {
-                    Image(systemName: account.map { accountSymbol($0.type) } ?? "circle.dashed")
+                    Image(systemName: account.map { $0.type.symbolName } ?? "circle.dashed")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Theme.Colors.accent)
                     Text(account?.name ?? "בחרו חשבון")
@@ -353,17 +353,6 @@ struct NewTransactionSheet: View {
             .environment(\.layoutDirection, .rightToLeft)
         }
         .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.7), value: account?.persistentModelID)
-    }
-
-    /// SF Symbol per account type. Mirrors `AnalyticsReport.symbol(for:)`
-    /// so an account reads with the same icon wherever it appears.
-    private func accountSymbol(_ type: AccountType) -> String {
-        switch type {
-        case .current:       return "banknote"
-        case .digitalWallet: return "wallet.bifold"
-        case .savings:       return "lock"
-        case .investment:    return "chart.line.uptrend.xyaxis"
-        }
     }
 
     private var accountSection: some View {

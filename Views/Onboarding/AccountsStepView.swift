@@ -76,7 +76,7 @@ private struct AccountDraftRow: View {
 
     var body: some View {
         HStack(spacing: Theme.Spacing.sm) {
-            Image(systemName: symbolName)
+            Image(systemName: draft.type.symbolName)
                 .foregroundStyle(Theme.Colors.accent)
                 .frame(width: 24)
 
@@ -138,15 +138,6 @@ private struct AccountDraftRow: View {
             }
         }
         return total.formatted(.currency(code: draft.currencyCode))
-    }
-
-    private var symbolName: String {
-        switch draft.type {
-        case .current:       return "banknote"
-        case .digitalWallet: return "wallet.bifold"
-        case .savings:       return "lock"
-        case .investment:    return "chart.line.uptrend.xyaxis"
-        }
     }
 }
 
