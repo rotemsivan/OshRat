@@ -161,10 +161,10 @@ struct NewTransactionSheet: View {
                             detailsSection
                                 .appearStagger(index: 4, visible: hasAppeared)
                                 .transition(kindTransition)
-                            attachmentsSection
+                            amountSection
                                 .appearStagger(index: 5, visible: hasAppeared)
                                 .transition(kindTransition)
-                            amountSection
+                            attachmentsSection
                                 .appearStagger(index: 6, visible: hasAppeared)
                                 .transition(kindTransition)
                             dateSection
@@ -473,15 +473,6 @@ struct NewTransactionSheet: View {
         }
     }
 
-    /// Optional receipts / invoices. Income & expense only — same scope as
-    /// the free-text details above it; transfers stay attachment-free for now.
-    private var attachmentsSection: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            sectionLabel("קבצים מצורפים")
-            AttachmentsEditor(drafts: $attachmentDrafts)
-        }
-    }
-
     private var amountSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             sectionLabel(kind == .transfer ? "סכום להעברה" : "סכום")
@@ -500,6 +491,16 @@ struct NewTransactionSheet: View {
                     .foregroundStyle(Theme.Colors.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+        }
+    }
+
+    /// Optional receipts / invoices, sitting under the amount so the figure
+    /// stays the focus of the form. Income & expense only — transfers stay
+    /// attachment-free for now.
+    private var attachmentsSection: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            sectionLabel("קבצים מצורפים")
+            AttachmentsEditor(drafts: $attachmentDrafts)
         }
     }
 

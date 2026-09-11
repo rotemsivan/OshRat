@@ -229,12 +229,11 @@ struct HomeView: View {
                     onShowRecentlyDeleted: { isShowingRecentlyDeleted = true }
                 )
 
-                // Swipeable previous/next-period carousel. Negative padding
-                // cancels the VStack's gutter so the row spans the full
-                // screen; the neighbouring months/years then peek in
-                // prominently from both edges (the centre card is a touch
-                // narrower than the cards above on purpose — that's the
-                // "this slides" cue).
+                // Swipeable previous/next-period pager. Negative padding
+                // cancels the VStack's gutter so the scroll view spans the
+                // full screen and its clip stays clear of the card shadows;
+                // the pager puts the same gutter back as content margins, so
+                // the card itself lines up with the ones above.
                 BudgetCardCarousel(
                     period: $budgetPeriod,
                     makeReport: { report(for: $0) },

@@ -16,12 +16,14 @@ import SwiftUI
 /// station with no duplication.
 struct BudgetVsActualCard: View {
     let report: BudgetVsActual
-    /// The period the report covers — a scope (month/year) plus the anchor
-    /// date picking *which* month or year. Owned by `HomeView` (which builds
-    /// the matching report) so the card and the data can't drift apart. The
-    /// segmented control toggles only the scope; the surrounding carousel
-    /// steps the anchor.
-    @Binding var period: AnalyticsPeriod
+    /// The period this particular card covers — a scope (month/year) plus
+    /// the anchor date picking *which* month or year. A plain value, not a
+    /// binding: in the pager every page renders a different period, and the
+    /// anchor is moved by scrolling rather than by anything inside the card.
+    let period: AnalyticsPeriod
+    /// The month/year scope, shared across every page — toggling it on any
+    /// card re-scopes the whole pager, so this one *is* a binding.
+    @Binding var scope: AnalyticsPeriod.Scope
     /// Tapped via the header pencil. Parent owns the budget-editor sheet.
     let onEdit: () -> Void
 
@@ -89,7 +91,7 @@ struct BudgetVsActualCard: View {
     /// Switching scope keeps the anchor: viewing August and tapping שנה
     /// shows August's year.
     private var scopePicker: some View {
-        Picker("תקופה", selection: $period.scope.animation(reduceMotion ? nil : .easeInOut(duration: 0.25))) {
+        Picker("תקופה", selection: $scope.animation(reduceMotion ? nil : .easeInOut(duration: 0.25))) {
             ForEach(AnalyticsPeriod.Scope.allCases) { scope in
                 Text(scope.hebrewLabel).tag(scope)
             }
@@ -222,7 +224,7 @@ struct BudgetVsActualCard: View {
         }
     }
 
-    /// "יולי 2026" in month scope, "2026" in year scope — the carousel steps
+    /// "יולי 2026" in month scope, "2026" in year scope — the pager slides
     /// across periods, so the label must say *which* one, not just its kind.
     /// (Formatting lives in `AnalyticsPeriod.label`, shared with Analytics.)
     private var periodLabel: String {
@@ -230,181 +232,108 @@ struct BudgetVsActualCard: View {
     }
 }
 
-// MARK: - Month/year carousel
+// MARK: - Month/year pager
 
-/// Wraps `BudgetVsActualCard` in an endless period pager: the selected
-/// period's card sits centred, the *previous* period (June when viewing July)
-/// peeks in from one screen edge and the *next* (August) from the other.
-/// Two rounded stepper buttons under the card slide a neighbour into place
-/// and step the bound `period` one unit back or forward — months in month
-/// scope, years in year scope, with no bound in either direction (a budget
-/// is a plan, so the future is exactly as browsable as the past). The
-/// חודש/שנה toggle inside the card keeps choosing the unit, untouched by
-/// the pager. (An earlier iteration drove this with a drag gesture; the
-/// buttons replaced it because a fully scripted slide is reliably smooth.)
+/// Wraps `BudgetVsActualCard` in a horizontally paged scroll view: one card
+/// per period, snapping a full card per swipe — months in month scope, years
+/// in year scope, effectively unbounded in both directions (a budget is a
+/// plan, so the future is exactly as browsable as the past). The חודש/שנה
+/// toggle inside the card still chooses the unit; flipping it re-bases the
+/// page sequence on the period currently on screen.
 ///
-/// Layout contract with the caller: the carousel wants the **full screen
-/// width** (bleed it past the dashboard's horizontal padding); the centre
-/// card gives up `peekWidth + spacing` on each side so the neighbours are
-/// clearly visible — a deliberately narrower card than its dashboard
-/// siblings, which is what signals "this one slides". No clipping is needed
-/// — the row simply extends offscreen — which also keeps the cards' soft
-/// shadows intact.
+/// **Why a real `ScrollView` and not a drag gesture.** Two earlier iterations
+/// failed here: a `DragGesture` version fought the dashboard's vertical
+/// scroll (a custom gesture has no directional locking, so diagonal drags
+/// stole the pan), and the stepper-button version that replaced it worked but
+/// cost a swipe affordance and two buttons of chrome. A nested `ScrollView`
+/// on the perpendicular axis is the one option that separates the axes
+/// *natively* — UIKit locks a pan to whichever direction it starts in — so
+/// vertical drags scroll the dashboard and horizontal ones turn the page,
+/// with no gesture code of our own to arbitrate.
+///
+/// Layout contract with the caller: the pager wants the **full screen width**
+/// (bleed it past the dashboard's horizontal padding) and re-insets its own
+/// content by that same gutter via `contentMargins`. The result is a card
+/// exactly as wide as its dashboard siblings, with the neighbouring period
+/// peeking a few points in from the screen edge as the "this slides" cue —
+/// and the scroll view's clip well clear of the cards' soft shadows.
 struct BudgetCardCarousel: View {
     @Binding var period: AnalyticsPeriod
     /// Builds the report for a given period — the caller owns the data.
     let makeReport: (AnalyticsPeriod) -> BudgetVsActual
     let onEdit: () -> Void
-    /// How much of each neighbouring card stays visible beside the centre
-    /// one. Big enough that the carousel affordance is unmissable.
-    var peekWidth: CGFloat = 32
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The period sitting at offset 0, i.e. the middle of the page range.
+    /// Re-based when the scope flips, since months and years are different
+    /// sequences of pages.
+    @State private var basePeriod: AnalyticsPeriod
+    /// The page the scroll view has settled on, as an offset from
+    /// `basePeriod`. Settling on a page *is* the period change — there is no
+    /// gesture handling of our own.
+    @State private var scrolledOffset: Int?
 
-    @State private var containerWidth: CGFloat = 0
-    /// The row's slide displacement in leading-relative points — animated
-    /// to ±one step by the stepper buttons, zero whenever the pager is at
-    /// rest.
-    @State private var slideOffset: CGFloat = 0
-    /// True while a slide animation runs, so a second tap can't interleave
-    /// with the period swap at its end.
-    @State private var isSettling = false
+    /// How many periods either side of the base the pager can reach. 20
+    /// years of months is past any real use, and `LazyHStack` only builds
+    /// the pages on screen, so the unvisited offsets cost an `Int` each.
+    private static let reach = 240
 
-    /// Gap between the centre card and each peeking neighbour.
-    private let spacing: CGFloat = Theme.Spacing.sm
+    /// Gap between pages. Narrower than the dashboard gutter on purpose: the
+    /// difference is how much of the neighbouring card peeks past the screen
+    /// edge, hinting that the card slides.
+    private let spacing: CGFloat = Theme.Spacing.md
 
-    /// Centre-card width: the container minus a visible `peekWidth` slice
-    /// and the gap on each side.
-    private var cardWidth: CGFloat { max(0, containerWidth - 2 * (peekWidth + spacing)) }
-    /// How far one full page turn travels.
-    private var step: CGFloat { cardWidth + spacing }
+    init(
+        period: Binding<AnalyticsPeriod>,
+        makeReport: @escaping (AnalyticsPeriod) -> BudgetVsActual,
+        onEdit: @escaping () -> Void
+    ) {
+        _period = period
+        _basePeriod = State(initialValue: period.wrappedValue)
+        _scrolledOffset = State(initialValue: 0)
+        self.makeReport = makeReport
+        self.onEdit = onEdit
+    }
 
     var body: some View {
-        // Five pages (two back … two forward) so that at any point of a
-        // one-step slide both peeks are filled — with only three pages the
-        // slot behind the incoming card would go empty mid-animation and
-        // the endless-pager illusion would break.
-        let calendar = Calendar.current
-        let previous = period.previous(calendar)
-        let next = period.next(calendar)
-        // HStack order is earlier → later; under the app's RTL layout that
-        // puts the past on the visual right and the future on the visual
-        // left, so dragging right rolls forward in time (July → August).
-        let pages = [previous.previous(calendar), previous, period, next, next.next(calendar)]
-        VStack(spacing: Theme.Spacing.sm) {
-            HStack(alignment: .top, spacing: spacing) {
-                ForEach(pages.indices, id: \.self) { slot in
-                    pageCard(pages[slot], slot: slot)
+        ScrollView(.horizontal) {
+            // Ascending offsets run earlier → later. Under the app's RTL
+            // layout that puts the past on the visual right and the future
+            // on the visual left, matching how the steppers used to read.
+            LazyHStack(alignment: .top, spacing: spacing) {
+                ForEach(-Self.reach...Self.reach, id: \.self) { offset in
+                    let pagePeriod = basePeriod.shifted(by: offset)
+                    BudgetVsActualCard(
+                        report: makeReport(pagePeriod),
+                        period: pagePeriod,
+                        scope: $period.scope,
+                        onEdit: onEdit
+                    )
+                    .containerRelativeFrame(.horizontal)
                 }
             }
-            .offset(x: slideOffset)
-            // Centre the over-wide row inside the measured container: the
-            // frame is narrower than the HStack, so the default centre
-            // alignment holds the middle card in the middle of the screen.
-            .frame(width: containerWidth > 0 ? containerWidth : nil)
-            .frame(maxWidth: .infinity)
-
-            stepControls
-                // Align the steppers with the centre card's edges.
-                .frame(width: cardWidth > 0 ? cardWidth : nil)
+            .scrollTargetLayout()
         }
-        .onGeometryChange(for: CGFloat.self) { proxy in
-            proxy.size.width
-        } action: { width in
-            containerWidth = width
+        // Re-inset the full-bleed scroll view back to the dashboard gutter,
+        // which is also what sizes each page to a sibling card's width.
+        .contentMargins(.horizontal, Theme.Spacing.lg, for: .scrollContent)
+        .scrollTargetBehavior(.viewAligned)
+        .scrollPosition(id: $scrolledOffset)
+        .scrollIndicators(.hidden)
+        // The page range is symmetric around the base period, so centring
+        // the content lands on it even before `scrollPosition` applies —
+        // the dashboard must never open on the wrong month.
+        .defaultScrollAnchor(.center)
+        .onChange(of: scrolledOffset) { _, offset in
+            guard let offset else { return }
+            let landed = basePeriod.shifted(by: offset)
+            if landed != period { period = landed }
         }
-    }
-
-    /// The two rounded stepper buttons under the card. HStack order is
-    /// earlier → later, matching the pages row above: under RTL the
-    /// previous-period button lands on the visual right (where the past
-    /// peeks) and the next-period button on the visual left. The chevrons
-    /// auto-mirror, so each one points at the card it will bring in.
-    private var stepControls: some View {
-        HStack(spacing: Theme.Spacing.sm) {
-            stepButton(systemImage: "chevron.backward", label: "התקופה הקודמת") {
-                settle(toward: 1)
-            }
-            stepButton(systemImage: "chevron.forward", label: "התקופה הבאה") {
-                settle(toward: -1)
-            }
-        }
-    }
-
-    private func stepButton(
-        systemImage: String,
-        label: LocalizedStringKey,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.Colors.accent)
-                .frame(maxWidth: .infinity)
-                .frame(height: 40)
-                .background(
-                    RoundedRectangle(cornerRadius: Theme.Radius.button, style: .continuous)
-                        .fill(Theme.Colors.accent.opacity(0.10))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: Theme.Radius.button, style: .continuous)
-                        .stroke(Theme.Colors.accent.opacity(0.25), lineWidth: 1)
-                )
-                .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .disabled(isSettling)
-        .accessibilityLabel(Text(label))
-    }
-
-    /// One page of the roulette. Scale and opacity are *continuous functions
-    /// of the card's live position* — full size/opacity at the centre,
-    /// easing down to 0.94 / 0.65 a full slot away — rather than fixed
-    /// per-slot styles. That way they interpolate in step with the slide,
-    /// and by the time a neighbour reaches the centre it already looks
-    /// exactly like the centre card, so the post-slide state swap changes
-    /// no pixels.
-    private func pageCard(_ pagePeriod: AnalyticsPeriod, slot: Int) -> some View {
-        // Leading-relative position of this slot's centre, in card-steps
-        // away from the container centre (0 = centred, ±1 = peek slots).
-        let travel = step > 0 ? (CGFloat(slot - 2) * step + slideOffset) / step : 0
-        let distance = min(abs(travel), 1)
-        let isCenter = slot == 2
-        return BudgetVsActualCard(
-            report: makeReport(pagePeriod),
-            period: isCenter ? $period : .constant(pagePeriod),
-            onEdit: onEdit
-        )
-            .frame(width: cardWidth)
-            .scaleEffect(1 - 0.06 * distance, anchor: .top)
-            .opacity(1 - 0.35 * distance)
-            // Only the resting centre card is interactive / visible to
-            // VoiceOver; the stepper buttons below are the (fully
-            // accessible) way to move between periods.
-            .allowsHitTesting(isCenter)
-            .accessibilityHidden(!isCenter)
-    }
-
-    /// Slide one page in from the given side (±1 in leading-relative space:
-    /// −1 brings in the *later* neighbour, +1 the earlier one), then step
-    /// the period. The incoming card already shows its period — and, via
-    /// `pageCard`'s position-driven styling, already looks like the centre
-    /// card — so stepping `period` and zeroing the offset in the same
-    /// non-animated frame leaves the pixels exactly where they landed.
-    private func settle(toward direction: CGFloat) {
-        guard !isSettling else { return }
-        let landing = direction < 0 ? period.next() : period.previous()
-        if reduceMotion {
-            period = landing
-            return
-        }
-        isSettling = true
-        withAnimation(.smooth(duration: 0.45), completionCriteria: .removed) {
-            slideOffset = direction * step
-        } completion: {
-            period = landing
-            slideOffset = 0
-            isSettling = false
+        .onChange(of: period.scope) {
+            // `period` already carries the new scope; re-base the sequence
+            // on it and return to the middle. The card on screen doesn't
+            // move — only the unit the neighbours now step in.
+            basePeriod = period
+            scrolledOffset = 0
         }
     }
 }
@@ -595,7 +524,8 @@ private struct OverrunBanner: View {
                 hasCrossCurrency: false,
                 hasScheduledExtras: false
             ),
-            period: .constant(.current()),
+            period: .current(),
+            scope: .constant(.month),
             onEdit: {}
         )
         .padding(Theme.Spacing.lg)
@@ -617,7 +547,8 @@ private struct OverrunBanner: View {
                 hasCrossCurrency: false,
                 hasScheduledExtras: true
             ),
-            period: .constant(.current()),
+            period: .current(),
+            scope: .constant(.month),
             onEdit: {}
         )
         .padding(Theme.Spacing.lg)

@@ -479,7 +479,10 @@ struct AnalyticsPeriod: Equatable {
         shifted(by: 1, calendar)
     }
 
-    private func shifted(by amount: Int, _ calendar: Calendar) -> AnalyticsPeriod {
+    /// The same scope, shifted `amount` units (months or years) from this
+    /// period. The budget pager addresses its pages as offsets from a base
+    /// period, so it needs to step by more than one at a time.
+    func shifted(by amount: Int, _ calendar: Calendar = .current) -> AnalyticsPeriod {
         let components = scope == .month
             ? DateComponents(month: amount)
             : DateComponents(year: amount)
