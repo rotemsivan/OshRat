@@ -359,6 +359,8 @@ struct AttachmentTile: View {
 struct AttachmentsEditor: View {
     @Binding var drafts: [AttachmentDraft]
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     @State private var photoItems: [PhotosPickerItem] = []
     @State private var isShowingPhotosPicker = false
     @State private var isShowingFileImporter = false
@@ -369,22 +371,42 @@ struct AttachmentsEditor: View {
     private let tileSide: CGFloat = 72
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Theme.Spacing.sm) {
-                ForEach(drafts) { draft in
-                    AttachmentTile(
-                        filename: draft.filename,
-                        data: draft.data,
-                        isPDF: draft.isPDF,
-                        isImage: draft.isImage,
-                        onTap: { previewItem = makePreviewItem(filename: draft.filename, data: draft.data) },
-                        onRemove: { remove(draft) }
-                    )
+        HStack(spacing: Theme.Spacing.sm) {
+            // Deliberately *outside* the scroll view: attaching several files
+            // in a row shouldn't mean scrolling back to find the button each
+            // time. It stays parked on the leading (visual right) edge while
+            // only the files move.
+            addMenu
+
+            ScrollView(.horizontal) {
+                // Newest first, so whatever was just picked sits nearest the
+                // button instead of at the far end of the strip.
+                HStack(spacing: Theme.Spacing.sm) {
+                    ForEach(drafts.reversed()) { draft in
+                        AttachmentTile(
+                            filename: draft.filename,
+                            data: draft.data,
+                            isPDF: draft.isPDF,
+                            isImage: draft.isImage,
+                            onTap: { previewItem = makePreviewItem(filename: draft.filename, data: draft.data) },
+                            onRemove: { remove(draft) }
+                        )
+                        .transition(.scale.combined(with: .opacity))
+                    }
                 }
-                addMenu
+                .padding(.vertical, Theme.Spacing.xxs)
             }
-            .padding(.vertical, Theme.Spacing.xxs)
+            .scrollIndicators(.hidden)
+            // Park the strip at its leading edge, so coming back to the sheet
+            // shows the newest files rather than the far (oldest) end.
+            .defaultScrollAnchor(.leading)
         }
+        // A scroll view nested in the sheet doesn't reliably inherit the
+        // forced RTL environment (same reason `pickerRow` pins it), and an
+        // LTR strip would push the "+" to the wrong edge.
+        .environment(\.layoutDirection, .rightToLeft)
+        // Let a freshly picked file animate in, so the eye catches it.
+        .animation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.75), value: drafts.count)
         .photosPicker(
             isPresented: $isShowingPhotosPicker,
             selection: $photoItems,
