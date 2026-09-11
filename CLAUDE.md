@@ -45,12 +45,12 @@ Rules of the exception:
 
 Define these in a `Models/` group.
 
-Shared enums (String-backed, `Codable`):
+Shared enums (String-backed, `Codable`), all in `Models/SharedEnums.swift`:
 - `TransactionKind`: `income`, `expense`
-- `AccountType`: `current`, `savings`, `investment`, `other`
+- `AccountType`: `current`, `digitalWallet`, `savings`, `investment`. Also carries the per-type `symbolName` (SF Symbol) and `sortRank` (dashboard / analytics ordering) — use those rather than re-writing the switch in a view. Decodes unknown raw values to `.current`, so a removed case can't brick the whole store (as `.other` once did).
 - `CategoryNature`: `need`, `want`, `neutral` (powers needs-vs-wants)
-- `BudgetFrequencyKind`: `monthly`, `everyXWeeks` (amount roll-up cadence)
-- `BudgetScheduleKind`: `recurringMonthly`, `recurringYearly`, `oneTime` (which months a budget line lands in)
+- `RecurrenceUnit`: `day`, `week`, `month`, `year` — the current cadence model ("every N units"). Sub-monthly units average into *every* month; monthly/yearly land their full amount on the months they occur in.
+- `BudgetFrequencyKind` / `BudgetScheduleKind` — **legacy**, superseded by `RecurrenceUnit` + a count. Still persisted so pre-existing `BudgetItem` rows migrate cleanly, and `BudgetScheduleKind` still distinguishes `oneTime` from recurring.
 
 Models:
 - **UserProfile** — name, profession, free-text goals, preferred currency code, createdAt. Holds the personal data from onboarding.
@@ -76,6 +76,8 @@ MVP, roughly in this order (1–3 implemented; 4 not yet):
 Also built since:
 - **Analytics** (`Views/Analytics/`) — a vertical, gamified "roadmap" of stats (monthly/yearly, month-over-month comparison, spending by category, needs-vs-wants, records, assets). All number-crunching is in the testable `AnalyticsReport`; stations reveal on scroll.
 - **Budget scheduling & calendar** (`Views/Budget/`) — scheduled budget lines (every month / every year / one-time) that flow into the correct month automatically, plus a month `BudgetCalendarView` to plan them. The shared `BudgetScheduleSection` is reused by the income and expense editors.
+- **Soft delete & recovery** (`Services/TrashService.swift`, `Views/RecentlyDeleted/`) — deleting an account or a transaction hides it rather than destroying it; `RecentlyDeletedView` restores or permanently deletes, and `HomeView` purges rows older than 30 days on appear.
+- **Quick-add widget** (`OshRatWidget/`) — a static home-screen widget that deep-links `oshrat://new-transaction` straight into the new-transaction sheet.
 
 Later (not now): networked gamification — streaks, competing with friends. This will need a backend and is out of scope for the MVP. (The Analytics page's gamification is purely local.)
 
@@ -85,6 +87,8 @@ Later (not now): networked gamification — streaks, competing with friends. Thi
 - `HomeView` is the app shell. It owns the shared chrome — background, the floating glass `HomeBottomBar`, the FAB (new transaction), and the global sheets (new transaction, budget editor, account editor) — and switches between tab branches on a `@State selectedTab: HomeBottomBar.Tab`.
 - `HomeBottomBar.Tab`: `home` (raised center button sitting in the notch), `transactions`, `analytics`, `calendar`. Side icons are `HomeBarButton` (brand accent when selected, secondary otherwise); the center is the raised `HomeCenterButton`. The bar is built on the iOS 26 `glassEffect` with a custom `NotchedBarShape`.
 - The dashboard branch is a plain `ScrollView`; each other tab is wrapped in its **own** `NavigationStack` inside `HomeView`, so it gets its own large title + toolbar. Reserve bottom padding for the bar + popped home button on every scrolling screen.
+- The dashboard's budget card is a **horizontally paged `ScrollView`** (`BudgetCardCarousel`) — one card per period, swiped to move month-to-month or year-to-year. A nested scroll view on the perpendicular axis is the deliberate choice: it separates the axes *natively* (UIKit locks a pan to whichever direction it starts in), which a custom `DragGesture` cannot — an earlier drag-driven version fought the dashboard's vertical scroll. It bleeds full-width and restores the gutter as `contentMargins`, so pages match the width of the cards above. See the paged-`ScrollView` gotcha in Conventions before widening its window.
+- **Widget entry point:** `HomeView` handles the `oshrat://new-transaction` URL from the quick-add widget by opening the new-transaction sheet.
 - Feature-local sheets (income/expense editors, the schedule section, calendar add) are presented from within their own screens, not from `HomeView`.
 - **To add a tab:** add a case to `HomeBottomBar.Tab`, a `HomeBarButton` in the bar's `HStack`, and a branch in `HomeView`'s `switch` — then register any new screen files in the pbxproj (see Conventions).
 
@@ -103,10 +107,12 @@ There is **no Settings screen yet** — preferences are currently hardcoded to s
 - Comment the *why*, not the obvious *what*. When you add a dependency or make a structural choice, say so and explain why.
 - **Adding files (gotcha):** only the `OshRat/` folder is a synchronized Xcode group. New files under `Models/`, `Views/`, `ViewModels/`, `Services/`, `DesignSystem/` are **not** auto-detected — register each in `OshRat.xcodeproj/project.pbxproj` by hand (a `PBXBuildFile`, a `PBXFileReference`, an entry in the parent group's `children`, and an entry in the target's `PBXSourcesBuildPhase`). Validate with `plutil -lint OshRat.xcodeproj/project.pbxproj`.
 - **Build check:** `xcodebuild build -scheme OshRat -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`.
+- **Paged `ScrollView` gotcha:** every mounted page's body runs on each render, so per-page work multiplies by the page count — `HomeView.report(for:)` rebuilds a `BudgetVsActual` from the entire ledger, and `.defaultScrollAnchor(.center)` measures the whole row, which defeats `LazyHStack`. A ±240-period window meant ~481 ledger scans per render and a pinned main thread on a real device. Keep the window small and re-base it around the visible page instead of mounting a wide range.
+- **Verifying UI on the simulator is limited:** `simctl` boot/install/launch/screenshot work, but AppleScript automation is blocked, so gestures can't be driven, and an empty store routes to onboarding rather than the dashboard. A clean build is not evidence that a gesture or scroll change behaves — say so, and test interaction on a device.
 
 ## Current status
 
-Onboarding, the dashboard (assets / budget / monthly cards), transactions (list, add, transfers), the Analytics roadmap, and the budget calendar with scheduled items are all implemented. Transaction rows in the list **expand inline** on tap into an insights card (recurrence/cadence, amount-vs-average, last-seen, day pattern, similar past rows — all computed in the pure `TransactionInsights` value type) that also surfaces the note and any **file attachments** (receipts/invoices added from Camera/Photos/Files, viewed via QuickLook). Navigation is a custom glass bottom bar (`HomeBottomBar`) with Home / Transactions / Analytics / Calendar; `HomeView` switches between them and owns the shared chrome (bottom bar, FAB, sheets). Not yet built: the Goals UI, and the rat/mouse visual theme.
+Onboarding, the dashboard (assets + budget-vs-actual cards), transactions (list, add, edit, transfers), the Analytics roadmap, and the budget calendar with scheduled items are all implemented. The dashboard's budget card **swipes between periods** — month or year, past or future — via `BudgetCardCarousel`. Transaction rows in the list **expand inline** on tap into an insights card (recurrence/cadence, amount-vs-average, last-seen, day pattern, similar past rows — all computed in the pure `TransactionInsights` value type) that also surfaces the note and any **file attachments** (receipts/invoices added from Camera/Photos/Files, viewed via QuickLook; in the sheet the add button stays pinned beside the strip and newest files show first). Deleting an account or transaction is a **soft delete** recoverable from `RecentlyDeletedView`, and a home-screen **quick-add widget** deep-links into the new-transaction sheet. Navigation is a custom glass bottom bar (`HomeBottomBar`) with Home / Transactions / Analytics / Calendar; `HomeView` switches between them and owns the shared chrome (bottom bar, FAB, sheets). Not yet built: the Goals UI, the Settings screen, and the rat/mouse visual theme.
 
 ## Planned / later (not in the current build)
 
