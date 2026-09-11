@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 import PhotosUI
 import QuickLook
 import AVFoundation

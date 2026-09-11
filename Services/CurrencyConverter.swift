@@ -32,23 +32,6 @@ enum CurrencyConverter {
         return amount * Decimal(toRate / fromRate)
     }
 
-    /// Sums a list of (amount, currency) pairs, converting each into
-    /// the target currency. Pairs whose currency can't be converted
-    /// are silently dropped — callers should check `convertibleCount`
-    /// vs the input length if they need to surface a "some entries
-    /// couldn't be converted" warning.
-    static func sum(
-        _ entries: [(amount: Decimal, currency: String)],
-        in targetCode: String,
-        using snapshot: FXRateSnapshot
-    ) -> Decimal {
-        entries.reduce(into: Decimal(0)) { running, entry in
-            if let converted = convert(entry.amount, from: entry.currency, to: targetCode, using: snapshot) {
-                running += converted
-            }
-        }
-    }
-
     // MARK: - Internals
 
     private static func rate(for code: String, in snapshot: FXRateSnapshot) -> Double? {
