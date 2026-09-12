@@ -9,7 +9,7 @@ import SwiftUI
 /// the actual amount, the planned amount it's measured against, and a
 /// progress bar that fills toward the plan and turns red on an overrun. A
 /// banner at the top calls out any budget breach; `HomeView` additionally
-/// raises a one-per-session alert (see there).
+/// raises a one-per-month alert (see there).
 ///
 /// All the arithmetic lives in the pure `BudgetVsActual` value type — this
 /// view only lays it out — so the same numbers can later feed an Analytics
@@ -306,7 +306,17 @@ struct BudgetCardCarousel: View {
             // Ascending offsets run earlier → later. Under the app's RTL
             // layout that puts the past on the visual right and the future
             // on the visual left, matching how the steppers used to read.
-            LazyHStack(alignment: .top, spacing: spacing) {
+            //
+            // A plain `HStack`, not a `LazyHStack`: a lazy row sized itself
+            // from the pages it had built so far, so the scroll view took the
+            // height of a *quiet* neighbouring month and clipped the current
+            // one — its net row and footnotes were cut off mid-card, and the
+            // overrun banner truncated instead of wrapping. Eagerly measuring
+            // every page gives the row the tallest card's height. Nothing is
+            // lost: `.defaultScrollAnchor(.center)` below has to measure the
+            // whole row anyway, so the window was never actually lazy — which
+            // is exactly why it has to stay small (see `window`).
+            HStack(alignment: .top, spacing: spacing) {
                 ForEach(-Self.window...Self.window, id: \.self) { offset in
                     let pagePeriod = basePeriod.shifted(by: offset)
                     BudgetVsActualCard(
@@ -367,6 +377,11 @@ private struct BudgetProgressRow: View {
     let revealed: Bool
     let reduceMotion: Bool
 
+    /// Width reserved for the percentage beside the bar, so every row's bar
+    /// ends at the same x. `@ScaledMetric` rather than a constant: at the
+    /// larger Dynamic Type sizes a fixed 44pt clipped "128%" down to "12…".
+    @ScaledMetric(relativeTo: .caption) private var percentWidth: CGFloat = 44
+
     /// Overruns (and spending with no budget) read red, consistent with the
     /// banner — a single, unambiguous "over" signal across the card.
     private var barColor: Color {
@@ -408,7 +423,7 @@ private struct BudgetProgressRow: View {
                         .font(Theme.Typography.caption)
                         .foregroundStyle(line.isOverBudget ? Theme.Colors.expense : Theme.Colors.textSecondary)
                         .monospacedDigit()
-                        .frame(width: 44, alignment: .leading)
+                        .frame(width: percentWidth, alignment: .leading)
                 }
             }
 

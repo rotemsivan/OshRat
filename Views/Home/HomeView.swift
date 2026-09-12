@@ -57,12 +57,18 @@ struct HomeView: View {
     /// back and forward in time — same vocabulary as the Analytics roadmap.
     /// Lives here because HomeView builds the report.
     @State private var budgetPeriod: AnalyticsPeriod = .current()
-    /// Drives the budget-overrun alert. Auto-raised at most **once per app
-    /// session** (the inline banner on the card carries the warning the rest
-    /// of the time) — `hasShownOverrunAlert` is the latch. Both live on the
-    /// long-lived `HomeView` so they survive tab switches.
+    /// Drives the budget-overrun alert. Raised at most **once per calendar
+    /// month** — the card's inline banner carries the warning from then on.
     @State private var overrunAlertPresented: Bool = false
-    @State private var hasShownOverrunAlert: Bool = false
+    /// The month whose overrun has already been announced, as "2026-9".
+    ///
+    /// Persisted in `UserDefaults` rather than held in `@State`: a session
+    /// latch still re-fired the alert on every cold launch, which is the
+    /// nagging the user saw. Once told that *this* month is over budget,
+    /// the user doesn't need telling again — but a new month re-arms it,
+    /// so the next breach still gets its one alert. Device-local UI state,
+    /// so it stays out of `UserProfile` (and out of a later iCloud sync).
+    @AppStorage("acknowledgedOverrunMonth") private var acknowledgedOverrunMonth: String = ""
 
     var body: some View {
         ZStack {
@@ -249,17 +255,17 @@ struct HomeView: View {
             .padding(.bottom, HomeBottomBar.barHeight + HomeBottomBar.homeButtonDiameter + Theme.Spacing.lg)
         }
         .scrollIndicators(.hidden)
-        // Raise the overrun alert once per session. `initial: true` checks on
-        // first appearance too (the @Query data is ready synchronously); the
-        // latch keeps it from re-firing as the user moves around the app.
+        // Raise the overrun alert the moment the month goes over budget, and
+        // then not again for that month. `initial: true` catches a breach
+        // that happened while the app was closed (the @Query data is ready
+        // synchronously); `acknowledgedOverrunMonth` is the latch.
         // Keyed to the *monthly* report on purpose: the alert warns about
         // this month's budget, so toggling the card to the year view must
         // neither trigger nor re-word it.
         .onChange(of: monthlyBudgetReport.hasOverrun, initial: true) { _, isOverBudget in
-            if isOverBudget, !hasShownOverrunAlert {
-                overrunAlertPresented = true
-                hasShownOverrunAlert = true
-            }
+            guard isOverBudget, acknowledgedOverrunMonth != currentMonthKey else { return }
+            overrunAlertPresented = true
+            acknowledgedOverrunMonth = currentMonthKey
         }
         .alert(
             Text("חריגה מהתקציב"),
@@ -337,6 +343,14 @@ struct HomeView: View {
 
     private var preferredCurrencyCode: String {
         profiles.first?.preferredCurrencyCode ?? "ILS"
+    }
+
+    /// Identity of the month the alert latch is keyed to ("2026-9"). Changing
+    /// month is what re-arms the alert, so the granularity has to match the
+    /// report's scope exactly.
+    private var currentMonthKey: String {
+        let parts = Calendar.current.dateComponents([.year, .month], from: .now)
+        return "\(parts.year ?? 0)-\(parts.month ?? 0)"
     }
 
     /// Always *this month's* plan-vs-reality, backing the overrun alert —
