@@ -47,6 +47,16 @@ struct AssetsSummaryCard: View {
     /// right ownership.
     @State private var accountPendingDelete: Account?
 
+    /// Whether the card is showing every account row or just the first few.
+    /// Collapsed by default: the card is the top of the dashboard, and a
+    /// user with a dozen accounts would otherwise push the budget card
+    /// entirely off-screen. Session state, deliberately — coming back to
+    /// the dashboard should give you the short card again.
+    @State private var isExpanded: Bool = false
+
+    /// How many account rows show before the rest collapse behind "הצג עוד".
+    private static let collapsedRowLimit = 3
+
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
             sectionHeader
@@ -62,7 +72,7 @@ struct AssetsSummaryCard: View {
                 accountRows
             }
 
-            recentlyDeletedLink
+            cardFooter
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
         .cardStyle()
@@ -77,6 +87,21 @@ struct AssetsSummaryCard: View {
             Button("ביטול", role: .cancel) {}
         } message: { _ in
             Text("אפשר לשחזר את החשבון מ״נמחקו לאחרונה״ תוך 30 יום.")
+        }
+    }
+
+    /// One footer row holding both small card-level actions: recovery on the
+    /// visual right (leading, under RTL) and the expand/collapse toggle on
+    /// the visual left. Kept as a single `HStack` so the card never grows two
+    /// stacked footers, and skipped entirely when neither has anything to say.
+    @ViewBuilder
+    private var cardFooter: some View {
+        if deletedAccountCount > 0 || hiddenAccountCount > 0 {
+            HStack(spacing: Theme.Spacing.sm) {
+                recentlyDeletedLink
+                Spacer(minLength: Theme.Spacing.sm)
+                expandToggle
+            }
         }
     }
 
@@ -95,8 +120,36 @@ struct AssetsSummaryCard: View {
                 .foregroundStyle(Theme.Colors.accent)
             }
             .buttonStyle(.plain)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    /// Opens (and re-closes) the hidden account rows. Only drawn when rows
+    /// are actually hidden — with three accounts or fewer the card already
+    /// shows everything and the button would be noise.
+    @ViewBuilder
+    private var expandToggle: some View {
+        if hiddenAccountCount > 0 {
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                Label(
+                    isExpanded ? "הצג פחות" : "הצג עוד",
+                    systemImage: isExpanded ? "chevron.up" : "chevron.down"
+                )
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.accent)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint(Text(isExpanded ? "סגירת שאר החשבונות" : "הצגת כל החשבונות"))
+        }
+    }
+
+    /// How many rows the collapsed card is holding back. Drives both whether
+    /// the toggle appears at all and the footer's existence.
+    private var hiddenAccountCount: Int {
+        max(0, accounts.count - Self.collapsedRowLimit)
     }
 
     // MARK: - Header
@@ -174,8 +227,28 @@ struct AssetsSummaryCard: View {
     /// height is sized to the row count to keep the embedded list
     /// from claiming all available space.
     private var accountRows: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.md) {
+            ForEach(groups) { group in
+                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                    groupHeader(group)
+                    rows(for: group.visibleAccounts)
+                }
+            }
+        }
+    }
+
+    /// One group's account rows.
+    ///
+    /// A `List` per group, rather than one `List` with `Section`s: the list
+    /// can't size itself here (it sits inside the dashboard's own scroll view
+    /// with scrolling off), so its height has to be computed — and a row
+    /// count times a row height is something we can compute exactly, while
+    /// section-header heights are the system's business and guessing them
+    /// clipped the last row. The headers therefore live outside, in the
+    /// `VStack` above, where they're plain SwiftUI.
+    private func rows(for accounts: [Account]) -> some View {
         List {
-            ForEach(sortedAccounts) { account in
+            ForEach(accounts) { account in
                 // Tap-to-edit, unified with the budget and transaction
                 // lists. `.plain` so the row keeps its custom styling
                 // rather than taking on a system button tint.
@@ -233,7 +306,72 @@ struct AssetsSummaryCard: View {
         .frame(height: CGFloat(accounts.count) * Self.estimatedRowHeight)
     }
 
+    /// A group's name and its own subtotal, converted into the preferred
+    /// currency like the hero above — so "how much can I actually spend" is
+    /// answerable without adding the rows up by eye.
+    private func groupHeader(_ group: AccountGroup) -> some View {
+        HStack {
+            Text(group.title)
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .textCase(.uppercase)
+            Spacer(minLength: Theme.Spacing.sm)
+            Text(total(of: group.accounts).formatted(.currency(code: preferredCurrencyCode)))
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
     private static let estimatedRowHeight: CGFloat = 56
+
+    // MARK: - Grouping
+
+    /// The dashboard's two buckets: money you can spend today, and money
+    /// that's tied up. Accounts land on one side or the other via
+    /// `AccountType.isLiquid`.
+    private struct AccountGroup: Identifiable {
+        let id: String
+        let title: LocalizedStringKey
+        /// Every account in the group — what the header's subtotal sums.
+        let accounts: [Account]
+        /// The subset actually drawn as rows. Equal to `accounts` when the
+        /// card is expanded; a prefix of it when collapsed.
+        let visibleAccounts: [Account]
+    }
+
+    /// Liquid first, then assets; empty groups are dropped so a user with
+    /// only an עו״ש sees one plain list rather than an empty heading.
+    ///
+    /// Collapsing trims *rows*, never maths: each group keeps its full
+    /// `accounts` for the subtotal in the header while `visibleAccounts`
+    /// takes from a shared row budget, spent in display order. That way
+    /// "3 rows" means three rows on the card rather than three per group,
+    /// and the numbers on screen still add up to the hero total.
+    private var groups: [AccountGroup] {
+        let sorted = sortedAccounts
+        var budget = isExpanded ? sorted.count : Self.collapsedRowLimit
+
+        func group(id: String, title: LocalizedStringKey, accounts: [Account]) -> AccountGroup? {
+            let shown = min(accounts.count, budget)
+            guard shown > 0 else { return nil }
+            budget -= shown
+            return AccountGroup(
+                id: id,
+                title: title,
+                accounts: accounts,
+                visibleAccounts: Array(accounts.prefix(shown))
+            )
+        }
+
+        return [
+            group(id: "liquid", title: "נזיל", accounts: sorted.filter { $0.type.isLiquid }),
+            group(id: "assets", title: "נכסים", accounts: sorted.filter { !$0.type.isLiquid })
+        ].compactMap { $0 }
+    }
 
     // MARK: - Alert plumbing
 
@@ -275,7 +413,12 @@ struct AssetsSummaryCard: View {
     /// Sum every account's balance and every holding's market value,
     /// converting each into the preferred currency. When FX is
     /// unavailable, items in non-preferred currencies are skipped.
-    private var combinedTotal: Decimal {
+    private var combinedTotal: Decimal { total(of: accounts) }
+
+    /// Sum of a set of accounts — balance plus any holdings — converted into
+    /// the preferred currency. Used for both the hero and the per-group
+    /// subtotals, so the parts always add up to the whole.
+    private func total(of accounts: [Account]) -> Decimal {
         var total = Decimal(0)
         for account in accounts {
             total += convertToPreferred(account.balance, from: account.currencyCode)
@@ -388,7 +531,32 @@ private struct AccountSummaryRow: View {
             let holdings = String(localized: "\(account.holdings.count) נכסים")
             return "\(account.type.hebrewLabel) • \(holdings)"
         }
+        if let depositDetail {
+            return "\(account.type.hebrewLabel) • \(depositDetail)"
+        }
         return account.type.hebrewLabel
+    }
+
+    /// The deposit's terms in a few words: its rate, and either when it
+    /// matures or that it already has. `nil` for anything that isn't a
+    /// deposit — a plain savings pot keeps the bare type label.
+    private var depositDetail: String? {
+        guard let terms = account.depositTerms else { return nil }
+
+        var parts: [String] = []
+        if let rate = terms.annualRatePercent, rate > 0 {
+            parts.append("\(rate.formatted(.number.precision(.fractionLength(0...2))))%")
+        }
+        if account.payoutCompletedAt != nil {
+            parts.append("נפדה")
+        } else if terms.isMatured() {
+            parts.append("הגיע לפדיון")
+        } else if let maturity = account.maturityDate {
+            // Numeric, not abbreviated: the row subtitle is one line, and
+            // "עד 13 במרץ 2028" ran past it where "עד 13.3.2028" fits.
+            parts.append("עד \(maturity.formatted(date: .numeric, time: .omitted))")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " • ")
     }
 }
 

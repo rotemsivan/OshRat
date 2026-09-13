@@ -122,9 +122,20 @@ enum SeedData {
             Category(name: "טיפוח",                    kind: .expense, colorHex: "#CE93D8", symbolName: "scissors",   nature: .want),
             Category(name: "כושר גופני",                 kind: .expense, colorHex: "#A1887F", symbolName: "figure.run",  nature: .want),
 
+            // SECURITIES — ני״ע
+            // Stand-ins until investment accounts are built: until then, buying
+            // and selling securities is logged as an ordinary transaction
+            // against whichever account the money moved through. Tagged
+            // `.neutral` because a purchase is neither a need nor a want — note
+            // that neutral expenses currently fall into the צרכים bucket in
+            // needs-vs-wants, so a month with a large purchase will read as a
+            // heavy "needs" month.
+            Category(name: "קניית ני״ע", kind: .expense, colorHex: "#546E7A", symbolName: "chart.line.uptrend.xyaxis",   nature: .neutral),
+
             // INCOME — הכנסות
             Category(name: "משכורת",      kind: .income, colorHex: "#81C784", symbolName: "banknote",    nature: .neutral),
             Category(name: "הכנסה נוספת", kind: .income, colorHex: "#AED581", symbolName: "plus.circle", nature: .neutral),
+            Category(name: "מכירת ני״ע", kind: .income, colorHex: "#26A69A", symbolName: "chart.line.downtrend.xyaxis", nature: .neutral),
         ]
     }
 }

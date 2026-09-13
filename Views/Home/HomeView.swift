@@ -70,6 +70,25 @@ struct HomeView: View {
     /// so it stays out of `UserProfile` (and out of a later iCloud sync).
     @AppStorage("acknowledgedOverrunMonth") private var acknowledgedOverrunMonth: String = ""
 
+    /// The matured deposit currently being asked about, if any. Item-based so
+    /// the sheet always has a deposit to talk about, and so dismissing clears
+    /// the queue position in one place.
+    @State private var depositAwaitingPayout: Account?
+    /// Deposits the user said "לא עכשיו" to. Session-scoped on purpose: the
+    /// reminder is meant to come back, just not immediately — a new launch
+    /// asks again. (Contrast the overrun alert, which is latched for the whole
+    /// month in `UserDefaults`; that one is a warning, this one is a task
+    /// that still needs doing.)
+    @State private var postponedDeposits: Set<PersistentIdentifier> = []
+    /// The deposit paid out automatically this launch, surfaced as a quiet
+    /// confirmation so money never moves without the user being told.
+    @State private var autoPaidDeposit: Account?
+    /// How many *other* deposits were paid out in the same pass. Rare (it
+    /// takes two deposits maturing on the same day, both set to automatic)
+    /// but the confirmation would otherwise report one transfer when several
+    /// happened.
+    @State private var autoPaidExtraCount: Int = 0
+
     var body: some View {
         ZStack {
             Theme.Colors.background.ignoresSafeArea()
@@ -143,6 +162,9 @@ struct HomeView: View {
                 draft: AccountDraft(currencyCode: preferredCurrencyCode),
                 isNew: true,
                 lockCurrency: false,
+                // A brand-new deposit can already pick where it pays out.
+                // Nothing to exclude — it isn't one of the saved accounts yet.
+                payoutCandidates: payoutCandidates(),
                 onSave: { draft in addAccount(draft) },
                 onCancel: {}
             )
@@ -156,6 +178,9 @@ struct HomeView: View {
                 // for the reasoning. Onboarding leaves it on the default
                 // (unlocked) since drafts haven't been committed yet.
                 lockCurrency: true,
+                // Every other live account is a possible payout target for a
+                // deposit. Onboarding passes none — nothing is persisted yet.
+                payoutCandidates: payoutCandidates(excluding: account),
                 onSave: { updated in
                     updated.apply(to: account, in: modelContext)
                 },
@@ -277,6 +302,35 @@ struct HomeView: View {
         } message: { summary in
             Text(overrunMessage(summary))
         }
+        // Deposits that have reached maturity. Checked on every dashboard
+        // appearance rather than once at launch: a deposit can mature while
+        // the app sits open overnight, and coming back to the dashboard is
+        // the moment the user is looking at their money anyway.
+        .task(id: maturedDepositIDs) {
+            settleMaturedDeposits()
+        }
+        .sheet(item: $depositAwaitingPayout) { deposit in
+            DepositMaturitySheet(
+                deposit: deposit,
+                candidates: payoutCandidates(excluding: deposit),
+                fxSnapshot: fxSnapshots.first,
+                onConfirm: { amount, target in
+                    payOut(deposit, amount: amount, to: target)
+                },
+                onPostpone: {
+                    postponedDeposits.insert(deposit.persistentModelID)
+                }
+            )
+        }
+        .alert(
+            Text("הפיקדון נפדה"),
+            isPresented: autoPaidAlertBinding,
+            presenting: autoPaidDeposit
+        ) { _ in
+            Button("הבנתי", role: .cancel) {}
+        } message: { deposit in
+            Text(autoPayoutMessage(deposit))
+        }
     }
 
     private var headerRow: some View {
@@ -319,6 +373,20 @@ struct HomeView: View {
             )
             modelContext.insert(account)
 
+            // Deposit terms, if this is a savings account. Mirrors the same
+            // block in `OnboardingViewModel.commit` — but here the payout
+            // target *can* be resolved, because every candidate is already
+            // persisted by the time the dashboard offers them.
+            if draft.type == .savings {
+                account.interestRatePercent = draft.storedInterestRate
+                account.depositStartDate = draft.depositStartDate
+                account.maturityDate = draft.storedMaturityDate
+                account.autoPayoutOnMaturity = draft.autoPayoutOnMaturity
+                account.payoutAccount = draft.payoutAccountID.flatMap {
+                    modelContext.model(for: $0) as? Account
+                }
+            }
+
             // Holdings only make sense on investment accounts. Setting the
             // inverse relationship keeps `Account.holdings` in sync without
             // appending by hand.
@@ -343,6 +411,114 @@ struct HomeView: View {
 
     private var preferredCurrencyCode: String {
         profiles.first?.preferredCurrencyCode ?? "ILS"
+    }
+
+    // MARK: - Deposit maturity
+
+    /// Identities of the deposits currently owed a payout. Used as the
+    /// `.task(id:)` key so the settle pass re-runs when a deposit matures or
+    /// one is dealt with, and *not* on every unrelated redraw.
+    private var maturedDepositIDs: [PersistentIdentifier] {
+        DepositPayoutService.depositsAwaitingPayout(in: accounts).map(\.persistentModelID)
+    }
+
+    /// Deal with every deposit that has come due: pay out the ones set to
+    /// automatic, and queue the first of the rest for the prompt.
+    ///
+    /// Automatic payouts still need a target — a deposit set to "transfer
+    /// automatically" whose payout account was never chosen (or was since
+    /// deleted) has nowhere to send the money, so it falls through to the
+    /// prompt rather than guessing an account on the user's behalf.
+    private func settleMaturedDeposits() {
+        let due = DepositPayoutService.depositsAwaitingPayout(in: accounts)
+        guard !due.isEmpty else { return }
+
+        var needsPrompt: [Account] = []
+        for deposit in due {
+            guard deposit.autoPayoutOnMaturity,
+                  let target = deposit.payoutAccount,
+                  target.deletedAt == nil,
+                  DepositPayoutService.canPayOut(deposit, to: target, using: fxSnapshots.first)
+            else {
+                needsPrompt.append(deposit)
+                continue
+            }
+            payOut(deposit, amount: DepositPayoutService.suggestedPayoutAmount(for: deposit), to: target)
+            if autoPaidDeposit == nil {
+                autoPaidDeposit = deposit
+            } else {
+                autoPaidExtraCount += 1
+            }
+        }
+
+        // One at a time: clearing a backlog of prompts in a single stack of
+        // sheets would be worse than being asked again on the next appearance.
+        if depositAwaitingPayout == nil {
+            depositAwaitingPayout = needsPrompt.first {
+                !postponedDeposits.contains($0.persistentModelID)
+            }
+        }
+    }
+
+    /// Runs the payout and saves. `withAnimation` so the assets card's rows
+    /// and totals move rather than jumping — money leaving one account and
+    /// landing in another is exactly the kind of change worth seeing happen.
+    private func payOut(_ deposit: Account, amount: Decimal, to target: Account) {
+        withAnimation {
+            DepositPayoutService.payOut(
+                deposit,
+                amount: amount,
+                to: target,
+                in: modelContext,
+                using: fxSnapshots.first
+            )
+            try? modelContext.save()
+        }
+    }
+
+    /// Accounts a deposit can pay into: live **עו״ש** accounts only.
+    ///
+    /// A matured deposit lands in a current account — that's what the bank
+    /// actually does. Offering wallets, other deposits or investment accounts
+    /// filled the picker with targets that made no sense (and a deposit paying
+    /// into itself would be a no-op that zeroes nothing).
+    ///
+    /// The one exception is an account this deposit *already* points at: it
+    /// stays in the list even if it isn't an עו״ש, so a deposit set up before
+    /// this rule doesn't open with a blank picker and quietly lose its target.
+    private func payoutCandidates(excluding deposit: Account? = nil) -> [Account] {
+        let existingTarget = deposit?.payoutAccount?.persistentModelID
+        return accounts.filter { account in
+            guard account.persistentModelID != deposit?.persistentModelID else { return false }
+            return account.type == .current || account.persistentModelID == existingTarget
+        }
+    }
+
+    /// `.alert(presenting:)` wants a `Binding<Bool>`; bridge it through the
+    /// optional deposit so dismissing clears it in one place. Same shape as
+    /// the delete confirmation in `AssetsSummaryCard`.
+    private var autoPaidAlertBinding: Binding<Bool> {
+        Binding(
+            get: { autoPaidDeposit != nil },
+            set: {
+                if !$0 {
+                    autoPaidDeposit = nil
+                    autoPaidExtraCount = 0
+                }
+            }
+        )
+    }
+
+    private func autoPayoutMessage(_ deposit: Account) -> String {
+        let name = deposit.name.isEmpty ? "הפיקדון" : deposit.name
+        let target = deposit.payoutAccount?.name ?? ""
+        var message = "\(name) הועבר אל \(target). ההעברה והריבית מופיעות ביומן התנועות."
+        if autoPaidExtraCount > 0 {
+            // `String(localized:)` so the count pluralises properly in Hebrew
+            // (פיקדון אחד / שני פיקדונות / N פיקדונות) via the catalog.
+            message += " " + String(localized: "נפדו גם \(autoPaidExtraCount) פיקדונות נוספים.")
+        }
+        return message
     }
 
     /// Identity of the month the alert latch is keyed to ("2026-9"). Changing

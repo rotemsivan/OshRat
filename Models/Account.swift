@@ -44,6 +44,53 @@ final class Account {
     @Relationship(deleteRule: .nullify, inverse: \Transaction.destinationAccount)
     var incomingTransfers: [Transaction] = []
 
+    // MARK: - Deposit terms
+    //
+    // A savings account in this app is a *deposit* (פיקדון): an amount put
+    // away at a fixed rate until a maturity date, at which point it pays out
+    // into another account. The fields below carry those terms. They live on
+    // `Account` rather than in a parallel `Deposit` model because a deposit
+    // *is* an account — it holds a balance, counts toward net worth, and is
+    // the source of a real transfer at payout. A separate model would have
+    // duplicated the balance and bypassed the transfer and soft-delete
+    // machinery that already works.
+    //
+    // Every field is optional or defaulted (CloudKit rules, and so existing
+    // rows migrate untouched), and all of them are ignored unless
+    // `type == .savings`. All-nil is a perfectly good open-ended savings pot:
+    // no maturity date means it never matures and never prompts.
+
+    /// Annual nominal rate as a percentage — `4.2` means 4.2% a year.
+    var interestRatePercent: Decimal?
+
+    /// When the money was put away. Interest accrues from here.
+    var depositStartDate: Date?
+
+    /// The day the deposit pays out. `nil` for an open-ended savings pot.
+    var maturityDate: Date?
+
+    /// Whether the payout should happen on its own at maturity, or wait and
+    /// ask the user first. Set from the toggle in the account editor.
+    var autoPayoutOnMaturity: Bool = false
+
+    /// When this deposit was actually paid out, or `nil` while it's still
+    /// running. Doubles as the latch that stops the maturity prompt coming
+    /// back once the money has been moved.
+    var payoutCompletedAt: Date?
+
+    /// Deposits that pay out into *this* account — the inverse side of
+    /// `payoutAccount` below. Declared here (on the to-many side) because a
+    /// self-referencing relationship needs its inverse spelled out. Nullify,
+    /// not cascade: closing the account the money was going to land in must
+    /// not delete the deposit itself, only forget where it was headed (the
+    /// prompt then asks the user to pick a target).
+    @Relationship(deleteRule: .nullify, inverse: \Account.payoutAccount)
+    var incomingDepositPayouts: [Account] = []
+
+    /// Where this deposit's money goes at maturity. `nil` means "not decided
+    /// yet" — the maturity prompt asks rather than guessing.
+    var payoutAccount: Account?
+
     /// Holdings (stocks, ETFs, etc.) inside an investment-type account.
     /// Non-investment accounts simply leave this empty. Deleting the
     /// account cascades into its holdings — they don't make sense on
@@ -59,7 +106,12 @@ final class Account {
         balance: Decimal = 0,
         currencyCode: String = "ILS",
         lastUpdated: Date = .now,
-        isFavorite: Bool = false
+        isFavorite: Bool = false,
+        interestRatePercent: Decimal? = nil,
+        depositStartDate: Date? = nil,
+        maturityDate: Date? = nil,
+        autoPayoutOnMaturity: Bool = false,
+        payoutAccount: Account? = nil
     ) {
         self.name = name
         self.type = type
@@ -67,5 +119,40 @@ final class Account {
         self.currencyCode = currencyCode
         self.lastUpdated = lastUpdated
         self.isFavorite = isFavorite
+        self.interestRatePercent = interestRatePercent
+        self.depositStartDate = depositStartDate
+        self.maturityDate = maturityDate
+        self.autoPayoutOnMaturity = autoPayoutOnMaturity
+        self.payoutAccount = payoutAccount
+    }
+}
+
+// MARK: - Deposit
+
+extension Account {
+    /// The deposit terms attached to this account, or `nil` when it isn't a
+    /// savings account or has no terms worth reading (no rate *and* no
+    /// maturity date — an ordinary pot of money).
+    ///
+    /// Bridges the stored fields to the pure `DepositTerms`, which owns all
+    /// the actual maths. `depositStartDate` falls back to `lastUpdated` for
+    /// rows written before these fields existed, so interest on a legacy
+    /// savings account accrues from a real date rather than 1970.
+    var depositTerms: DepositTerms? {
+        guard type == .savings, interestRatePercent != nil || maturityDate != nil else { return nil }
+        return DepositTerms(
+            principal: balance,
+            annualRatePercent: interestRatePercent,
+            startDate: depositStartDate ?? lastUpdated,
+            maturityDate: maturityDate
+        )
+    }
+
+    /// True when this deposit has reached its maturity date and the money
+    /// hasn't been moved out yet — i.e. it's owed a payout. Soft-deleted
+    /// accounts are excluded: a deposit in the trash shouldn't nag.
+    func isAwaitingPayout(asOf now: Date = .now) -> Bool {
+        guard deletedAt == nil, payoutCompletedAt == nil, let terms = depositTerms else { return false }
+        return terms.isMatured(asOf: now)
     }
 }

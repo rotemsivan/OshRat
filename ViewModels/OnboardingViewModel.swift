@@ -183,6 +183,18 @@ final class OnboardingViewModel {
             )
             context.insert(account)
 
+            // Deposit terms ride along on savings accounts. The payout
+            // target is deliberately *not* set here: during onboarding no
+            // account is persisted yet, so there's nothing to point at. The
+            // maturity prompt asks for a target when the day comes, and the
+            // account editor can set one any time before that.
+            if draft.type == .savings {
+                account.interestRatePercent = draft.storedInterestRate
+                account.depositStartDate = draft.depositStartDate
+                account.maturityDate = draft.storedMaturityDate
+                account.autoPayoutOnMaturity = draft.autoPayoutOnMaturity
+            }
+
             // Holdings only make sense for investment accounts. If the
             // user typed some and then switched the account type away
             // from .investment, we silently drop them — they were never
@@ -261,6 +273,35 @@ struct AccountDraft: Identifiable, Hashable {
     /// other account so only one is favourite at a time.
     var isFavorite: Bool
 
+    // MARK: Deposit terms (savings accounts only)
+    //
+    // Mirrors the same block on `Account`. Ignored unless `type == .savings`,
+    // and all-empty is a valid open-ended savings pot.
+
+    /// Annual nominal rate as a percentage — `4.2` means 4.2% a year. Zero
+    /// means "no rate agreed", which is what a plain savings pot has. Kept
+    /// non-optional (unlike `Account`'s field, which is optional for
+    /// CloudKit) so the form binds straight to it without an optional bridge;
+    /// the mapping to `nil` happens once, at the persistence boundary.
+    var interestRatePercent: Decimal
+    /// When the money went in. Interest accrues from here; defaults to today.
+    var depositStartDate: Date
+    /// Whether this deposit has an end date at all. Drives the maturity
+    /// picker's visibility — an open-ended savings pot has none, and so never
+    /// raises a payout prompt. Same reasoning as the rate above: a `Bool` +
+    /// a plain `Date` beats binding a `DatePicker` to an optional.
+    var hasMaturityDate: Bool
+    var maturityDate: Date
+    var autoPayoutOnMaturity: Bool
+
+    /// Which account the deposit pays out into, held as the *persistent*
+    /// identifier rather than the `Account` itself so the draft stays a plain
+    /// `Hashable` value and never keeps a model object alive. `nil` means
+    /// "not decided" — during onboarding nothing is persisted yet, so there's
+    /// nothing to point at and the picker says so; the maturity prompt then
+    /// asks for a target instead of guessing one.
+    var payoutAccountID: PersistentIdentifier?
+
     init(
         id: UUID = UUID(),
         name: String = "",
@@ -268,7 +309,13 @@ struct AccountDraft: Identifiable, Hashable {
         balance: Decimal = 0,
         currencyCode: String = "ILS",
         holdings: [HoldingDraft] = [],
-        isFavorite: Bool = false
+        isFavorite: Bool = false,
+        interestRatePercent: Decimal = 0,
+        depositStartDate: Date = .now,
+        hasMaturityDate: Bool = false,
+        maturityDate: Date = AccountDraft.defaultMaturityDate(),
+        autoPayoutOnMaturity: Bool = false,
+        payoutAccountID: PersistentIdentifier? = nil
     ) {
         self.id = id
         self.name = name
@@ -277,6 +324,39 @@ struct AccountDraft: Identifiable, Hashable {
         self.currencyCode = currencyCode
         self.holdings = holdings
         self.isFavorite = isFavorite
+        self.interestRatePercent = interestRatePercent
+        self.depositStartDate = depositStartDate
+        self.hasMaturityDate = hasMaturityDate
+        self.maturityDate = maturityDate
+        self.autoPayoutOnMaturity = autoPayoutOnMaturity
+        self.payoutAccountID = payoutAccountID
+    }
+
+    /// A year out — the most common deposit term, and a sane place for the
+    /// date picker to open rather than "today", which would be matured on
+    /// arrival.
+    static func defaultMaturityDate(from start: Date = .now) -> Date {
+        Calendar.current.date(byAdding: .year, value: 1, to: start) ?? start
+    }
+
+    /// The rate as the model stores it: `nil` rather than a meaningless zero.
+    var storedInterestRate: Decimal? { interestRatePercent > 0 ? interestRatePercent : nil }
+
+    /// The maturity date as the model stores it: `nil` when the deposit is
+    /// open-ended.
+    var storedMaturityDate: Date? { hasMaturityDate ? maturityDate : nil }
+
+    /// Live preview of the terms while the user is still typing them, so the
+    /// editor can show what the deposit will be worth at maturity. `nil` when
+    /// there's nothing to project yet.
+    var previewTerms: DepositTerms? {
+        guard type == .savings, storedInterestRate != nil || storedMaturityDate != nil else { return nil }
+        return DepositTerms(
+            principal: balance,
+            annualRatePercent: storedInterestRate,
+            startDate: depositStartDate,
+            maturityDate: storedMaturityDate
+        )
     }
 }
 
@@ -293,7 +373,13 @@ extension AccountDraft {
             balance: account.balance,
             currencyCode: account.currencyCode,
             holdings: account.holdings.map { HoldingDraft(from: $0) },
-            isFavorite: account.isFavorite
+            isFavorite: account.isFavorite,
+            interestRatePercent: account.interestRatePercent ?? 0,
+            depositStartDate: account.depositStartDate ?? .now,
+            hasMaturityDate: account.maturityDate != nil,
+            maturityDate: account.maturityDate ?? AccountDraft.defaultMaturityDate(),
+            autoPayoutOnMaturity: account.autoPayoutOnMaturity,
+            payoutAccountID: account.payoutAccount?.persistentModelID
         )
     }
 
@@ -334,6 +420,27 @@ extension AccountDraft {
             }
         }
         account.isFavorite = isFavorite
+
+        // Deposit terms, cleared when the account isn't (or is no longer) a
+        // savings account so a type switch can't leave a stale maturity date
+        // quietly waiting to fire a payout prompt.
+        if type == .savings {
+            account.interestRatePercent = storedInterestRate
+            account.depositStartDate = depositStartDate
+            account.maturityDate = storedMaturityDate
+            account.autoPayoutOnMaturity = autoPayoutOnMaturity
+            account.payoutAccount = payoutAccountID.flatMap { id in
+                let target: Account? = context.model(for: id) as? Account
+                // Never let a deposit pay out into itself.
+                return target?.persistentModelID == account.persistentModelID ? nil : target
+            }
+        } else {
+            account.interestRatePercent = nil
+            account.depositStartDate = nil
+            account.maturityDate = nil
+            account.autoPayoutOnMaturity = false
+            account.payoutAccount = nil
+        }
 
         for existing in account.holdings {
             context.delete(existing)

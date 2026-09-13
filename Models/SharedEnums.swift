@@ -70,6 +70,20 @@ enum AccountType: String, Codable, CaseIterable, Identifiable {
         }
     }
 
+    /// Whether money in this account type is spendable today.
+    ///
+    /// Drives the dashboard's **נזיל / נכסים** split: an עו״ש or a digital
+    /// wallet is money you can use this afternoon; a deposit is locked until
+    /// maturity and a portfolio has to be sold first, so both read as assets.
+    /// Like `sortRank`, deliberately exhaustive with no `default` — a new
+    /// account type has to be placed on one side of the line explicitly.
+    var isLiquid: Bool {
+        switch self {
+        case .current, .digitalWallet: return true
+        case .savings, .investment:    return false
+        }
+    }
+
     /// Decode unknown raw values to a safe fallback instead of throwing.
     ///
     /// SwiftData persists this enum as a composite (Codable) attribute, so

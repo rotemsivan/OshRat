@@ -135,6 +135,14 @@ final class Transaction {
     /// title is enough and keeps CloudKit-compatibility cleaner.
     static let manualBalanceEditTitle = "עריכה ידנית"
 
+    /// Title used for the interest row written when a deposit pays out —
+    /// the gap between the principal the user entered and the agreed payout
+    /// figure. Unlike `manualBalanceEditTitle` this is *not* excluded from
+    /// totals: interest earned is genuine income and belongs in the month's
+    /// figures. Centralised here so the payout service and anything that
+    /// later wants to recognise these rows agree on one literal.
+    static let depositInterestTitle = "ריבית על הפיקדון"
+
     /// True when this row was inserted by the manual-balance-edit
     /// path rather than by the user adding a real income/expense.
     /// The extra `category == nil` check makes it harder for a normal

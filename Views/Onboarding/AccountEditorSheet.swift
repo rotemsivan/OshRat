@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 /// Modal form used for both *adding* a new account during onboarding
 /// and *editing* one of the drafts already in the list.
@@ -8,13 +9,27 @@ import SwiftUI
 /// swiping the sheet down throws the edits away.
 ///
 /// The body adapts to the account type:
-///   * `.current` / `.digitalWallet` / `.savings` — one balance field, done.
-///   * `.investment` — the balance is relabelled as *liquid cash* and a
-///     "Holdings" section appears for stocks, ETFs and other assets the
-///     user holds in the same account.
+///   * `.current` / `.digitalWallet` — one balance field, done.
+///   * `.savings` — the balance is relabelled as the *deposit amount* and a
+///     "deposit terms" section appears: rate, start and maturity dates, where
+///     the money goes at maturity, and whether it should go there on its own.
+///     Every one of those is optional, so a plain open-ended savings pot is
+///     still just a balance.
+///   * `.investment` — currently **blocked** (see `investmentNote`); existing
+///     investment accounts still open and edit normally, showing the liquid
+///     cash field and their "Holdings" list.
 struct AccountEditorSheet: View {
     @State private var draft: AccountDraft
     private let isNew: Bool
+    /// Accounts this deposit could pay out into — live עו״ש accounts, minus
+    /// the deposit itself (the caller does the filtering; see
+    /// `HomeView.payoutCandidates`). Empty during onboarding, where nothing
+    /// is persisted yet and there is nothing to point at.
+    private let payoutCandidates: [Account]
+    /// The type the account already had when the sheet opened. Investments
+    /// are blocked, but an account that *is* one must still be editable — so
+    /// `.investment` stays selectable only when it's where we started.
+    private let originalType: AccountType
     /// When true, the currency picker is replaced with a read-only
     /// label. Used by the dashboard's edit-account flow where the
     /// account is already persisted: changing its currency would
@@ -28,18 +43,28 @@ struct AccountEditorSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    /// Width of the "ריבית שנתית" field. A rate is at most three digits
+    /// (plus a decimal), so the field is sized to that instead of stretching
+    /// across the row and reading like a full-width amount field.
+    /// `@ScaledMetric` so it grows with Dynamic Type rather than clipping the
+    /// digits at the larger text sizes.
+    @ScaledMetric(relativeTo: .body) private var rateFieldWidth: CGFloat = 56
+
     private let supportedCurrencies: [String] = ["ILS", "USD", "EUR"]
 
     init(
         draft: AccountDraft,
         isNew: Bool,
         lockCurrency: Bool = false,
+        payoutCandidates: [Account] = [],
         onSave: @escaping (AccountDraft) -> Void,
         onCancel: @escaping () -> Void
     ) {
         self._draft = State(initialValue: draft)
         self.isNew = isNew
         self.lockCurrency = lockCurrency
+        self.payoutCandidates = payoutCandidates
+        self.originalType = draft.type
         self.onSave = onSave
         self.onCancel = onCancel
     }
@@ -82,8 +107,24 @@ struct AccountEditorSheet: View {
                 .pickerStyle(.segmented)
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: 0, leading: Theme.Spacing.md, bottom: 0, trailing: Theme.Spacing.md))
+                // השקעות isn't built yet. The segment stays visible — it's
+                // coming, and hiding it would make the feature a surprise
+                // later — but picking it bounces straight back, with the note
+                // below saying why. A segmented `Picker` can't disable one of
+                // its segments, so bouncing the selection is the honest way to
+                // express "visible but not yet available".
+                .onChange(of: draft.type) { previous, selected in
+                    guard selected == .investment, originalType != .investment else { return }
+                    draft.type = previous == .investment ? .current : previous
+                }
+
+                investmentNote
 
                 balanceSection
+
+                if draft.type == .savings {
+                    depositSection
+                }
 
                 if draft.type == .investment {
                     holdingsSection
@@ -145,9 +186,17 @@ struct AccountEditorSheet: View {
             )
             .listRowBackground(Color.clear)
         } header: {
-            Text(draft.type == .investment ? "יתרה במזומן (נזיל)" : "יתרה")
+            Text(balanceHeader)
         } footer: {
             Text(balanceFooter)
+        }
+    }
+
+    private var balanceHeader: LocalizedStringKey {
+        switch draft.type {
+        case .investment: return "יתרה במזומן (נזיל)"
+        case .savings:    return "סכום ההפקדה"
+        default:          return "יתרה"
         }
     }
 
@@ -155,9 +204,130 @@ struct AccountEditorSheet: View {
         switch draft.type {
         case .investment:
             return "בחשבון השקעות, היתרה הזו היא המזומן הנזיל בלבד. השווי של המניות וקרנות הסל ייוסף לפי הרשימה שמתחת."
+        case .savings:
+            return "הסכום שהופקד. הריבית מחושבת עליו ותיווסף במועד הפדיון."
         default:
             return "היתרה היא הסכום הנוכחי בחשבון. אפשר לעדכן אותה ידנית בכל עת."
         }
+    }
+
+    // MARK: - Investments (blocked)
+
+    /// Explains why השקעות can't be picked. Shown under the type picker
+    /// whenever investments aren't already this account's type, so the user
+    /// reads it *before* tapping the segment and having it bounce back.
+    @ViewBuilder
+    private var investmentNote: some View {
+        if originalType != .investment {
+            Label("חשבונות השקעות בפיתוח — אפשר לרשום קניות ומכירות ני״ע כתנועות רגילות בינתיים.", systemImage: "hammer")
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(
+                    top: Theme.Spacing.xs,
+                    leading: Theme.Spacing.md,
+                    bottom: 0,
+                    trailing: Theme.Spacing.md
+                ))
+        }
+    }
+
+    // MARK: - Deposit terms
+
+    /// Savings-only: the terms that turn a pot of money into a deposit.
+    /// Everything here is optional — leave the rate at zero and the maturity
+    /// toggle off and you have a plain savings account that behaves exactly
+    /// as it did before deposits existed.
+    private var depositSection: some View {
+        Section {
+            LabeledContent("ריבית שנתית") {
+                HStack(spacing: Theme.Spacing.xs) {
+                    DecimalField(placeholder: "0", value: $draft.interestRatePercent)
+                        .frame(width: rateFieldWidth)
+                    Text(verbatim: "%")
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+            }
+
+            DatePicker(
+                "תאריך הפקדה",
+                selection: $draft.depositStartDate,
+                displayedComponents: .date
+            )
+
+            Toggle("תאריך פדיון", isOn: $draft.hasMaturityDate.animation(.easeInOut(duration: 0.2)))
+
+            if draft.hasMaturityDate {
+                DatePicker(
+                    "מועד הפדיון",
+                    selection: $draft.maturityDate,
+                    in: draft.depositStartDate...,
+                    displayedComponents: .date
+                )
+
+                payoutTargetPicker
+
+                Toggle("העברה אוטומטית במועד הפדיון", isOn: $draft.autoPayoutOnMaturity)
+            }
+
+            projectedValueRow
+        } header: {
+            Text("תנאי הפיקדון")
+        } footer: {
+            Text(depositFooter)
+        }
+    }
+
+    /// Where the money lands at maturity — an עו״ש account. Falls back to a
+    /// read-only label when there's nothing to choose between: during
+    /// onboarding (no account is persisted yet) or when the user simply has
+    /// no current account. The payout prompt asks again at maturity either way.
+    @ViewBuilder
+    private var payoutTargetPicker: some View {
+        if payoutCandidates.isEmpty {
+            LabeledContent("חשבון היעד") {
+                Text("ייבחר בפדיון")
+                    .foregroundStyle(Theme.Colors.textSecondary)
+            }
+        } else {
+            Picker("חשבון היעד", selection: $draft.payoutAccountID) {
+                Text("ייבחר בפדיון").tag(PersistentIdentifier?.none)
+                ForEach(payoutCandidates) { account in
+                    Text(account.name.isEmpty ? "ללא שם" : account.name)
+                        .tag(PersistentIdentifier?.some(account.persistentModelID))
+                }
+            }
+        }
+    }
+
+    /// What the deposit is projected to be worth when it matures — the same
+    /// figure the payout prompt will pre-fill, shown here so the terms can be
+    /// sanity-checked while they're being typed.
+    @ViewBuilder
+    private var projectedValueRow: some View {
+        if let terms = draft.previewTerms, terms.projectedInterest != 0 {
+            LabeledContent("צפוי בפדיון") {
+                VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+                    Text(terms.projectedValue.formatted(.currency(code: draft.currencyCode)))
+                        .font(Theme.Typography.amount)
+                        .monospacedDigit()
+                    Text("ריבית \(terms.projectedInterest.formatted(.currency(code: draft.currencyCode)))")
+                        .font(Theme.Typography.caption)
+                        .foregroundStyle(Theme.Colors.income)
+                        .monospacedDigit()
+                }
+            }
+        }
+    }
+
+    private var depositFooter: LocalizedStringKey {
+        if draft.autoPayoutOnMaturity && draft.payoutAccountID != nil {
+            return "במועד הפדיון הכסף יועבר אוטומטית לחשבון היעד, והריבית תירשם כהכנסה."
+        }
+        if draft.hasMaturityDate {
+            return "במועד הפדיון נזכיר לך להעביר את הכסף, ואפשר יהיה לבחור חשבון יעד אחר."
+        }
+        return "בלי תאריך פדיון זהו חיסכון פתוח — לא נזכיר כלום ולא תופיע העברה."
     }
 
     /// Investment-only: a list of holdings (stocks, ETFs, anything) with
