@@ -131,5 +131,5 @@ Onboarding, the dashboard (assets + budget-vs-actual cards), transactions (list,
 - If the container fails to build with a CloudKit relationship error, make the to-many transactions relationships on Account and Category optional ([Transaction]?).
 - Before any App Store release, deploy the CloudKit schema from Development to Production in the CloudKit Console.
 
-2. Gamification / XP. Local-only engine: a UserProgress model (XP, level, streaks) + an Achievement catalog + a ProgressService called from the existing data-write points; wire the mascot poses to reward moments. No backend for the solo version.
+2. Gamification / XP. Local-only engine: a UserProgress model (XP, level, streaks) + an Achievement catalog + a ProgressService called from the existing data-write points; wire the mascot poses to reward moments. No backend for the solo version. Full plan in GAMIFICATION.md (XP rules, levels, achievements, and the layered mascot-customization system).
 3. App Store launch. Enroll in the paid program; prepare App Privacy details + a privacy-policy URL; Hebrew/RTL screenshots; TestFlight; then submit. Keep manual-entry only (no bank APIs) for v1. Optional later: a small "Pro" tier via StoreKit (sync, advanced insights, export) — worth gating premium features behind a simple isPro check early so adding purchases later is easy.

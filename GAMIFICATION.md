@@ -1,0 +1,117 @@
+# Gamification — עכבר עו״ש (OshRat)
+
+Plan for the XP / mascot-customization system. All of it is **local** (no backend),
+CloudKit-syncable later, and separate from the free/Pro split.
+
+## Guiding principles
+
+- **Reward the right behavior**, not raw app-opening: logging, consistency, saving — not
+  just launching the app.
+- **Cap farmable actions** so XP can't be gamed (e.g. a daily cap on XP from logging).
+- **Stay positive**: never punish gaps or nag. Missing a day resets a streak but never
+  removes earned XP. Anxiety is the enemy in a finance app.
+- **XP unlocks are cosmetic and free.** They are earned by using the app well and are
+  completely separate from paid Pro features. Never gate real finance functionality behind
+  XP — only mascot cosmetics and badges.
+- Keep all tunable numbers (XP values, caps, level curve) in **one config file** so
+  balancing is a one-place change.
+
+## 1. How XP is earned (amounts illustrative — keep tunable)
+
+- **Usage:** small XP per transaction logged, with a **daily cap**; a little for updating an
+  account balance (rewards keeping data current), also capped.
+- **Consistency:** a daily logging/opening **streak**, with milestone bonuses at 7 / 30 / 100
+  days.
+- **Responsible behavior:** XP for contributing to a goal; a bigger bonus for completing one;
+  a monthly bonus for staying within a budget category; emergency-fund milestones.
+- **One-time setup:** completing profile, first account, first budget, first goal — front-loads
+  early wins so it feels rewarding immediately.
+
+## 2. Levels
+
+Cumulative XP maps to a level via a gently rising curve (each level needs a bit more than the
+last). Store **total XP**, derive the level from it. Levels are the main "unlock clock."
+
+## 3. Unlocks & achievements (all cosmetic)
+
+- **Levels** unlock cosmetic **items** for the mascot (hats, outfits, accessories, backgrounds).
+- **Achievements** award **patches / medals** for discrete milestones ("first ₪1,000 saved",
+  "30-day streak", "3 months under budget", "first goal completed").
+
+## 4. Data model additions (local; CloudKit-syncable later)
+
+- `UserProgress` (one instance): `totalXP`, `currentStreak`, `longestStreak`, `lastActivityDate`.
+- Unlocked achievements and unlocked items stored as **sets of string keys**.
+- `MascotConfig`: the equipped item key per slot (hat, outfit, accessory, background).
+- The **catalogs** — every item and achievement, with unlock rules and XP values — live in
+  **code as constants**, NOT the database. Persist only the user's progress, unlocks, and
+  equipped choices. This makes adding items later safe and simple.
+
+## 5. The XP engine
+
+A single `ProgressService` with:
+- `award(_ amount:reason:)`
+- `recordActivity()` — updates the streak
+- `checkAchievements()`
+- level-unlock logic
+
+Call it from the **existing data-write points** (after adding a transaction, updating a
+balance, contributing to a goal) — centralized, not scattered. It enforces the daily caps and
+returns "events" (leveled up, achievement unlocked) so the UI can celebrate.
+
+## 6. Reward moments (where the mascot earns its keep)
+
+- **Level-up** → thumbs-up mascot + a brief toast.
+- **Achievement** → present/point mascot + the patch revealing.
+- **Dashboard** → a streak indicator and a progress bar to the next level.
+- Keep celebrations short and calm.
+
+## 7. Mascot customization — technical design
+
+**One design, two sizes.** Build the mascot once as a layered vector; render the same thing
+small (~80pt) on the dashboard and large (~300pt) on the wardrobe screen via `.frame`. Vector
+stays crisp at both. The small one is a button that opens the wardrobe.
+
+**Layered SVG composed at runtime.** SwiftUI doesn't compose one SVG's parts at runtime, so:
+- Author each piece as its own SVG, import each as its own asset with **Preserve Vector Data**.
+- Render the mascot as a `ZStack` of `Image` layers, one per slot.
+
+**The rule that makes it work:** every layer is drawn on the **same canvas / viewBox**
+(e.g. the full-body `360×660`), positioned exactly where it sits on the body, with everything
+else transparent. Shared coordinates → the layers register perfectly when stacked.
+
+**Slots & z-order** (back to front):
+```
+background  →  base body  →  outfit  →  hat  →  accessory (front)
+```
+Each slot shows at most one equipped item (or nothing).
+
+**Naming convention** (asset name = catalog key):
+`mascot-base`, `item-hat-bonnet`, `item-hat-tophat`, `item-outfit-navysuit`,
+`item-accessory-glasses`, `item-bg-gold`, …
+
+**Extensibility:** adding an item later = one new SVG on the shared canvas + one catalog entry.
+No change to the rendering code.
+
+**Art task (when this phase starts):** re-cut the existing mascot into a **hatless swappable
+base** + separate hat / suit layers on the shared canvas, then design new items the same way.
+
+**Wardrobe screen:** large live mascot preview at top; below it, sections per slot (Hats,
+Outfits, Accessories, Backgrounds) as grids; locked items greyed with an unlock hint; tapping an
+unlocked item updates `MascotConfig` and the preview re-renders live. An achievements shelf
+shows earned patches/medals.
+
+## 8. Phased build plan (each phase ships on its own)
+
+1. **XP core** — `UserProgress` + engine + a few XP sources (logging, setup milestones) +
+   levels + a level-up toast + a streak on the dashboard. No cosmetics yet.
+2. **Achievements** — the catalog + patches/medals + an achievements screen.
+3. **Mascot customization** — layered mascot rendering + wardrobe screen + a first item set
+   (this is where the mascot is re-cut into layers).
+4. **Polish** — more items, haptics/animation, optional Home-Screen widget (streak/level).
+
+## 9. Guardrails recap
+
+Cosmetic-only unlocks · daily caps on farmable actions · never punish or nag · all tunable
+numbers in one config · always show the user *why* XP was earned. Fully local — no backend, no
+effect on the free/Pro split. It just makes the free app feel alive.
