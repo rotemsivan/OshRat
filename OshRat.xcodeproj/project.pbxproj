@@ -73,11 +73,6 @@
 		5EA1C0022FDA200000000002 /* WelcomeMascotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EA1C0012FDA200000000001 /* WelcomeMascotView.swift */; };
 		5EA9D90100000000000000A4 /* OshRatWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5EA9D90100000000000000A3 /* OshRatWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		5EAA170100000000000000B1 /* AnalyticsReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EAA170100000000000000F1 /* AnalyticsReport.swift */; };
-		5EDEP00100000000000000B1 /* DepositTerms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00100000000000000F1 /* DepositTerms.swift */; };
-		5EDEP00300000000000000B1 /* DepositMaturitySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00300000000000000F1 /* DepositMaturitySheet.swift */; };
-		5EDEP00200000000000000B1 /* DepositPayoutService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00200000000000000F1 /* DepositPayoutService.swift */; };
-		5EDEP00100000000000000C1 /* DepositTerms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00100000000000000F1 /* DepositTerms.swift */; };
-		5EDEP00100000000000000C2 /* DepositTerms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00100000000000000F1 /* DepositTerms.swift */; };
 		5EAA170100000000000000B2 /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EAA170100000000000000F2 /* AnalyticsView.swift */; };
 		5EAA170100000000000000B3 /* AnalyticsStations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EAA170100000000000000F3 /* AnalyticsStations.swift */; };
 		5EBD610100000000000000B1 /* BudgetScheduleSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBD610100000000000000F1 /* BudgetScheduleSection.swift */; };
@@ -93,6 +88,11 @@
 		5ED3E0F32FD1BEB4003083F0 /* BudgetVsActual.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0F22FD1BEB4003083F0 /* BudgetVsActual.swift */; };
 		5ED3E0F52FD1BECE003083F0 /* HomeBottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0F42FD1BECE003083F0 /* HomeBottomBar.swift */; };
 		5ED3E0F72FD1BEE2003083F0 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0F62FD1BEE2003083F0 /* HomeView.swift */; };
+		5EDEP00100000000000000B1 /* DepositTerms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00100000000000000F1 /* DepositTerms.swift */; };
+		5EDEP00100000000000000C1 /* DepositTerms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00100000000000000F1 /* DepositTerms.swift */; };
+		5EDEP00100000000000000C2 /* DepositTerms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00100000000000000F1 /* DepositTerms.swift */; };
+		5EDEP00200000000000000B1 /* DepositPayoutService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00200000000000000F1 /* DepositPayoutService.swift */; };
+		5EDEP00300000000000000B1 /* DepositMaturitySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00300000000000000F1 /* DepositMaturitySheet.swift */; };
 		5EFACE0100000000000000A1 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
 		5EFACE0100000000000000A2 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
 		5EFACE0100000000000000A3 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
@@ -187,9 +187,6 @@
 		5EA1C0012FDA200000000001 /* WelcomeMascotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeMascotView.swift; sourceTree = "<group>"; };
 		5EA9D90100000000000000A3 /* OshRatWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OshRatWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		5EAA170100000000000000F1 /* AnalyticsReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsReport.swift; sourceTree = "<group>"; };
-		5EDEP00100000000000000F1 /* DepositTerms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositTerms.swift; sourceTree = "<group>"; };
-		5EDEP00300000000000000F1 /* DepositMaturitySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositMaturitySheet.swift; sourceTree = "<group>"; };
-		5EDEP00200000000000000F1 /* DepositPayoutService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositPayoutService.swift; sourceTree = "<group>"; };
 		5EAA170100000000000000F2 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
 		5EAA170100000000000000F3 /* AnalyticsStations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsStations.swift; sourceTree = "<group>"; };
 		5EBD610100000000000000F1 /* BudgetScheduleSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetScheduleSection.swift; sourceTree = "<group>"; };
@@ -203,6 +200,9 @@
 		5ED3E0F22FD1BEB4003083F0 /* BudgetVsActual.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetVsActual.swift; sourceTree = "<group>"; };
 		5ED3E0F42FD1BECE003083F0 /* HomeBottomBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeBottomBar.swift; sourceTree = "<group>"; };
 		5ED3E0F62FD1BEE2003083F0 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		5EDEP00100000000000000F1 /* DepositTerms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositTerms.swift; sourceTree = "<group>"; };
+		5EDEP00200000000000000F1 /* DepositPayoutService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositPayoutService.swift; sourceTree = "<group>"; };
+		5EDEP00300000000000000F1 /* DepositMaturitySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositMaturitySheet.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F1 /* TransactionAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionAttachment.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F2 /* TransactionInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionInsights.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F3 /* TransactionAttachments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionAttachments.swift; sourceTree = "<group>"; };
