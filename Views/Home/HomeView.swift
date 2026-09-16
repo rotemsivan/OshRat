@@ -43,6 +43,11 @@ struct HomeView: View {
     @Query(sort: \FXRateSnapshot.fetchedAt, order: .reverse) private var fxSnapshots: [FXRateSnapshot]
 
     @State private var selectedTab: HomeBottomBar.Tab = .home
+    /// The transactions list's filters, owned here rather than by the list.
+    /// Switching tabs rebuilds the branch below, which used to wipe them — a
+    /// glance at the dashboard shouldn't cost the user the filter they just
+    /// set. Lives for the session; see `TransactionFilters`.
+    @State private var transactionFilters = TransactionFilters()
     @State private var editingAccount: Account?
     /// Drives the "חשבון חדש" sheet from the assets card's add button.
     /// Boolean rather than item-based because the sheet seeds its own
@@ -110,7 +115,7 @@ struct HomeView: View {
                     dashboardScroll
                 case .transactions:
                     NavigationStack {
-                        TransactionsListView()
+                        TransactionsListView(filters: transactionFilters)
                     }
                 case .analytics:
                     NavigationStack {
@@ -147,9 +152,11 @@ struct HomeView: View {
             // floating element from the bottom bar — clearing both
             // the bar's height *and* the home button that pops out
             // of its notch, with a generous gap on top so they don't
-            // visually touch.
+            // visually touch. The figure lives on `HomeBottomBar` so the
+            // scrolling screens can derive their bottom clearance from the
+            // same number.
             .padding(.leading, Theme.Spacing.lg)
-            .padding(.bottom, HomeBottomBar.barHeight + HomeBottomBar.homeButtonDiameter / 20 + Theme.Spacing.lg)
+            .padding(.bottom, HomeBottomBar.floatingButtonBottomPadding)
         }
         // Level-ups are celebrated at the shell level, not on the dashboard:
         // the XP that triggered one was almost certainly earned in a sheet on
@@ -299,10 +306,13 @@ struct HomeView: View {
             }
             .padding(.horizontal, Theme.Spacing.lg)
             .padding(.top, Theme.Spacing.md)
-            // Reserve enough room for the FAB hovering above the bar
-            // plus the home button that pops out of the notch — so
-            // the bottom card never ends up under either of them.
-            .padding(.bottom, HomeBottomBar.barHeight + HomeBottomBar.homeButtonDiameter + Theme.Spacing.lg)
+            // Only the bar's own clearance here, not the floating "+"'s. The
+            // dashboard's last element is a card, not a control — nothing at
+            // its bottom edge needs tapping — so letting the "+" hover over
+            // that edge costs nothing and saves a chunk of dead space at the
+            // end of the scroll. Screens that end in a *button* use
+            // `floatingButtonClearance` instead.
+            .padding(.bottom, HomeBottomBar.barClearance)
         }
         .scrollIndicators(.hidden)
         // Raise the overrun alert the moment the month goes over budget, and
@@ -620,7 +630,10 @@ private struct FloatingAddButton: View {
                 .font(.system(size: 26, weight: .semibold))
                 .foregroundStyle(.white)
                 .rotationEffect(.degrees(isPressed ? 45 : 0))
-                .frame(width: 60, height: 60)
+                .frame(
+                    width: HomeBottomBar.floatingButtonDiameter,
+                    height: HomeBottomBar.floatingButtonDiameter
+                )
                 .background(
                     Circle().fill(Theme.Colors.accent)
                 )
@@ -685,6 +698,10 @@ private struct DebugResetButton: View {
             try deleteAll(of: Category.self)
             try deleteAll(of: UserProfile.self)
             try deleteAll(of: FXRateSnapshot.self)
+            // XP too, or a reset would drop the user back into onboarding
+            // still carrying their level — and with the setup milestones
+            // already marked paid, they'd never be awarded again.
+            try deleteAll(of: UserProgress.self)
             try modelContext.save()
         } catch {
             print("Reset failed: \(error)")

@@ -37,10 +37,6 @@ struct BudgetCalendarView: View {
     /// Day the user has tapped (start-of-day), if any.
     @State private var selectedDay: Date? = Calendar.current.startOfDay(for: .now)
 
-    /// Date a newly-added line is seeded around (the tapped day).
-    @State private var addSeedDate: Date = .now
-    @State private var isChoosingKind = false
-
     @State private var editingIncome: IncomeSourceDraft?
     @State private var pendingIncomeItem: BudgetItem?
     @State private var editingExpense: PlannedExpenseDraft?
@@ -61,22 +57,26 @@ struct BudgetCalendarView: View {
                     selectedDaySection
                 }
                 .padding(.horizontal, Theme.Spacing.lg)
-                .padding(.top, Theme.Spacing.sm)
-                .padding(.bottom, HomeBottomBar.barHeight + HomeBottomBar.homeButtonDiameter + Theme.Spacing.lg)
+                // No top pad — the large navigation title above already
+                // separates the calendar card from the chrome.
+                .padding(.top, 0)
+                // The day card ends in the "הוספת פריט ליום זה" button, so this
+                // screen needs the full clearance — the bar *and* the floating
+                // "+" — or the last thing on the page is the one thing you
+                // can't tap.
+                .padding(.bottom, HomeBottomBar.floatingButtonClearance)
             }
             .scrollIndicators(.hidden)
         }
         .navigationTitle(Text("יומן התקציב"))
-        .navigationBarTitleDisplayMode(.inline)
+        // Large, matching תובנות and תנועות — one title style across the tabs.
+        .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("הוספת פריט", systemImage: "plus", action: beginAddForSelectedDay)
+                addMenu {
+                    Label("הוספת פריט", systemImage: "plus")
+                }
             }
-        }
-        .confirmationDialog("הוספת פריט לתקציב", isPresented: $isChoosingKind, titleVisibility: .visible) {
-            Button("הכנסה", action: addIncome)
-            Button("הוצאה", action: addExpense)
-            Button("ביטול", role: .cancel) {}
         }
         .sheet(item: $editingIncome) { draft in
             IncomeSourceEditorSheet(
@@ -144,7 +144,7 @@ struct BudgetCalendarView: View {
                 }
             }
 
-            Button(action: beginAddForSelectedDay) {
+            addMenu {
                 Label("הוספת פריט ליום זה", systemImage: "plus.circle.fill")
                     .font(Theme.Typography.body)
                     .foregroundStyle(Theme.Colors.accent)
@@ -158,9 +158,21 @@ struct BudgetCalendarView: View {
 
     // MARK: - Actions
 
-    private func beginAddForSelectedDay() {
-        addSeedDate = selectedDay ?? .now
-        isChoosingKind = true
+    /// The "add a line" control: income / expense, in a `Menu` anchored to
+    /// whichever button opened it.
+    ///
+    /// It replaces a `confirmationDialog`, which detaches from its source and
+    /// surfaced away from the button that summoned it — the two choices
+    /// belong *at* the button the user just pressed, not adrift on the screen.
+    /// A `Menu` pops from its own label, so both entry points (the toolbar and
+    /// the card's "הוספת פריט ליום זה") each open their options in place.
+    private func addMenu<Content: View>(@ViewBuilder label: () -> Content) -> some View {
+        Menu {
+            Button("הכנסה", systemImage: "arrow.down.left", action: addIncome)
+            Button("הוצאה", systemImage: "arrow.up.right", action: addExpense)
+        } label: {
+            label()
+        }
     }
 
     private func addIncome() {
@@ -218,7 +230,13 @@ struct BudgetCalendarView: View {
     /// Seed a fresh line as a one-off on the tapped day, but pre-fill the
     /// day/month too so switching it to monthly ("every month on the 22nd")
     /// or yearly keeps the date the user already picked.
+    ///
+    /// Reads `selectedDay` directly. There used to be a separate `addSeedDate`
+    /// stamped when the add flow began, which only existed because the
+    /// confirmation dialog put a step between the tap and the choice; the menu
+    /// fires its action immediately, so the selected day *is* the seed.
     private func seededSchedule() -> BudgetSchedule {
+        let addSeedDate = selectedDay ?? .now
         let comps = calendar.dateComponents([.day, .month, .year], from: addSeedDate)
         return BudgetSchedule(
             isOneTime: true,

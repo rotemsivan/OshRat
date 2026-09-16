@@ -77,45 +77,66 @@ struct PlannedExpenseEditorSheet: View {
 
     // MARK: - Sections
 
-    /// Category picker grouped by nature, so צרכים and רצונות are clearly
-    /// separated. Income categories are filtered out — this is for
-    /// planned expenses only.
+    /// Category picker — the same control as the "new transaction" sheet: a
+    /// `Menu` of `Label`s, each carrying its category's own glyph, opened from
+    /// a bordered `PickerRowLabel`.
+    ///
+    /// It replaces a `Picker`, which inside a `Form` rendered as a plain
+    /// pushed list of bare names — a different shape, a different tap target
+    /// and no icons, for the very same job. Choosing a category should feel
+    /// identical wherever the app asks for one.
+    ///
+    /// The nature grouping (צרכים / רצונות / אחר) survives the move: a `Menu`
+    /// takes `Section`s too, so the separation the budget depends on is still
+    /// on screen. The row background is cleared so only the field's own card
+    /// shows, matching `BigAmountField` below it.
     private var categorySection: some View {
         Section {
-            Picker("קטגוריה", selection: $draft.category) {
-                Text("בחרו קטגוריה").tag(Optional<Category>.none)
-
-                let needs = expenseCategories.filter { $0.nature == .need }
-                if !needs.isEmpty {
-                    Section("צרכים") {
-                        ForEach(needs) { category in
-                            Text(category.name).tag(Optional(category))
-                        }
-                    }
+            Menu {
+                Button {
+                    draft.category = nil
+                } label: {
+                    Label("בחרו קטגוריה", systemImage: "circle.dashed")
                 }
 
-                let wants = expenseCategories.filter { $0.nature == .want }
-                if !wants.isEmpty {
-                    Section("רצונות") {
-                        ForEach(wants) { category in
-                            Text(category.name).tag(Optional(category))
-                        }
-                    }
-                }
-
-                let other = expenseCategories.filter { $0.nature == .neutral }
-                if !other.isEmpty {
-                    Section("אחר") {
-                        ForEach(other) { category in
-                            Text(category.name).tag(Optional(category))
-                        }
-                    }
-                }
+                categoryGroup("צרכים", of: .need)
+                categoryGroup("רצונות", of: .want)
+                categoryGroup("אחר", of: .neutral)
+            } label: {
+                PickerRowLabel(
+                    text: draft.category?.name ?? "בחרו קטגוריה",
+                    systemImage: draft.category?.symbolName
+                )
             }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(
+                top: Theme.Spacing.xs,
+                leading: 0,
+                bottom: Theme.Spacing.xs,
+                trailing: 0
+            ))
         } header: {
             Text("קטגוריה")
         } footer: {
             Text("הקטגוריה קובעת אם ההוצאה משויכת לצרכים (חובה) או לרצונות (בחירה).")
+        }
+    }
+
+    /// One nature's worth of categories, or nothing at all when the user has
+    /// none of that kind — an empty heading would just be noise.
+    @ViewBuilder
+    private func categoryGroup(_ title: LocalizedStringKey, of nature: CategoryNature) -> some View {
+        let matching = expenseCategories.filter { $0.nature == nature }
+        if !matching.isEmpty {
+            Section(title) {
+                ForEach(matching) { category in
+                    Button {
+                        draft.category = category
+                    } label: {
+                        Label(category.name, systemImage: category.symbolName)
+                    }
+                }
+            }
         }
     }
 

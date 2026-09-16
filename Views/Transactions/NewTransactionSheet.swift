@@ -518,34 +518,11 @@ struct NewTransactionSheet: View {
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Picker label row — Hebrew value text on the visual right,
-    /// chevron on the visual left.
-    ///
-    /// Implementation note: `Menu { ... } label: { ... }` doesn't
-    /// reliably forward the `\.layoutDirection` environment into the
-    /// label closure, so even with RTL forced on the sheet root the
-    /// row kept rendering LTR. We pin direction directly on the row
-    /// AND swap the children to their RTL-correct visual positions
-    /// (text leading, chevron trailing) so the layout is correct
-    /// whether or not the environment propagates.
+    /// Picker label row. Lives in `DesignSystem/PickerRowLabel.swift` now that
+    /// the budget editors use the same control — see that file for the RTL
+    /// notes. Kept as a local shim so the call sites here read unchanged.
     private func pickerRow(text: String) -> some View {
-        HStack(spacing: Theme.Spacing.sm) {
-            Text(text)
-                .font(Theme.Typography.body)
-                .foregroundStyle(Theme.Colors.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Image(systemName: "chevron.up.chevron.down")
-                .font(Theme.Typography.caption)
-                .foregroundStyle(Theme.Colors.textSecondary)
-        }
-        .padding(Theme.Spacing.md)
-        .background(Theme.Colors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                .stroke(Theme.Colors.separator, lineWidth: 1)
-        )
-        .environment(\.layoutDirection, .rightToLeft)
+        PickerRowLabel(text: text)
     }
 
     // MARK: - Derived state

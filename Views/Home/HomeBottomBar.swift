@@ -29,6 +29,38 @@ struct HomeBottomBar: View {
     static let notchRadius: CGFloat = 36
     private static let cornerRadius: CGFloat = 30
 
+    /// Diameter of the floating "+" that hovers above the bar, and how far
+    /// its bottom edge sits above the screen edge. `HomeView` positions the
+    /// button from these, and the clearance below is derived from them, so
+    /// the two can't drift apart.
+    static let floatingButtonDiameter: CGFloat = 60
+    static var floatingButtonBottomPadding: CGFloat {
+        barHeight + homeButtonDiameter / 20 + Theme.Spacing.lg
+    }
+
+    /// How much of the screen bottom the bar itself covers, popped home button
+    /// included. The floor for any scrolling screen.
+    ///
+    /// `HomeView` does install the bar as a `safeAreaInset`, but in practice
+    /// that inset does **not** reach the scroll views inside the tab branches
+    /// (each sits in its own `NavigationStack`, under a `ZStack` whose
+    /// background ignores the safe area). Screens were measured assuming it
+    /// did, and their last row ended up under the bar — so every figure here
+    /// is a full clearance from the screen edge, assuming no help from the
+    /// safe area at all.
+    static var barClearance: CGFloat {
+        barHeight + homeButtonDiameter / 2 + Theme.Spacing.sm
+    }
+
+    /// Bottom room for a screen whose **last element is interactive** — a
+    /// button, or a row that has to stay tappable and swipeable. Clears the
+    /// bar *and* the floating "+", which is an overlay that no safe area
+    /// accounts for, plus a breath so the element stops just above the button
+    /// rather than touching it.
+    static var floatingButtonClearance: CGFloat {
+        floatingButtonBottomPadding + floatingButtonDiameter + Theme.Spacing.md
+    }
+
     var body: some View {
         ZStack(alignment: .top) {
             // Glass-effect bar background. The shape itself defines

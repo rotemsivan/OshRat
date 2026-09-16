@@ -16,6 +16,9 @@ import SwiftData
 /// The view owns its own `@Query`s (filtering `deletedAt != nil`) rather
 /// than taking the rows as parameters, so restoring/purging from here
 /// updates the list live without the presenting screen having to refeed it.
+///
+/// **Rows hold value snapshots, never the model objects** — see `DeletedItem`
+/// for why that matters on this screen specifically.
 struct RecentlyDeletedView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -29,14 +32,14 @@ struct RecentlyDeletedView: View {
     /// entry's currency and its account's.
     @Query(sort: \FXRateSnapshot.fetchedAt, order: .reverse) private var fxSnapshots: [FXRateSnapshot]
 
-    /// The item awaiting a "delete permanently" confirmation. An enum
-    /// because the two row types share one alert.
+    /// The item awaiting a "delete permanently" confirmation, held as an
+    /// **identifier** rather than the model object — see `PendingPurge`.
     @State private var pendingPurge: PendingPurge?
 
     var body: some View {
         NavigationStack {
             Group {
-                if deletedAccounts.isEmpty && deletedTransactions.isEmpty {
+                if accountItems.isEmpty && transactionItems.isEmpty {
                     emptyState
                 } else {
                     list
@@ -68,14 +71,13 @@ struct RecentlyDeletedView: View {
 
     private var list: some View {
         List {
-            if !deletedAccounts.isEmpty {
+            if !accountItems.isEmpty {
                 Section {
-                    ForEach(deletedAccounts) { account in
-                        DeletedAccountRow(account: account)
+                    ForEach(accountItems) { item in
+                        DeletedItemRow(item: item)
                             .listRowBackground(Theme.Colors.surface)
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                permanentDeleteButton(.account(account))
-                                restoreButton { restore(account) }
+                                swipeButtons(for: item, kind: .account)
                             }
                     }
                 } header: {
@@ -83,14 +85,13 @@ struct RecentlyDeletedView: View {
                 }
             }
 
-            if !deletedTransactions.isEmpty {
+            if !transactionItems.isEmpty {
                 Section {
-                    ForEach(deletedTransactions) { tx in
-                        DeletedTransactionRow(transaction: tx)
+                    ForEach(transactionItems) { item in
+                        DeletedItemRow(item: item)
                             .listRowBackground(Theme.Colors.surface)
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                permanentDeleteButton(.transaction(tx))
-                                restoreButton { restore(tx) }
+                                swipeButtons(for: item, kind: .transaction)
                             }
                     }
                 } header: {
@@ -121,51 +122,92 @@ struct RecentlyDeletedView: View {
 
     // MARK: - Swipe buttons
 
-    /// Restore is the safe action, so it gets the leading slot (closest to
-    /// the swipe edge) and the accent tint. Non-destructive, no confirm.
-    private func restoreButton(_ action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label("שחזור", systemImage: "arrow.uturn.backward")
+    /// Icon-only buttons, destructive first, accent tint on the safe one —
+    /// the same swipe vocabulary as the transactions list, so a swipe means
+    /// the same thing everywhere in the app.
+    ///
+    /// The one thing deliberately *not* copied from that list is
+    /// `allowsFullSwipe`. There, a full swipe soft-deletes and the row is
+    /// recoverable from this very screen; here the destructive action is the
+    /// irreversible one, so it stays a deliberate tap rather than a gesture
+    /// that can be completed by accident.
+    @ViewBuilder
+    private func swipeButtons(for item: DeletedItem, kind: PendingPurge.Kind) -> some View {
+        Button(role: .destructive) {
+            pendingPurge = PendingPurge(id: item.id, kind: kind)
+        } label: {
+            Image(systemName: "trash")
+        } .tint(.red)
+        .accessibilityLabel(Text("מחיקה לצמיתות"))
+        
+        Button {
+            restore(id: item.id, kind: kind)
+        } label: {
+            Image(systemName: "arrow.uturn.backward")
         }
         .tint(Theme.Colors.accent)
+        .accessibilityLabel(Text("שחזור"))
     }
 
-    /// Permanent delete is destructive and irreversible, so it routes
-    /// through the confirmation alert rather than firing on the swipe.
-    private func permanentDeleteButton(_ item: PendingPurge) -> some View {
-        Button(role: .destructive) {
-            pendingPurge = item
-        } label: {
-            Label("מחיקה לצמיתות", systemImage: "trash")
+    // MARK: - Snapshots
+
+    /// Value snapshots of the soft-deleted accounts, rebuilt whenever the
+    /// query changes.
+    private var accountItems: [DeletedItem] {
+        deletedAccounts.map { account in
+            DeletedItem(
+                id: account.persistentModelID,
+                title: account.name.isEmpty ? "ללא שם" : account.name,
+                caption: deletedCaption(account.deletedAt),
+                amount: account.balance.formatted(.currency(code: account.currencyCode)),
+                amountColor: Theme.Colors.textSecondary
+            )
         }
+    }
+
+    private var transactionItems: [DeletedItem] {
+        deletedTransactions.map(DeletedItem.init(transaction:))
     }
 
     // MARK: - Actions
 
-    private func restore(_ account: Account) {
+    private func restore(id: PersistentIdentifier, kind: PendingPurge.Kind) {
         withAnimation {
-            TrashService.restore(account)
-            try? modelContext.save()
-        }
-    }
-
-    private func restore(_ transaction: Transaction) {
-        withAnimation {
-            TrashService.restore(transaction, fx: fxSnapshots.first)
-            try? modelContext.save()
-        }
-    }
-
-    private func confirmPurge() {
-        guard let pendingPurge else { return }
-        withAnimation {
-            switch pendingPurge {
-            case .account(let account):         modelContext.delete(account)
-            case .transaction(let transaction): modelContext.delete(transaction)
+            switch kind {
+            case .account:
+                guard let account = modelContext.model(for: id) as? Account else { return }
+                TrashService.restore(account)
+            case .transaction:
+                guard let transaction = modelContext.model(for: id) as? Transaction else { return }
+                TrashService.restore(transaction, fx: fxSnapshots.first)
             }
             try? modelContext.save()
         }
+    }
+
+    /// Resolve the pending identifier to a live model and hard-delete it.
+    ///
+    /// Resolving *here* rather than holding the object in `@State` is the
+    /// point: once this runs, the model is invalid, and nothing in the view
+    /// tree is left holding a reference to it.
+    private func confirmPurge() {
+        guard let pendingPurge else { return }
+        // Clear the state first. The alert's `presenting:` value is re-read as
+        // the view updates, and it must not still be pointing at something
+        // that is about to stop existing.
         self.pendingPurge = nil
+
+        withAnimation {
+            switch pendingPurge.kind {
+            case .account:
+                guard let account = modelContext.model(for: pendingPurge.id) as? Account else { return }
+                modelContext.delete(account)
+            case .transaction:
+                guard let transaction = modelContext.model(for: pendingPurge.id) as? Transaction else { return }
+                modelContext.delete(transaction)
+            }
+            try? modelContext.save()
+        }
     }
 
     /// `.alert(presenting:)` wants a `Binding<Bool>`; bridge it through the
@@ -180,79 +222,58 @@ struct RecentlyDeletedView: View {
 
 // MARK: - Pending purge
 
-/// One alert serves both row types, so the item it's confirming is an
-/// enum over the two.
-private enum PendingPurge: Identifiable {
-    case account(Account)
-    case transaction(Transaction)
-
-    var id: PersistentIdentifier {
-        switch self {
-        case .account(let account):         return account.persistentModelID
-        case .transaction(let transaction): return transaction.persistentModelID
-        }
+/// What the confirmation alert is about to destroy.
+///
+/// Holds a `PersistentIdentifier`, **not** the model. `@State` outlives the
+/// delete it triggers — SwiftUI re-reads the alert's `presenting:` value as
+/// the view updates — and a hard-deleted SwiftData object traps the moment
+/// anything touches it. An identifier is just a value, and
+/// `ModelContext.model(for:)` turns it back into an object at the one moment
+/// we actually need one.
+private struct PendingPurge: Identifiable {
+    enum Kind {
+        case account
+        case transaction
     }
+
+    let id: PersistentIdentifier
+    let kind: Kind
 }
 
-// MARK: - Rows
+// MARK: - Row snapshot
 
-/// A soft-deleted account: name + type on the leading edge, its balance
-/// (in its own currency) trailing, with a "deleted N ago" caption.
-private struct DeletedAccountRow: View {
-    let account: Account
-
-    var body: some View {
-        HStack(spacing: Theme.Spacing.sm) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(account.name.isEmpty ? "ללא שם" : account.name)
-                    .font(Theme.Typography.body)
-                    .foregroundStyle(Theme.Colors.textPrimary)
-                    .lineLimit(1)
-                Text(deletedCaption(account.deletedAt))
-                    .font(Theme.Typography.caption)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .lineLimit(1)
-            }
-            Spacer(minLength: Theme.Spacing.sm)
-            Text(account.balance.formatted(.currency(code: account.currencyCode)))
-                .font(Theme.Typography.amount)
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .monospacedDigit()
-                .lineLimit(1)
-        }
-        .accessibilityElement(children: .combine)
-    }
+/// Everything a deleted-item row draws, as plain values.
+///
+/// This screen is the only place in the app that **hard**-deletes, and that
+/// makes it the only place where holding a `@Model` in a row is dangerous:
+/// `modelContext.delete` invalidates the object immediately, while SwiftUI
+/// keeps the outgoing row alive to animate it away. A row that read
+/// `transaction.title` (or worse, walked `transaction.category?.name`) during
+/// that animation would be reading an invalidated model, which traps with
+/// "This model instance was invalidated because its backing data could no
+/// longer be found in the store".
+///
+/// Everywhere else in the app deletion is a *soft* delete — it only sets
+/// `deletedAt`, leaving the object perfectly valid — which is why rows there
+/// can hold their models safely.
+private struct DeletedItem: Identifiable {
+    let id: PersistentIdentifier
+    let title: String
+    let caption: String
+    let amount: String
+    let amountColor: Color
 }
 
-/// A soft-deleted transaction: title + original date on the leading edge,
-/// the amount (coloured by kind, accent for a transfer) trailing, with a
-/// "deleted N ago" caption.
-private struct DeletedTransactionRow: View {
-    let transaction: Transaction
-
-    var body: some View {
-        HStack(spacing: Theme.Spacing.sm) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(Theme.Typography.body)
-                    .foregroundStyle(Theme.Colors.textPrimary)
-                    .lineLimit(1)
-                Text(deletedCaption(transaction.deletedAt))
-                    .font(Theme.Typography.caption)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .lineLimit(1)
-            }
-            Spacer(minLength: Theme.Spacing.sm)
-            Text(formattedAmount)
-                .font(Theme.Typography.amount)
-                .foregroundStyle(amountColor)
-                .monospacedDigit()
-                .lineLimit(1)
-        }
-        .accessibilityElement(children: .combine)
+extension DeletedItem {
+    init(transaction: Transaction) {
+        self.id = transaction.persistentModelID
+        self.title = Self.title(for: transaction)
+        self.caption = deletedCaption(transaction.deletedAt)
+        self.amount = Self.formattedAmount(for: transaction)
+        self.amountColor = Self.amountColor(for: transaction)
     }
 
-    private var title: String {
+    private static func title(for transaction: Transaction) -> String {
         let trimmed = transaction.title.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty { return trimmed }
         if transaction.isTransfer { return "העברה" }
@@ -261,19 +282,50 @@ private struct DeletedTransactionRow: View {
 
     /// Signed amount wrapped in an LTR isolate so the bidi-neutral sign
     /// stays on the visual left — same treatment as the transactions list.
-    private var formattedAmount: String {
+    private static func formattedAmount(for transaction: Transaction) -> String {
         let base = transaction.amount.formatted(.currency(code: transaction.currencyCode))
         if transaction.isTransfer { return "\u{2066}\(base)\u{2069}" }
         let sign = transaction.kind == .income ? "+" : "-"
         return "\u{2066}\(sign)\(base)\u{2069}"
     }
 
-    private var amountColor: Color {
+    private static func amountColor(for transaction: Transaction) -> Color {
         if transaction.isTransfer { return Theme.Colors.accent }
         switch transaction.kind {
         case .income:  return Theme.Colors.income
         case .expense: return Theme.Colors.expense
         }
+    }
+}
+
+// MARK: - Row
+
+/// One deleted item: name on the leading edge with a "deleted N ago" caption,
+/// amount trailing. Shared by both sections — an account and a transaction
+/// differ only in the values the snapshot carries.
+private struct DeletedItemRow: View {
+    let item: DeletedItem
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.sm) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(Theme.Typography.body)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .lineLimit(1)
+                Text(item.caption)
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: Theme.Spacing.sm)
+            Text(item.amount)
+                .font(Theme.Typography.amount)
+                .foregroundStyle(item.amountColor)
+                .monospacedDigit()
+                .lineLimit(1)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -299,7 +351,8 @@ private func deletedCaption(_ deletedAt: Date?) -> String {
         .modelContainer(
             for: [
                 UserProfile.self, Account.self, Holding.self, Category.self,
-                Transaction.self, TransactionAttachment.self, BudgetItem.self, Goal.self, FXRateSnapshot.self
+                Transaction.self, TransactionAttachment.self, BudgetItem.self,
+                Goal.self, FXRateSnapshot.self, UserProgress.self
             ],
             inMemory: true
         )
