@@ -767,6 +767,14 @@ struct NewTransactionSheet: View {
         }
 
         try? modelContext.save()
+
+        // XP for logging, but only for a *new* row. An edit is bookkeeping
+        // hygiene rather than new activity, and paying for it would make
+        // "open a transaction and save it again" a way to farm points.
+        if editingTransaction == nil {
+            ProgressService.recordTransactionLogged(in: modelContext)
+        }
+
         onSaved?(saved)
 
         // Light the themed glow (driven by `hasConfirmed`), then dismiss

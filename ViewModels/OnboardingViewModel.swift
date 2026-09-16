@@ -240,6 +240,15 @@ final class OnboardingViewModel {
         // Save explicitly so the gating @Query in ContentView re-fires
         // immediately and the wizard is replaced with the main app.
         try? context.save()
+
+        // Pay the setup milestones so the dashboard the user lands on already
+        // has XP on it. The flags mirror what was actually created — both
+        // steps of the wizard can legitimately be skipped.
+        ProgressService.recordOnboardingCompleted(
+            hasAccount: !accountDrafts.isEmpty,
+            hasBudgetItem: !incomeDrafts.isEmpty || !plannedExpenseDrafts.isEmpty,
+            in: context
+        )
     }
 }
 
@@ -485,6 +494,14 @@ extension AccountDraft {
         }
 
         try? context.save()
+
+        // A hand-corrected balance is the habit this app most wants to
+        // reward — with no bank connection, it's the only thing keeping net
+        // worth true. Awarded on a real change only, so re-saving an
+        // unchanged account earns nothing.
+        if balanceDelta != 0 {
+            ProgressService.recordBalanceUpdate(in: context)
+        }
     }
 }
 

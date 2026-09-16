@@ -103,8 +103,14 @@ shows earned patches/medals.
 
 ## 8. Phased build plan (each phase ships on its own)
 
-1. **XP core** — `UserProgress` + engine + a few XP sources (logging, setup milestones) +
-   levels + a level-up toast + a streak on the dashboard. No cosmetics yet.
+1. ~~**XP core** — `UserProgress` + engine + a few XP sources (logging, setup milestones) +
+   levels + a level-up toast + a streak on the dashboard. No cosmetics yet.~~ **Built.**
+   `Models/XPRules.swift` (the one config file, unit-tested), `Models/UserProgress.swift`,
+   `Services/ProgressService.swift`, `Views/Gamification/`. Sources wired up: logging a
+   transaction (5, capped), correcting a balance (3, capped), the setup milestones (30 each)
+   and streak bonuses at 7/30/100. Daily cap 30, shared across the farmable actions. Level
+   curve: 100 XP to level 2, each level 50 more than the last. See CLAUDE.md's *Gamification*
+   section for how the pieces fit; the rest of this file is still the plan of record.
 2. **Achievements** — the catalog + patches/medals + an achievements screen.
 3. **Mascot customization** — layered mascot rendering + wardrobe screen + a first item set
    (this is where the mascot is re-cut into layers).

@@ -31,6 +31,13 @@ struct HomeView: View {
     @Query(filter: #Predicate<Account> { $0.deletedAt != nil })
     private var deletedAccounts: [Account]
     @Query private var budgetItems: [BudgetItem]
+    /// XP / streak standing. A `@Query` rather than a one-off fetch so the
+    /// dashboard card and the level-up toast both re-render the moment
+    /// `ProgressService` writes — including when the write came from inside a
+    /// sheet that's busy dismissing itself. Sorted oldest-first to match the
+    /// row `ProgressService` resolves to.
+    @Query(sort: \UserProgress.createdAt, order: .forward)
+    private var progressRows: [UserProgress]
     /// Sorted newest first so `fxSnapshots.first` is always the freshest
     /// cached snapshot (or nil if we've never successfully fetched).
     @Query(sort: \FXRateSnapshot.fetchedAt, order: .reverse) private var fxSnapshots: [FXRateSnapshot]
@@ -143,6 +150,17 @@ struct HomeView: View {
             // visually touch.
             .padding(.leading, Theme.Spacing.lg)
             .padding(.bottom, HomeBottomBar.barHeight + HomeBottomBar.homeButtonDiameter / 20 + Theme.Spacing.lg)
+        }
+        // Level-ups are celebrated at the shell level, not on the dashboard:
+        // the XP that triggered one was almost certainly earned in a sheet on
+        // top of some other tab, and the user should see it wherever they are.
+        // The toast clears the flag itself once it has finished animating out.
+        .overlay(alignment: .top) {
+            if let level = progressRows.first?.pendingLevelUpLevel {
+                LevelUpToast(level: level) {
+                    ProgressService.clearPendingLevelUp(in: modelContext)
+                }
+            }
         }
         .sheet(isPresented: $isAddingTransaction) {
             NewTransactionSheet()
@@ -259,6 +277,13 @@ struct HomeView: View {
                     deletedAccountCount: deletedAccounts.count,
                     onShowRecentlyDeleted: { isShowingRecentlyDeleted = true }
                 )
+
+                // Sits under the assets card rather than above it: the
+                // greeting mascot is pinned to the top of the assets card by
+                // a negative inset, and net worth stays the first number on
+                // the screen. Still above the fold now that the assets card
+                // caps itself at three rows.
+                LevelProgressCard(progress: progressRows.first)
 
                 // Swipeable previous/next-period pager. Negative padding
                 // cancels the VStack's gutter so the scroll view spans the
