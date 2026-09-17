@@ -93,6 +93,7 @@
 		5EDEP00100000000000000C2 /* DepositTerms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00100000000000000F1 /* DepositTerms.swift */; };
 		5EDEP00200000000000000B1 /* DepositPayoutService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00200000000000000F1 /* DepositPayoutService.swift */; };
 		5EDEP00300000000000000B1 /* DepositMaturitySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00300000000000000F1 /* DepositMaturitySheet.swift */; };
+		5EDEP00400000000000000B1 /* DepositInfoSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00400000000000000F1 /* DepositInfoSheet.swift */; };
 		5ETRSH0100000000000000C1 /* TrashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F2 /* TrashService.swift */; };
 		5ETRSH0100000000000000C2 /* TrashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F2 /* TrashService.swift */; };
 		5EGAMUP0100000000000C1 /* UserProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EGAM00200000000000000F1 /* UserProgress.swift */; };
@@ -217,6 +218,7 @@
 		5EDEP00100000000000000F1 /* DepositTerms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositTerms.swift; sourceTree = "<group>"; };
 		5EDEP00200000000000000F1 /* DepositPayoutService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositPayoutService.swift; sourceTree = "<group>"; };
 		5EDEP00300000000000000F1 /* DepositMaturitySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositMaturitySheet.swift; sourceTree = "<group>"; };
+		5EDEP00400000000000000F1 /* DepositInfoSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositInfoSheet.swift; sourceTree = "<group>"; };
 		5EPICK0100000000000000F1 /* PickerRowLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerRowLabel.swift; sourceTree = "<group>"; };
 		5EFILT0100000000000000F1 /* TransactionFilters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionFilters.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F1 /* TransactionAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionAttachment.swift; sourceTree = "<group>"; };
@@ -490,6 +492,7 @@
 				5ED3E0F62FD1BEE2003083F0 /* HomeView.swift */,
 				5E0A2E852FE04B62004441B5 /* BudgetEditorSheet.swift */,
 				5EDEP00300000000000000F1 /* DepositMaturitySheet.swift */,
+				5EDEP00400000000000000F1 /* DepositInfoSheet.swift */,
 			);
 			path = Home;
 			sourceTree = "<group>";
@@ -713,6 +716,7 @@
 				5E31E54F2FD16B6D00FF83C8 /* SharedEnums.swift in Sources */,
 				5E0A2E862FE04B62004441B5 /* BudgetEditorSheet.swift in Sources */,
 				5EDEP00300000000000000B1 /* DepositMaturitySheet.swift in Sources */,
+				5EDEP00400000000000000B1 /* DepositInfoSheet.swift in Sources */,
 				5E2626C82FD1846400180F49 /* WelcomeView.swift in Sources */,
 				5EA1C0022FDA200000000002 /* WelcomeMascotView.swift in Sources */,
 				5E2626C92FD1846400180F49 /* AccountsStepView.swift in Sources */,

@@ -84,6 +84,24 @@ enum AccountType: String, Codable, CaseIterable, Identifiable {
         }
     }
 
+    /// Whether an account of this type can carry the favourite star.
+    ///
+    /// "Favourite" means *the account a new transaction defaults to* — the
+    /// one you log against without thinking. A deposit is money locked away
+    /// until maturity: the user doesn't spend from it, and its only movement
+    /// is the payout the app writes itself. Offering it as the default would
+    /// hand the transaction sheet an account the user can never sensibly
+    /// pick, so deposits are excluded from the star everywhere.
+    ///
+    /// Like `sortRank` and `isLiquid`, deliberately exhaustive with no
+    /// `default`, so a new account type has to answer this question too.
+    var allowsFavorite: Bool {
+        switch self {
+        case .current, .digitalWallet, .investment: return true
+        case .savings:                              return false
+        }
+    }
+
     /// Decode unknown raw values to a safe fallback instead of throwing.
     ///
     /// SwiftData persists this enum as a composite (Codable) attribute, so

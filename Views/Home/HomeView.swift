@@ -92,6 +92,10 @@ struct HomeView: View {
     /// month in `UserDefaults`; that one is a warning, this one is a task
     /// that still needs doing.)
     @State private var postponedDeposits: Set<PersistentIdentifier> = []
+    /// The deposit whose read-only detail sheet is open, if any. Item-based
+    /// like the maturity prompt, so the sheet always has a deposit to describe
+    /// and dismissing clears it in one place.
+    @State private var depositShowingInfo: Account?
     /// The deposit paid out automatically this launch, surfaced as a quiet
     /// confirmation so money never moves without the user being told.
     @State private var autoPaidDeposit: Account?
@@ -234,6 +238,16 @@ struct HomeView: View {
         .task {
             TrashService.purgeExpired(in: modelContext)
         }
+        // Heal rows that predate the "deposits can't be favourite" rule. The
+        // write paths all enforce it now, so this only ever fires once, for a
+        // savings account starred before the rule existed — after which the
+        // guard above keeps it clear.
+        .task {
+            let healed = accounts.reduce(into: false) { changed, account in
+                changed = account.clearFavoriteIfNotAllowed() || changed
+            }
+            if healed { try? modelContext.save() }
+        }
     }
 
     /// Dashboard branch of the tab switch — the original home-screen
@@ -269,6 +283,12 @@ struct HomeView: View {
                         // about the row it owns. Toggling off clears the
                         // flag without picking a replacement, since the
                         // sheet falls back to `accounts.first` anyway.
+                        // Deposits are excluded from the star entirely
+                        // (`AccountType.allowsFavorite`). The card doesn't
+                        // offer the swipe for one, so this is belt-and-braces
+                        // — but it keeps the invariant true at the write point
+                        // rather than resting on a view remembering it.
+                        guard account.canBeFavorite else { return }
                         withAnimation {
                             let willBeFavorite = !account.isFavorite
                             if willBeFavorite {
@@ -280,6 +300,7 @@ struct HomeView: View {
                             try? modelContext.save()
                         }
                     },
+                    onShowDepositInfo: { depositShowingInfo = $0 },
                     onAddAccount: { isAddingAccount = true },
                     deletedAccountCount: deletedAccounts.count,
                     onShowRecentlyDeleted: { isShowingRecentlyDeleted = true }
@@ -343,6 +364,9 @@ struct HomeView: View {
         // the moment the user is looking at their money anyway.
         .task(id: maturedDepositIDs) {
             settleMaturedDeposits()
+        }
+        .sheet(item: $depositShowingInfo) { deposit in
+            DepositInfoSheet(deposit: deposit)
         }
         .sheet(item: $depositAwaitingPayout) { deposit in
             DepositMaturitySheet(

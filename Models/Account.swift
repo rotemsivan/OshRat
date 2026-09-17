@@ -148,6 +148,34 @@ extension Account {
         )
     }
 
+    /// True for a savings account — a *deposit* (פיקדון) in this app's
+    /// language, whether or not terms have been attached to it yet. Distinct
+    /// from `depositTerms != nil`, which additionally requires a rate or a
+    /// maturity date: an open-ended pot is still a deposit account, it just
+    /// has nothing to mature.
+    var isDeposit: Bool { type == .savings }
+
+    /// Whether this account may carry the favourite star — see
+    /// `AccountType.allowsFavorite`. Every place that *sets* the flag checks
+    /// this first, so the invariant is maintained at write time rather than
+    /// defended by each view.
+    var canBeFavorite: Bool { type.allowsFavorite }
+
+    /// Clears a star this account is no longer entitled to, returning whether
+    /// anything changed.
+    ///
+    /// Needed because the rule arrived after the data did: a savings account
+    /// starred before deposits were excluded still holds `isFavorite == true`
+    /// in the store, and it would keep drawing a star and keep winning the
+    /// "default account" lookups. Healing the row once is simpler than making
+    /// every reader defend itself.
+    @discardableResult
+    func clearFavoriteIfNotAllowed() -> Bool {
+        guard isFavorite, !canBeFavorite else { return false }
+        isFavorite = false
+        return true
+    }
+
     /// True when this deposit has reached its maturity date and the money
     /// hasn't been moved out yet — i.e. it's owed a payout. Soft-deleted
     /// accounts are excluded: a deposit in the trash shouldn't nag.

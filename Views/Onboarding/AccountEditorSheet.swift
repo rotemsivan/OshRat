@@ -78,7 +78,14 @@ struct AccountEditorSheet: View {
                         // separate from — the name field. RTL reads as
                         // rat → small gap → boxed field. Selecting it fires
                         // the window-wide glow below.
-                        FavouriteRatToggle(isFavorite: $draft.isFavorite)
+                        //
+                        // Deposits can't be the go-to account (see
+                        // `AccountType.allowsFavorite`), so the rat simply
+                        // isn't offered for them — the field then takes the
+                        // full row width rather than leaving a dead gap.
+                        if draft.type.allowsFavorite {
+                            FavouriteRatToggle(isFavorite: $draft.isFavorite)
+                        }
                         HebrewTextField("שם החשבון", text: $draft.name, submitLabel: .next)
                             .padding(Theme.Spacing.md)
                             .background(Theme.Colors.surface)
@@ -114,6 +121,11 @@ struct AccountEditorSheet: View {
                 // its segments, so bouncing the selection is the honest way to
                 // express "visible but not yet available".
                 .onChange(of: draft.type) { previous, selected in
+                    // Switching *to* a deposit drops the star: the toggle
+                    // disappears with the type change, so without this the
+                    // flag would stay set on a draft the user can no longer
+                    // see or clear, and save it onto the account.
+                    if !selected.allowsFavorite { draft.isFavorite = false }
                     guard selected == .investment, originalType != .investment else { return }
                     draft.type = previous == .investment ? .current : previous
                 }

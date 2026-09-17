@@ -87,9 +87,12 @@ private struct AccountDraftRow: View {
                         .foregroundStyle(Theme.Colors.textPrimary)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                    if draft.isFavorite {
+                    if draft.isFavorite && draft.type.allowsFavorite {
                         // Tiny inline star so the favourite is visible
-                        // at a glance without opening the editor.
+                        // at a glance without opening the editor. Deposits
+                        // never show one — they can't be the go-to account,
+                        // and a draft switched to savings may still carry a
+                        // stale flag until it's committed.
                         Image(systemName: "star.fill")
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(.yellow)

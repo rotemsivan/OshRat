@@ -30,6 +30,10 @@ struct AssetsSummaryCard: View {
     /// the others — that exclusivity rule lives at the data layer, not
     /// inside this card.
     let onToggleFavorite: (Account) -> Void
+    /// Opens the read-only deposit detail sheet for a savings account — its
+    /// terms and its ledger history. Parent owns the sheet, like every other
+    /// action here.
+    let onShowDepositInfo: (Account) -> Void
     /// Opens the account editor in "new" mode. The card only signals the
     /// intent; `HomeView` owns the sheet and the SwiftData insert, exactly
     /// like the edit/delete/favourite handlers above.
@@ -249,16 +253,24 @@ struct AssetsSummaryCard: View {
     private func rows(for accounts: [Account]) -> some View {
         List {
             ForEach(accounts) { account in
-                // Tap-to-edit, unified with the budget and transaction
-                // lists. `.plain` so the row keeps its custom styling
-                // rather than taking on a system button tint.
-                Button {
-                    onEditAccount(account)
-                } label: {
-                    AccountSummaryRow(account: account)
+                // Two separate hit targets, side by side rather than nested:
+                // a button inside a button makes both fire on a tap, so the
+                // info affordance sits *beside* the tap-to-edit row instead
+                // of inside its label.
+                HStack(spacing: Theme.Spacing.xs) {
+                    // Tap-to-edit, unified with the budget and transaction
+                    // lists. `.plain` so the row keeps its custom styling
+                    // rather than taking on a system button tint.
+                    Button {
+                        onEditAccount(account)
+                    } label: {
+                        AccountSummaryRow(account: account)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint(Text("הקש לעריכה"))
+
+                    depositInfoButton(for: account)
                 }
-                .buttonStyle(.plain)
-                .accessibilityHint(Text("הקש לעריכה"))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(
@@ -287,13 +299,19 @@ struct AssetsSummaryCard: View {
                     // opposite delete, so favourite doesn't compete with
                     // the destructive action. Full swipe makes the common
                     // case ("make this my go-to") a single gesture.
-                    Button {
-                        onToggleFavorite(account)
-                    } label: {
-                        Image(systemName: account.isFavorite ? "star.slash.fill" : "star.fill")
+                    //
+                    // Absent for a deposit: it can't be the go-to account
+                    // (`AccountType.allowsFavorite`), so offering the swipe
+                    // would promise something the write path then refuses.
+                    if account.canBeFavorite {
+                        Button {
+                            onToggleFavorite(account)
+                        } label: {
+                            Image(systemName: account.isFavorite ? "star.slash.fill" : "star.fill")
+                        }
+                        .tint(.yellow)
+                        .accessibilityLabel(Text(account.isFavorite ? "ביטול מועדף" : "מועדף"))
                     }
-                    .tint(.yellow)
-                    .accessibilityLabel(Text(account.isFavorite ? "ביטול מועדף" : "מועדף"))
                 }
             }
         }
@@ -304,6 +322,28 @@ struct AssetsSummaryCard: View {
         // Tuned to fit the body+caption stack with breathing room; if
         // we add a third line to the row, bump this value to match.
         .frame(height: CGFloat(accounts.count) * Self.estimatedRowHeight)
+    }
+
+    /// The little "i" beside a deposit row, opening its detail sheet.
+    /// Deposits only: it's the one account type with terms and a payout story
+    /// worth reading, and every row carrying one would just add noise.
+    @ViewBuilder
+    private func depositInfoButton(for account: Account) -> some View {
+        if account.isDeposit {
+            Button {
+                onShowDepositInfo(account)
+            } label: {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Theme.Colors.accent)
+                    // A bigger tap target than the glyph, without the glyph
+                    // itself growing and unbalancing the row.
+                    .frame(width: 28, height: 28)
+                    .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("פרטי הפיקדון"))
+        }
     }
 
     /// A group's name and its own subtotal, converted into the preferred
@@ -479,14 +519,19 @@ private struct AccountSummaryRow: View {
                         .foregroundStyle(Theme.Colors.textPrimary)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                    if account.isFavorite {
+                    if account.isFavorite && account.canBeFavorite {
                         // Tiny inline star so the favourite is visible
-                        // at a glance without opening the editor.
+                        // at a glance without opening the editor. Gated on
+                        // `canBeFavorite` as well as the flag so a deposit
+                        // starred before the rule existed stops drawing one
+                        // even before the store has been healed.
                         Image(systemName: "star.fill")
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(.yellow)
                             .accessibilityLabel(Text("חשבון מועדף"))
                     }
+
+                    pendingPayoutBadge
                 }
                 Text(subtitle)
                     .font(Theme.Typography.caption)
@@ -506,6 +551,28 @@ private struct AccountSummaryRow: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
                 .layoutPriority(1)
+        }
+    }
+
+    /// "Waiting to be paid out" — shown once a deposit has passed its
+    /// maturity date with the money still sitting in it.
+    ///
+    /// Not conditioned on `autoPayoutOnMaturity`: a deposit set to transfer
+    /// automatically is settled by `HomeView.settleMaturedDeposits` as soon as
+    /// the dashboard appears, so it simply isn't in this state by the time
+    /// anyone reads the row. When one *does* linger — its payout account was
+    /// deleted, or two currencies with no FX rate to bridge them — it needs
+    /// the user's attention more than a manual one does, not less.
+    @ViewBuilder
+    private var pendingPayoutBadge: some View {
+        if account.isAwaitingPayout() {
+            Text("ממתין לפדיון")
+                .font(Theme.Typography.captionSmall)
+                .foregroundStyle(Theme.Colors.wants)
+                .padding(.horizontal, Theme.Spacing.xs)
+                .padding(.vertical, 2)
+                .background(Theme.Colors.wants.opacity(0.15), in: Capsule())
+                .fixedSize()
         }
     }
 
@@ -549,8 +616,10 @@ private struct AccountSummaryRow: View {
         }
         if account.payoutCompletedAt != nil {
             parts.append("נפדה")
-        } else if terms.isMatured() {
-            parts.append("הגיע לפדיון")
+        } else if account.isAwaitingPayout() {
+            // Nothing: the "ממתין לפדיון" badge beside the name already says
+            // this, and repeating it in the subtitle read as two separate
+            // facts about the same deposit.
         } else if let maturity = account.maturityDate {
             // Numeric, not abbreviated: the row subtitle is one line, and
             // "עד 13 במרץ 2028" ran past it where "עד 13.3.2028" fits.
@@ -570,6 +639,7 @@ private struct AccountSummaryRow: View {
             onEditAccount: { _ in },
             onDeleteAccount: { _ in },
             onToggleFavorite: { _ in },
+            onShowDepositInfo: { _ in },
             onAddAccount: {},
             deletedAccountCount: 0,
             onShowRecentlyDeleted: {}

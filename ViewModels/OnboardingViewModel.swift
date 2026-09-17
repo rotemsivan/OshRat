@@ -99,9 +99,13 @@ final class OnboardingViewModel {
     /// Called from add/update so the rule is enforced wherever drafts
     /// flow in from the editor sheet.
     private func enforceSingleFavourite(promoted id: UUID) {
-        guard let promotedIndex = accountDrafts.firstIndex(where: { $0.id == id }),
-              accountDrafts[promotedIndex].isFavorite
-        else { return }
+        guard let promotedIndex = accountDrafts.firstIndex(where: { $0.id == id }) else { return }
+        // A deposit can't hold the star at all — drop it here so the list
+        // stops drawing one, rather than only at commit time.
+        if !accountDrafts[promotedIndex].type.allowsFavorite {
+            accountDrafts[promotedIndex].isFavorite = false
+        }
+        guard accountDrafts[promotedIndex].isFavorite else { return }
         for index in accountDrafts.indices where index != promotedIndex {
             if accountDrafts[index].isFavorite {
                 accountDrafts[index].isFavorite = false
@@ -171,7 +175,13 @@ final class OnboardingViewModel {
         // need to be re-checked at every call site that creates accounts.
         var favouriteAlreadyAssigned = false
         for draft in accountDrafts {
-            let shouldBeFavourite = draft.isFavorite && !favouriteAlreadyAssigned
+            // `allowsFavorite` filters deposits out: a savings draft can carry
+            // a stale star from before its type was switched, and honouring it
+            // would make a locked-away deposit the default account for every
+            // new transaction.
+            let shouldBeFavourite = draft.isFavorite
+                && draft.type.allowsFavorite
+                && !favouriteAlreadyAssigned
             if shouldBeFavourite { favouriteAlreadyAssigned = true }
             let account = Account(
                 name: draft.name.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -421,14 +431,18 @@ extension AccountDraft {
         // demote every other account first so the invariant holds.
         // We do this *before* setting the flag on `account` itself so
         // we don't accidentally clear it again in the same loop.
-        if isFavorite {
+        // A deposit never takes the star (`AccountType.allowsFavorite`), so
+        // resolve that first — otherwise saving a savings account as favourite
+        // would demote the real favourite and leave nothing holding it.
+        let keepsFavorite = isFavorite && type.allowsFavorite
+        if keepsFavorite {
             if let others = try? context.fetch(FetchDescriptor<Account>()) {
                 for other in others where other.persistentModelID != account.persistentModelID {
                     if other.isFavorite { other.isFavorite = false }
                 }
             }
         }
-        account.isFavorite = isFavorite
+        account.isFavorite = keepsFavorite
 
         // Deposit terms, cleared when the account isn't (or is no longer) a
         // savings account so a type switch can't leave a stale maturity date
