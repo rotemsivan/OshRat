@@ -301,6 +301,15 @@ struct HomeView: View {
                         }
                     },
                     onShowDepositInfo: { depositShowingInfo = $0 },
+                    // Opens the maturity prompt on demand. Deliberately also
+                    // clears the deposit from `postponedDeposits`: the user
+                    // reaching for the badge *is* them taking it off "later",
+                    // and leaving it postponed would mean a payout they
+                    // cancelled from here never re-prompts this session.
+                    onShowPayout: { deposit in
+                        postponedDeposits.remove(deposit.persistentModelID)
+                        depositAwaitingPayout = deposit
+                    },
                     onAddAccount: { isAddingAccount = true },
                     deletedAccountCount: deletedAccounts.count,
                     onShowRecentlyDeleted: { isShowingRecentlyDeleted = true }

@@ -34,6 +34,11 @@ struct AssetsSummaryCard: View {
     /// terms and its ledger history. Parent owns the sheet, like every other
     /// action here.
     let onShowDepositInfo: (Account) -> Void
+    /// Raises the maturity prompt for a deposit that's owed a payout — the
+    /// "ממתין לפדיון" badge's action. Matters most after the user has said
+    /// "לא עכשיו" to the automatic prompt: without this the badge is a
+    /// reminder with no way to act on it until the next launch.
+    let onShowPayout: (Account) -> Void
     /// Opens the account editor in "new" mode. The card only signals the
     /// intent; `HomeView` owns the sheet and the SwiftData insert, exactly
     /// like the edit/delete/favourite handlers above.
@@ -253,20 +258,27 @@ struct AssetsSummaryCard: View {
     private func rows(for accounts: [Account]) -> some View {
         List {
             ForEach(accounts) { account in
-                // Two separate hit targets, side by side rather than nested:
-                // a button inside a button makes both fire on a tap, so the
-                // info affordance sits *beside* the tap-to-edit row instead
-                // of inside its label.
+                // The row carries three separate taps — edit, pay out, and
+                // "what is this deposit" — so the primary one is a *gesture*
+                // rather than a `Button` wrapping the whole row. A button
+                // nested inside another button's label fires both; a button
+                // inside a plain view with its own tap gesture doesn't, since
+                // the button claims its own bounds and the gesture takes the
+                // rest. That's what lets the "ממתין לפדיון" badge stay beside
+                // the account name, where it reads, instead of being exiled to
+                // the trailing edge to keep it tappable.
                 HStack(spacing: Theme.Spacing.xs) {
                     // Tap-to-edit, unified with the budget and transaction
-                    // lists. `.plain` so the row keeps its custom styling
-                    // rather than taking on a system button tint.
-                    Button {
-                        onEditAccount(account)
-                    } label: {
-                        AccountSummaryRow(account: account)
-                    }
-                    .buttonStyle(.plain)
+                    // lists.
+                    AccountSummaryRow(
+                        account: account,
+                        onPayoutTap: { onShowPayout(account) }
+                    )
+                    .contentShape(.rect)
+                    .onTapGesture { onEditAccount(account) }
+                    // `.onTapGesture` carries no button semantics of its own,
+                    // so VoiceOver is told explicitly what the row is.
+                    .accessibilityAddTraits(.isButton)
                     .accessibilityHint(Text("הקש לעריכה"))
 
                     depositInfoButton(for: account)
@@ -505,6 +517,9 @@ struct AssetsSummaryCard: View {
 /// up by the parent.
 private struct AccountSummaryRow: View {
     let account: Account
+    /// Tapped on the "ממתין לפדיון" badge. Only ever reachable when the badge
+    /// is drawn, i.e. when the deposit is actually owed a payout.
+    let onPayoutTap: () -> Void
 
     var body: some View {
         HStack(spacing: Theme.Spacing.sm) {
@@ -563,16 +578,29 @@ private struct AccountSummaryRow: View {
     /// anyone reads the row. When one *does* linger — its payout account was
     /// deleted, or two currencies with no FX rate to bridge them — it needs
     /// the user's attention more than a manual one does, not less.
+    /// Tappable: it opens the maturity prompt, so the reminder and the way to
+    /// act on it are the same control. `.plain` keeps the capsule's own
+    /// styling instead of taking a system tint, and the chevron marks it as
+    /// something to press rather than just a status colour.
     @ViewBuilder
     private var pendingPayoutBadge: some View {
         if account.isAwaitingPayout() {
-            Text("ממתין לפדיון")
+            Button(action: onPayoutTap) {
+                HStack(spacing: 2) {
+                    Text("ממתין לפדיון")
+                    Image(systemName: "chevron.forward")
+                        .font(.system(size: 8, weight: .bold))
+                }
                 .font(Theme.Typography.captionSmall)
                 .foregroundStyle(Theme.Colors.wants)
                 .padding(.horizontal, Theme.Spacing.xs)
                 .padding(.vertical, 2)
                 .background(Theme.Colors.wants.opacity(0.15), in: Capsule())
+                .contentShape(Capsule())
                 .fixedSize()
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint(Text("הקש להעברת הכסף"))
         }
     }
 
@@ -640,6 +668,7 @@ private struct AccountSummaryRow: View {
             onDeleteAccount: { _ in },
             onToggleFavorite: { _ in },
             onShowDepositInfo: { _ in },
+            onShowPayout: { _ in },
             onAddAccount: {},
             deletedAccountCount: 0,
             onShowRecentlyDeleted: {}
