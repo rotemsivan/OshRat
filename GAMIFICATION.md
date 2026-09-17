@@ -86,15 +86,52 @@ background  →  base body  →  outfit  →  hat  →  accessory (front)
 ```
 Each slot shows at most one equipped item (or nothing).
 
+**Where the art lives** (`OshRat/Assets.xcassets`, folder groups, **no namespace** — names stay flat):
+```
+Mascots/Classic/Poses/   rat-mascot-{wave,coin,point,present,thumbsup}          (400×520 bust)
+Mascots/Classic/Rig/     rat-part-{head,body,tail,leg-left,leg-right}, rat-fullbody-*  (360×660)
+Mascots/Bare/Poses/      bare-bust-{base,wave,present,thumbsup}                 (400×520 bust)
+Mascots/Bare/Rig/        bare-fullbody-{base,wave,confident,thumbsup,cheer}     (360×660)
+Accessories/Hats/  Accessories/Outfits/  Accessories/Props/  Accessories/Backgrounds/
+```
+The subfolder says which canvas: `Poses/` is the 400×520 bust crop for spot art, `Rig/` is the
+360×660 full body every wardrobe layer is drawn against. A further character or style is a new
+folder beside these with its own name prefix; `Props` is the front *accessory* slot. Because
+names are flat they must be unique catalog-wide, and an item's folder can change without
+touching code or its catalog key.
+
+**`Bare` is the wardrobe base** — the hatless, suitless body this phase needs, already on the
+shared canvas, so the re-cut art task below is mostly done for it. Its poses differ **only in
+one arm**: the skull, both ears, torso, legs, feet and tail sit at identical coordinates in all
+five (33–35 of 37 drawing elements are byte-identical to `bare-fullbody-base`). Consequences
+for the art:
+- a **hat, glasses or background** drawn once registers on every pose — draw it against
+  `bare-fullbody-base` and it fits the rest for free;
+- a **sleeved outfit** does not, since one sleeve has to follow the moving arm. Either keep
+  outfits torso-only, or cut the sleeve as a per-pose layer.
+- the bust is a **different viewport onto the same coordinates**, not a redrawing: the ears sit
+  at `cx=152/248 cy=108 r=42` and the skull path starts `M150 98 L250 98 …` in *both*
+  `bare-fullbody-*` and `bare-bust-*`. Only the viewBox differs (`0 0 360 660` vs `0 0 400 520`).
+  SwiftUI scales each `Image` to its own frame, so a 360×660 hat overlaid on a 400×520 bust
+  still misregisters — **but** making the bust variant is a one-line edit: copy the hat SVG and
+  change its viewBox. No repositioning, no redrawing.
+
 **Naming convention** (asset name = catalog key):
-`mascot-base`, `item-hat-bonnet`, `item-hat-tophat`, `item-outfit-navysuit`,
+the classic rat keeps its `rat-` prefix; wardrobe items are
+`item-hat-bonnet`, `item-hat-tophat`, `item-outfit-navysuit`,
 `item-accessory-glasses`, `item-bg-gold`, …
+
+**Rarity** is a field on the catalog entry in code, not a folder — it gets re-tuned during
+balancing, while an item's slot never changes.
 
 **Extensibility:** adding an item later = one new SVG on the shared canvas + one catalog entry.
 No change to the rendering code.
 
 **Art task (when this phase starts):** re-cut the existing mascot into a **hatless swappable
 base** + separate hat / suit layers on the shared canvas, then design new items the same way.
+Concretely: `rat-part-body` currently paints the navy suit (three `url(#suit)` fills) straight
+onto the body, so today's `Rig/` is an animation rig, not a swappable base — the outfit slot
+can't show anything until those fills move out into their own layer.
 
 **Wardrobe screen:** large live mascot preview at top; below it, sections per slot (Hats,
 Outfits, Accessories, Backgrounds) as grids; locked items greyed with an unlock hint; tapping an

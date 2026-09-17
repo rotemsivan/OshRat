@@ -131,6 +131,21 @@ There is **no Settings screen yet** — preferences are currently hardcoded to s
 - One type per file *ideally*, but tightly-coupled private helper views/types are co-located with their feature file (matches the existing code).
 - Keep views small; push logic into view models / testable value types (e.g. `AnalyticsReport`, `BudgetSchedule`) and services.
 - Comment the *why*, not the obvious *what*. When you add a dependency or make a structural choice, say so and explain why.
+- **Art assets (`OshRat/Assets.xcassets`).** The catalog sits inside the synchronized `OshRat/` group, so adding or moving art needs **no** pbxproj edit (unlike code — see the next bullet). Mascot and wardrobe art is filed by folder group:
+  ```
+  Mascots/<Character>/Poses/   400×520 bust crop — spot art for toasts, headers, onboarding
+  Mascots/<Character>/Rig/     360×660 full body — the shared wardrobe canvas
+  Accessories/{Hats,Outfits,Props,Backgrounds}/   wardrobe items, one folder per slot
+  ```
+  **The subfolder tells you which canvas to draw on** — that's the whole point of the split, because layers only register when they share a viewBox. `Props` is the plan's front *accessory* slot (glasses, a coin, a bag), named so it doesn't read as `Accessories/Accessories`.
+  Asset names are `<character>-<crop>-<pose>`. Two characters so far:
+  - **`Classic`** — the suited, hatted rat in today's screens. Grandfathered names: `rat-mascot-*` (bust), `rat-fullbody-*` and the articulated `rat-part-*` (the Analytics rig) on the 360×660 canvas.
+  - **`Bare`** — the hatless, suitless body the wardrobe dresses. `bare-bust-{base,wave,present,thumbsup}` and `bare-fullbody-{base,wave,confident,thumbsup,cheer}`.
+
+  A new character or style is a new folder beside them with its own prefix.
+  **Within a character the poses differ only in one arm** — for Bare, 33–35 of 37 drawing elements are byte-identical to `bare-fullbody-base`, with the skull, both ears, torso, legs, feet and tail at identical coordinates in all five. So one hat, glasses or background asset registers on *every* pose; a **sleeved** outfit will not, since a sleeve has to track the moving arm. Keep outfits torso-only or cut the sleeve per pose.
+  **None of these folders provide a namespace**, deliberately: asset names stay flat, so `Image("rat-mascot-wave")` keeps working no matter which folder the file sits in, and the asset name stays usable as the catalog key. The cost is that **names must be unique across the whole catalog** — prefix per character, `item-<slot>-<name>` for wardrobe items. Moving art between folders is therefore free; verify a move with `xcrun assetutil --info <built>.app/Assets.car` rather than a build alone, which passes either way.
+  **Rarity is a field in the code catalog, not a folder.** Rarity is a balancing decision that gets re-tuned; folders are for the slot, which never changes. (Per GAMIFICATION.md the item catalog lives in code, not the database.)
 - **Adding files (gotcha):** only the `OshRat/` folder is a synchronized Xcode group. New files under `Models/`, `Views/`, `ViewModels/`, `Services/`, `DesignSystem/` are **not** auto-detected — register each in `OshRat.xcodeproj/project.pbxproj` by hand (a `PBXBuildFile`, a `PBXFileReference`, an entry in the parent group's `children`, and an entry in the target's `PBXSourcesBuildPhase`). Validate with `plutil -lint OshRat.xcodeproj/project.pbxproj`.
 - **Build check:** `xcodebuild build -scheme OshRat -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`.
 - **Paged `ScrollView` gotcha:** every mounted page's body runs on each render, so per-page work multiplies by the page count — `HomeView.report(for:)` rebuilds a `BudgetVsActual` from the entire ledger, and `.defaultScrollAnchor(.center)` measures the whole row, which defeats `LazyHStack` — so the row is a plain `HStack` (a lazy one sized itself from the pages built so far and clipped the tallest card's bottom off). A ±240-period window meant ~481 ledger scans per render and a pinned main thread on a real device. Keep the window small and re-base it around the visible page instead of mounting a wide range.
