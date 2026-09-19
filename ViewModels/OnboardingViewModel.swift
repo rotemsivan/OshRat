@@ -113,12 +113,39 @@ final class OnboardingViewModel {
         }
     }
 
+    /// Accounts a deposit draft could pay out into, as pickable options.
+    ///
+    /// Mirrors `HomeView.payoutCandidates` — עו״ש accounts only, never the
+    /// deposit itself — but over the *drafts*, because during onboarding
+    /// nothing is persisted yet. Without this the payout picker had nothing to
+    /// offer and fell back to "ייבחר בפדיון", so a user who set up a deposit in
+    /// the wizard couldn't choose its target at all until after the first
+    /// launch.
+    func payoutCandidates(excluding draft: AccountDraft) -> [PayoutCandidate] {
+        accountDrafts
+            .filter { $0.id != draft.id && $0.type == .current }
+            .map { PayoutCandidate(id: .draft($0.id), name: $0.name) }
+    }
+
     func deleteAccounts(at offsets: IndexSet) {
         // `remove(atOffsets:)` is a SwiftUI extension; doing it by hand here
         // keeps the view model dependency-free. Sort descending so each
         // removal doesn't shift the indices we still have to delete.
+        var removedIDs: Set<UUID> = []
         for index in offsets.sorted(by: >) {
+            removedIDs.insert(accountDrafts[index].id)
             accountDrafts.remove(at: index)
+        }
+
+        // A deposit may have been pointed at one of the accounts just removed.
+        // Clear the dangling link rather than leaving the picker selected on
+        // something that no longer exists (which would render blank and commit
+        // as no target at all).
+        for index in accountDrafts.indices {
+            guard case .draft(let targetID) = accountDrafts[index].payoutTarget,
+                  removedIDs.contains(targetID)
+            else { continue }
+            accountDrafts[index].payoutTarget = nil
         }
     }
 
@@ -174,6 +201,11 @@ final class OnboardingViewModel {
         // silently clear the rest. The rule lives here so it doesn't
         // need to be re-checked at every call site that creates accounts.
         var favouriteAlreadyAssigned = false
+        // Drafts point at each other by `id` (see `PayoutTargetRef.draft`), so
+        // the accounts have to exist before those links can be resolved.
+        // Remember which draft produced which row and wire the payout targets
+        // in a second pass below.
+        var accountsByDraftID: [UUID: Account] = [:]
         for draft in accountDrafts {
             // `allowsFavorite` filters deposits out: a savings draft can carry
             // a stale star from before its type was switched, and honouring it
@@ -192,13 +224,13 @@ final class OnboardingViewModel {
                 isFavorite: shouldBeFavourite
             )
             context.insert(account)
+            accountsByDraftID[draft.id] = account
 
-            // Deposit terms ride along on savings accounts. The payout
-            // target is deliberately *not* set here: during onboarding no
-            // account is persisted yet, so there's nothing to point at. The
-            // maturity prompt asks for a target when the day comes, and the
-            // account editor can set one any time before that.
+            // Deposit terms ride along on savings accounts. The payout target
+            // is the one field that can't be set yet — it may point at another
+            // draft in this very loop — so it waits for the second pass below.
             if draft.type == .savings {
+                account.depositKind = draft.depositKind
                 account.interestRatePercent = draft.storedInterestRate
                 account.depositStartDate = draft.depositStartDate
                 account.maturityDate = draft.storedMaturityDate
@@ -224,6 +256,22 @@ final class OnboardingViewModel {
                     holding.account = account
                     context.insert(holding)
                 }
+            }
+        }
+
+        // Second pass: point each deposit at the account it pays out into, now
+        // that every draft has a row. A draft can only reference another draft
+        // here (nothing else exists during onboarding), but `.saved` is honoured
+        // too so the same draft type works from the dashboard's add flow.
+        for draft in accountDrafts where draft.type == .savings {
+            guard let account = accountsByDraftID[draft.id],
+                  let target = draft.payoutTarget
+            else { continue }
+            switch target {
+            case .draft(let draftID):
+                account.payoutAccount = accountsByDraftID[draftID]
+            case .saved(let id):
+                account.payoutAccount = context.model(for: id) as? Account
             }
         }
 
@@ -269,6 +317,41 @@ enum OnboardingStep: CaseIterable {
     case budget
 }
 
+// MARK: - Payout target
+
+/// Which account a deposit pays out into, in a form a *draft* can hold.
+///
+/// Two cases because the account editor runs in two worlds. From the dashboard
+/// every candidate is already in the store and can be named by its
+/// `PersistentIdentifier`. During onboarding nothing is persisted yet, so the
+/// only thing a deposit draft can point at is another draft in the same wizard
+/// run, by its `UUID` — resolved into a real relationship in
+/// `OnboardingViewModel.commit` once both rows exist.
+///
+/// Co-located with `AccountDraft` (rather than in its own file) because it's
+/// part of the draft's vocabulary and has no meaning without it — the same
+/// rule the rest of the project follows for tightly-coupled helper types.
+enum PayoutTargetRef: Hashable {
+    case saved(PersistentIdentifier)
+    case draft(UUID)
+}
+
+/// One pickable payout target: a reference plus the name to show for it.
+///
+/// The editor sheet takes these rather than `Account` models so it never holds
+/// a persisted object it might outlive, and so the onboarding and dashboard
+/// flows can feed the same picker from completely different sources.
+struct PayoutCandidate: Identifiable, Hashable {
+    let id: PayoutTargetRef
+    let name: String
+
+    /// What the picker shows. Unnamed accounts are common mid-onboarding.
+    var displayName: String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "ללא שם" : trimmed
+    }
+}
+
 // MARK: - Account & Holding drafts
 
 /// A draft account being built up in the wizard. We keep this as a plain
@@ -297,6 +380,10 @@ struct AccountDraft: Identifiable, Hashable {
     // Mirrors the same block on `Account`. Ignored unless `type == .savings`,
     // and all-empty is a valid open-ended savings pot.
 
+    /// One-time deposit, or one the user keeps adding to — see `DepositKind`.
+    /// On a replenishable deposit the rate and term below are the *defaults*
+    /// each new sub-deposit is created with.
+    var depositKind: DepositKind
     /// Annual nominal rate as a percentage — `4.2` means 4.2% a year. Zero
     /// means "no rate agreed", which is what a plain savings pot has. Kept
     /// non-optional (unlike `Account`'s field, which is optional for
@@ -313,13 +400,13 @@ struct AccountDraft: Identifiable, Hashable {
     var maturityDate: Date
     var autoPayoutOnMaturity: Bool
 
-    /// Which account the deposit pays out into, held as the *persistent*
-    /// identifier rather than the `Account` itself so the draft stays a plain
-    /// `Hashable` value and never keeps a model object alive. `nil` means
-    /// "not decided" — during onboarding nothing is persisted yet, so there's
-    /// nothing to point at and the picker says so; the maturity prompt then
-    /// asks for a target instead of guessing one.
-    var payoutAccountID: PersistentIdentifier?
+    /// Which account the deposit pays out into, held as a *reference* rather
+    /// than the `Account` itself so the draft stays a plain `Hashable` value
+    /// and never keeps a model object alive. It can point at a saved account
+    /// (the dashboard's flows) or at another draft in the same wizard run
+    /// (onboarding) — see `PayoutTargetRef`. `nil` means "not decided", and the
+    /// maturity prompt asks for a target instead of guessing one.
+    var payoutTarget: PayoutTargetRef?
 
     init(
         id: UUID = UUID(),
@@ -329,12 +416,13 @@ struct AccountDraft: Identifiable, Hashable {
         currencyCode: String = "ILS",
         holdings: [HoldingDraft] = [],
         isFavorite: Bool = false,
+        depositKind: DepositKind = .oneTime,
         interestRatePercent: Decimal = 0,
         depositStartDate: Date = .now,
         hasMaturityDate: Bool = false,
         maturityDate: Date = AccountDraft.defaultMaturityDate(),
         autoPayoutOnMaturity: Bool = false,
-        payoutAccountID: PersistentIdentifier? = nil
+        payoutTarget: PayoutTargetRef? = nil
     ) {
         self.id = id
         self.name = name
@@ -343,12 +431,21 @@ struct AccountDraft: Identifiable, Hashable {
         self.currencyCode = currencyCode
         self.holdings = holdings
         self.isFavorite = isFavorite
+        self.depositKind = depositKind
         self.interestRatePercent = interestRatePercent
         self.depositStartDate = depositStartDate
         self.hasMaturityDate = hasMaturityDate
         self.maturityDate = maturityDate
         self.autoPayoutOnMaturity = autoPayoutOnMaturity
-        self.payoutAccountID = payoutAccountID
+        self.payoutTarget = payoutTarget
+    }
+
+    /// The deposit kind as the editor's toggle sees it. A settable computed
+    /// property so the form can bind straight to `$draft.isReplenishable`
+    /// rather than building a `Binding(get:set:)` in the view body.
+    var isReplenishable: Bool {
+        get { depositKind == .replenishable }
+        set { depositKind = newValue ? .replenishable : .oneTime }
     }
 
     /// A year out — the most common deposit term, and a sane place for the
@@ -393,12 +490,13 @@ extension AccountDraft {
             currencyCode: account.currencyCode,
             holdings: account.holdings.map { HoldingDraft(from: $0) },
             isFavorite: account.isFavorite,
+            depositKind: account.depositKind,
             interestRatePercent: account.interestRatePercent ?? 0,
             depositStartDate: account.depositStartDate ?? .now,
             hasMaturityDate: account.maturityDate != nil,
             maturityDate: account.maturityDate ?? AccountDraft.defaultMaturityDate(),
             autoPayoutOnMaturity: account.autoPayoutOnMaturity,
-            payoutAccountID: account.payoutAccount?.persistentModelID
+            payoutTarget: account.payoutAccount.map { .saved($0.persistentModelID) }
         )
     }
 
@@ -448,16 +546,22 @@ extension AccountDraft {
         // savings account so a type switch can't leave a stale maturity date
         // quietly waiting to fire a payout prompt.
         if type == .savings {
+            account.depositKind = depositKind
             account.interestRatePercent = storedInterestRate
             account.depositStartDate = depositStartDate
             account.maturityDate = storedMaturityDate
             account.autoPayoutOnMaturity = autoPayoutOnMaturity
-            account.payoutAccount = payoutAccountID.flatMap { id in
-                let target: Account? = context.model(for: id) as? Account
+            account.payoutAccount = payoutTarget.flatMap { target in
+                // Only a saved reference can be resolved here: a `.draft` one
+                // belongs to an onboarding run that hasn't been committed, and
+                // `OnboardingViewModel.commit` wires those itself.
+                guard case .saved(let id) = target else { return nil }
+                let resolved: Account? = context.model(for: id) as? Account
                 // Never let a deposit pay out into itself.
-                return target?.persistentModelID == account.persistentModelID ? nil : target
+                return resolved?.persistentModelID == account.persistentModelID ? nil : resolved
             }
         } else {
+            account.depositKind = .oneTime
             account.interestRatePercent = nil
             account.depositStartDate = nil
             account.maturityDate = nil

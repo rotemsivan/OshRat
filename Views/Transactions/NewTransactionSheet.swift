@@ -797,6 +797,12 @@ struct NewTransactionSheet: View {
             destinationBalanceAfter: destination.balance
         )
         modelContext.insert(transfer)
+
+        // Money into a replenishable deposit is a sub-deposit with its own
+        // term — recorded here, off the transfer that created it, so the user
+        // never has to declare the same deposit twice.
+        DepositLadderService.registerFunding(for: transfer, in: modelContext)
+
         return transfer
     }
 

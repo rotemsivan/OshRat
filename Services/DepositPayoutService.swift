@@ -20,7 +20,11 @@ enum DepositPayoutService {
     static func depositsAwaitingPayout(in accounts: [Account], asOf now: Date = .now) -> [Account] {
         accounts
             .filter { $0.isAwaitingPayout(asOf: now) }
-            .sorted { ($0.maturityDate ?? .distantFuture) < ($1.maturityDate ?? .distantFuture) }
+            // By the day the money is actually due, which for a replenishable
+            // deposit is its *last* sub-deposit's — not the account's own.
+            .sorted {
+                ($0.effectiveMaturityDate ?? .distantFuture) < ($1.effectiveMaturityDate ?? .distantFuture)
+            }
     }
 
     /// What the prompt pre-fills, and what an automatic payout moves: the
@@ -29,8 +33,11 @@ enum DepositPayoutService {
     ///
     /// The user can type over this in the prompt — the bank's actual figure
     /// wins over our arithmetic whenever the two disagree.
+    /// Reads the *ladder*, so a replenishable deposit pays out the sum of its
+    /// sub-deposits — each grown on its own rate for its own term — rather than
+    /// the whole balance run on the account's headline terms.
     static func suggestedPayoutAmount(for deposit: Account) -> Decimal {
-        deposit.depositTerms?.projectedValue ?? deposit.balance
+        deposit.depositLadder?.projectedValue ?? deposit.balance
     }
 
     /// Whether the money can actually be moved into `target` right now. False

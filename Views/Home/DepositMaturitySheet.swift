@@ -127,7 +127,7 @@ struct DepositMaturitySheet: View {
             LabeledContent("הפיקדון") {
                 Text(deposit.name.isEmpty ? "ללא שם" : deposit.name)
             }
-            LabeledContent("סכום ההפקדה") {
+            LabeledContent(deposit.isReplenishable ? "סך הכסף בפיקדון" : "סכום ההפקדה") {
                 Text(deposit.balance.formatted(.currency(code: deposit.currencyCode)))
                     .monospacedDigit()
             }
@@ -137,7 +137,9 @@ struct DepositMaturitySheet: View {
                         .monospacedDigit()
                 }
             }
-            if let maturity = deposit.maturityDate {
+            // The date the money is actually due — the latest sub-deposit's on
+            // a replenishable deposit, which is the one that brought us here.
+            if let maturity = deposit.effectiveMaturityDate {
                 LabeledContent("מועד הפדיון") {
                     Text(maturity.formatted(date: .abbreviated, time: .omitted))
                 }
@@ -159,10 +161,10 @@ struct DepositMaturitySheet: View {
     }
 
     private var amountFooter: LocalizedStringKey {
-        guard let terms = deposit.depositTerms, terms.projectedInterest != 0 else {
+        guard let ladder = deposit.depositLadder, ladder.projectedInterest != 0 else {
             return "אפשר לשנות את הסכום למה שהתקבל בפועל."
         }
-        let interest = terms.projectedInterest.formatted(.currency(code: deposit.currencyCode))
+        let interest = ladder.projectedInterest.formatted(.currency(code: deposit.currencyCode))
         return "כולל ריבית של \(interest) לפי תנאי הפיקדון. אם הבנק שילם סכום אחר — אפשר לתקן כאן, וההפרש יירשם כהכנסה."
     }
 

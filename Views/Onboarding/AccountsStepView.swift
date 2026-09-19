@@ -51,6 +51,10 @@ struct AccountsStepView: View {
             AccountEditorSheet(
                 draft: draft,
                 isNew: isEditingNewDraft,
+                // A deposit added here can point at one of the other accounts
+                // in this same wizard run; `commit` turns those draft links
+                // into real relationships once every row exists.
+                payoutCandidates: viewModel.payoutCandidates(excluding: draft),
                 onSave: { updated in
                     if isEditingNewDraft {
                         viewModel.addAccount(updated)

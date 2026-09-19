@@ -193,7 +193,7 @@ struct HomeView: View {
                 lockCurrency: false,
                 // A brand-new deposit can already pick where it pays out.
                 // Nothing to exclude — it isn't one of the saved accounts yet.
-                payoutCandidates: payoutCandidates(),
+                payoutCandidates: payoutCandidateOptions(),
                 onSave: { draft in addAccount(draft) },
                 onCancel: {}
             )
@@ -208,8 +208,8 @@ struct HomeView: View {
                 // (unlocked) since drafts haven't been committed yet.
                 lockCurrency: true,
                 // Every other live account is a possible payout target for a
-                // deposit. Onboarding passes none — nothing is persisted yet.
-                payoutCandidates: payoutCandidates(excluding: account),
+                // deposit. Onboarding feeds the same picker from its drafts.
+                payoutCandidates: payoutCandidateOptions(excluding: account),
                 onSave: { updated in
                     updated.apply(to: account, in: modelContext)
                 },
@@ -446,12 +446,17 @@ struct HomeView: View {
             // target *can* be resolved, because every candidate is already
             // persisted by the time the dashboard offers them.
             if draft.type == .savings {
+                account.depositKind = draft.depositKind
                 account.interestRatePercent = draft.storedInterestRate
                 account.depositStartDate = draft.depositStartDate
                 account.maturityDate = draft.storedMaturityDate
                 account.autoPayoutOnMaturity = draft.autoPayoutOnMaturity
-                account.payoutAccount = draft.payoutAccountID.flatMap {
-                    modelContext.model(for: $0) as? Account
+                account.payoutAccount = draft.payoutTarget.flatMap { target in
+                    // Only a saved reference resolves here — the dashboard's
+                    // candidates are all persisted. A `.draft` one belongs to
+                    // onboarding, which wires its own links in `commit`.
+                    guard case .saved(let id) = target else { return nil }
+                    return modelContext.model(for: id) as? Account
                 }
             }
 
@@ -559,6 +564,15 @@ struct HomeView: View {
         return accounts.filter { account in
             guard account.persistentModelID != deposit?.persistentModelID else { return false }
             return account.type == .current || account.persistentModelID == existingTarget
+        }
+    }
+
+    /// The same candidates as references the account editor can hold. The
+    /// editor works on a value draft (and is shared with onboarding, where the
+    /// candidates aren't persisted at all), so it never takes the models.
+    private func payoutCandidateOptions(excluding deposit: Account? = nil) -> [PayoutCandidate] {
+        payoutCandidates(excluding: deposit).map {
+            PayoutCandidate(id: .saved($0.persistentModelID), name: $0.name)
         }
     }
 

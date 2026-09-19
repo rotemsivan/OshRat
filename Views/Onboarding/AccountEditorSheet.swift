@@ -22,10 +22,11 @@ struct AccountEditorSheet: View {
     @State private var draft: AccountDraft
     private let isNew: Bool
     /// Accounts this deposit could pay out into — live עו״ש accounts, minus
-    /// the deposit itself (the caller does the filtering; see
-    /// `HomeView.payoutCandidates`). Empty during onboarding, where nothing
-    /// is persisted yet and there is nothing to point at.
-    private let payoutCandidates: [Account]
+    /// the deposit itself. The caller does the filtering: `HomeView` offers the
+    /// saved accounts, `AccountsStepView` the other drafts in the wizard (see
+    /// `OnboardingViewModel.payoutCandidates`). Taken as value references
+    /// rather than models so both callers feed the same picker.
+    private let payoutCandidates: [PayoutCandidate]
     /// The type the account already had when the sheet opened. Investments
     /// are blocked, but an account that *is* one must still be editable — so
     /// `.investment` stays selectable only when it's where we started.
@@ -56,7 +57,7 @@ struct AccountEditorSheet: View {
         draft: AccountDraft,
         isNew: Bool,
         lockCurrency: Bool = false,
-        payoutCandidates: [Account] = [],
+        payoutCandidates: [PayoutCandidate] = [],
         onSave: @escaping (AccountDraft) -> Void,
         onCancel: @escaping () -> Void
     ) {
@@ -207,7 +208,12 @@ struct AccountEditorSheet: View {
     private var balanceHeader: LocalizedStringKey {
         switch draft.type {
         case .investment: return "יתרה במזומן (נזיל)"
-        case .savings:    return "סכום ההפקדה"
+        case .savings:
+            // On a replenishable deposit the field means two different things
+            // either side of the first save: the opening deposit while it's
+            // being created, the running total once transfers have added to it.
+            guard draft.isReplenishable else { return "סכום ההפקדה" }
+            return isNew ? "סכום ההפקדה הראשונה" : "סך הכסף בפיקדון"
         default:          return "יתרה"
         }
     }
@@ -217,6 +223,9 @@ struct AccountEditorSheet: View {
         case .investment:
             return "בחשבון השקעות, היתרה הזו היא המזומן הנזיל בלבד. השווי של המניות וקרנות הסל ייוסף לפי הרשימה שמתחת."
         case .savings:
+            if draft.isReplenishable {
+                return "הסכום שנמצא בפיקדון עכשיו. כל העברה נוספת אליו תיפתח כהפקדה נפרדת עם התקופה והריבית שלה."
+            }
             return "הסכום שהופקד. הריבית מחושבת עליו ותיווסף במועד הפדיון."
         default:
             return "היתרה היא הסכום הנוכחי בחשבון. אפשר לעדכן אותה ידנית בכל עת."
@@ -252,7 +261,13 @@ struct AccountEditorSheet: View {
     /// as it did before deposits existed.
     private var depositSection: some View {
         Section {
-            LabeledContent("ריבית שנתית") {
+            // The one decision that changes what everything below *means*, so
+            // it sits first: a one-time deposit's terms are its own, while a
+            // replenishable deposit's are the defaults each future deposit
+            // inherits.
+            Toggle("אפשר הפקדות נוספות", isOn: $draft.isReplenishable.animation(.easeInOut(duration: 0.2)))
+
+            LabeledContent(rateLabel) {
                 HStack(spacing: Theme.Spacing.xs) {
                     DecimalField(placeholder: "0", value: $draft.interestRatePercent)
                         .frame(width: rateFieldWidth)
@@ -262,7 +277,7 @@ struct AccountEditorSheet: View {
             }
 
             DatePicker(
-                "תאריך הפקדה",
+                startDateLabel,
                 selection: $draft.depositStartDate,
                 displayedComponents: .date
             )
@@ -271,7 +286,7 @@ struct AccountEditorSheet: View {
 
             if draft.hasMaturityDate {
                 DatePicker(
-                    "מועד הפדיון",
+                    maturityLabel,
                     selection: $draft.maturityDate,
                     in: draft.depositStartDate...,
                     displayedComponents: .date
@@ -290,10 +305,30 @@ struct AccountEditorSheet: View {
         }
     }
 
+    /// On a replenishable deposit every term on this screen is a *default* for
+    /// the deposits still to come, not a fact about money already in — the
+    /// labels say so rather than leaving the user to infer it.
+    private var rateLabel: LocalizedStringKey {
+        draft.isReplenishable ? "ריבית שנתית (ברירת מחדל)" : "ריבית שנתית"
+    }
+
+    private var startDateLabel: LocalizedStringKey {
+        draft.isReplenishable ? "תאריך ההפקדה הראשונה" : "תאריך הפקדה"
+    }
+
+    private var maturityLabel: LocalizedStringKey {
+        draft.isReplenishable ? "מועד הפדיון של ההפקדה הראשונה" : "מועד הפדיון"
+    }
+
     /// Where the money lands at maturity — an עו״ש account. Falls back to a
-    /// read-only label when there's nothing to choose between: during
-    /// onboarding (no account is persisted yet) or when the user simply has
-    /// no current account. The payout prompt asks again at maturity either way.
+    /// read-only label only when there is genuinely nothing to choose between
+    /// (the user has no current account at all); the payout prompt asks again
+    /// at maturity in that case.
+    ///
+    /// During onboarding the candidates are the *other drafts* in the wizard,
+    /// which is why this takes `PayoutCandidate` values instead of models —
+    /// before, onboarding passed an empty list and the user was stuck with
+    /// "ייבחר בפדיון" no matter how many accounts they had just added.
     @ViewBuilder
     private var payoutTargetPicker: some View {
         if payoutCandidates.isEmpty {
@@ -302,11 +337,11 @@ struct AccountEditorSheet: View {
                     .foregroundStyle(Theme.Colors.textSecondary)
             }
         } else {
-            Picker("חשבון היעד", selection: $draft.payoutAccountID) {
-                Text("ייבחר בפדיון").tag(PersistentIdentifier?.none)
-                ForEach(payoutCandidates) { account in
-                    Text(account.name.isEmpty ? "ללא שם" : account.name)
-                        .tag(PersistentIdentifier?.some(account.persistentModelID))
+            Picker("חשבון היעד", selection: $draft.payoutTarget) {
+                Text("ייבחר בפדיון").tag(PayoutTargetRef?.none)
+                ForEach(payoutCandidates) { candidate in
+                    Text(candidate.displayName)
+                        .tag(PayoutTargetRef?.some(candidate.id))
                 }
             }
         }
@@ -315,9 +350,16 @@ struct AccountEditorSheet: View {
     /// What the deposit is projected to be worth when it matures — the same
     /// figure the payout prompt will pre-fill, shown here so the terms can be
     /// sanity-checked while they're being typed.
+    ///
+    /// Skipped for a replenishable deposit that already exists: this screen
+    /// only knows the account's own terms, so it would project the *whole*
+    /// balance on them and quietly ignore the sub-deposits' own rates and
+    /// dates. The deposit's own card (`DepositInfoSheet`) does that sum
+    /// properly, and it's one tap away.
     @ViewBuilder
     private var projectedValueRow: some View {
-        if let terms = draft.previewTerms, terms.projectedInterest != 0 {
+        if isNew || !draft.isReplenishable,
+           let terms = draft.previewTerms, terms.projectedInterest != 0 {
             LabeledContent("צפוי בפדיון") {
                 VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
                     Text(terms.projectedValue.formatted(.currency(code: draft.currencyCode)))
@@ -333,7 +375,15 @@ struct AccountEditorSheet: View {
     }
 
     private var depositFooter: LocalizedStringKey {
-        if draft.autoPayoutOnMaturity && draft.payoutAccountID != nil {
+        // The replenishable case leads with the rule that surprises people:
+        // each transfer in becomes a deposit of its own, and the account only
+        // comes due when the *last* of them does.
+        if draft.isReplenishable {
+            return draft.hasMaturityDate
+                ? "כל העברה לפיקדון הזה תיפתח כהפקדה נפרדת, עם אותה ריבית ואותו אורך תקופה, שנספרים מיום ההעברה. הפיקדון כולו ייפדה במועד המאוחר מבין ההפקדות."
+                : "כל העברה לפיקדון הזה תיפתח כהפקדה נפרדת. בלי תאריך פדיון זהו חיסכון פתוח — לא נזכיר כלום ולא תופיע העברה."
+        }
+        if draft.autoPayoutOnMaturity && draft.payoutTarget != nil {
             return "במועד הפדיון הכסף יועבר אוטומטית לחשבון היעד, והריבית תירשם כהכנסה."
         }
         if draft.hasMaturityDate {

@@ -118,6 +118,41 @@ enum AccountType: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// The two shapes a deposit (פיקדון) can take.
+///
+/// * `oneTime` — money goes in once, sits there for a term, and pays out. The
+///   account's own rate / start / maturity *are* the deposit's terms.
+/// * `replenishable` — the user keeps adding to it. Every transfer into the
+///   account becomes its own sub-deposit (`DepositTranche`) with its own rate
+///   and maturity, defaulted from the account's terms at the moment it lands.
+///   The account as a whole matures on the **latest** of those dates, which is
+///   what `DepositLadder` computes.
+///
+/// Neither shape compounds interest — each sub-deposit earns simple interest on
+/// its own principal (see `DepositTerms`). Compounding is rare enough here to
+/// be a later addition rather than a complication now.
+enum DepositKind: String, Codable, CaseIterable, Identifiable {
+    case oneTime        // הפקדה חד-פעמית
+    case replenishable  // אפשר להוסיף הפקדות
+
+    var id: String { rawValue }
+
+    var hebrewLabel: String {
+        switch self {
+        case .oneTime:       return "הפקדה חד-פעמית"
+        case .replenishable: return "הפקדות מתמשכות"
+        }
+    }
+
+    /// Same defensive decoding as `AccountType`: an unknown raw value (a case
+    /// removed or renamed in a later version) degrades to the plain one-time
+    /// deposit instead of failing to decode and bricking the whole store.
+    init(from decoder: any Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = DepositKind(rawValue: raw) ?? .oneTime
+    }
+}
+
 /// Whether a spending category is a "need" or a "want". Lets the budget
 /// builder visually group planned expenses and lets the dashboard tell
 /// the user "you allocate X to needs and Y to wants".

@@ -19,9 +19,14 @@ struct DepositInfoSheet: View {
         NavigationStack {
             Form {
                 termsSection
+                // Only a replenishable deposit has rungs worth listing — a
+                // one-time one *is* its single rung, already described above.
+                if deposit.isReplenishable {
+                    ladderSection
+                }
                 // `progress` is nil without a maturity date to be a fraction
                 // of, which is exactly when the bar would be meaningless.
-                if let terms = deposit.depositTerms, let progress = terms.progress() {
+                if let ladder = deposit.depositLadder, let progress = ladder.progress() {
                     progressSection(progress)
                 }
                 historySection
@@ -56,8 +61,14 @@ struct DepositInfoSheet: View {
                     .monospacedDigit()
             }
 
+            if deposit.isReplenishable {
+                LabeledContent("סוג") {
+                    Text(DepositKind.replenishable.hebrewLabel)
+                }
+            }
+
             if let rate = deposit.interestRatePercent, rate > 0 {
-                LabeledContent("ריבית שנתית") {
+                LabeledContent(deposit.isReplenishable ? "ריבית שנתית (ברירת מחדל)" : "ריבית שנתית") {
                     Text(verbatim: "\(rate.formatted(.number.precision(.fractionLength(0...2))))%")
                         .monospacedDigit()
                 }
@@ -69,7 +80,9 @@ struct DepositInfoSheet: View {
                 }
             }
 
-            if let maturity = deposit.maturityDate {
+            // The date the whole deposit comes due — the latest of its
+            // sub-deposits when there's more than one.
+            if let maturity = deposit.effectiveMaturityDate {
                 LabeledContent("מועד הפדיון") {
                     Text(maturity.formatted(date: .abbreviated, time: .omitted))
                 }
@@ -98,8 +111,8 @@ struct DepositInfoSheet: View {
     @ViewBuilder
     private var accruedInterestRow: some View {
         if deposit.payoutCompletedAt == nil,
-           let terms = deposit.depositTerms,
-           case let accrued = terms.value(asOf: .now) - terms.principal,
+           let ladder = deposit.depositLadder,
+           case let accrued = ladder.value(asOf: .now) - ladder.principal,
            accrued != 0 {
             LabeledContent("ריבית שנצברה") {
                 Text(accrued.formatted(.currency(code: deposit.currencyCode)))
@@ -114,14 +127,14 @@ struct DepositInfoSheet: View {
     @ViewBuilder
     private var projectedRow: some View {
         if deposit.payoutCompletedAt == nil,
-           let terms = deposit.depositTerms,
-           terms.projectedInterest != 0 {
+           let ladder = deposit.depositLadder,
+           ladder.projectedInterest != 0 {
             LabeledContent("צפוי בפדיון") {
                 VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
-                    Text(terms.projectedValue.formatted(.currency(code: deposit.currencyCode)))
+                    Text(ladder.projectedValue.formatted(.currency(code: deposit.currencyCode)))
                         .font(Theme.Typography.amount)
                         .monospacedDigit()
-                    Text("ריבית \(terms.projectedInterest.formatted(.currency(code: deposit.currencyCode)))")
+                    Text("ריבית \(ladder.projectedInterest.formatted(.currency(code: deposit.currencyCode)))")
                         .font(Theme.Typography.caption)
                         .foregroundStyle(Theme.Colors.income)
                         .monospacedDigit()
@@ -134,7 +147,7 @@ struct DepositInfoSheet: View {
     /// maturity date — an open pot never pays out.
     @ViewBuilder
     private var payoutTargetRow: some View {
-        if deposit.maturityDate != nil {
+        if deposit.effectiveMaturityDate != nil {
             LabeledContent("חשבון היעד") {
                 if let target = deposit.payoutAccount {
                     Text(target.name.isEmpty ? "ללא שם" : target.name)
@@ -149,7 +162,8 @@ struct DepositInfoSheet: View {
     /// After a payout the balance is zero and "סכום ההפקדה" would be a lie,
     /// so the label follows the deposit's state rather than being fixed.
     private var balanceLabel: LocalizedStringKey {
-        deposit.payoutCompletedAt == nil ? "סכום ההפקדה" : "יתרה נוכחית"
+        guard deposit.payoutCompletedAt == nil else { return "יתרה נוכחית" }
+        return deposit.isReplenishable ? "סך הכסף בפיקדון" : "סכום ההפקדה"
     }
 
     private var statusText: LocalizedStringKey {
@@ -157,7 +171,7 @@ struct DepositInfoSheet: View {
             return "נפדה ב-\(paidOut.formatted(date: .abbreviated, time: .omitted))"
         }
         if deposit.isAwaitingPayout() { return "ממתין לפדיון" }
-        if let days = deposit.depositTerms?.daysRemaining(), days > 0 {
+        if let days = deposit.depositLadder?.daysRemaining(), days > 0 {
             // `String(localized:)` so the day count gets proper Hebrew plurals
             // from the catalog (יום אחד / יומיים / N ימים).
             return "פעיל • \(String(localized: "עוד \(days) ימים"))"
@@ -177,10 +191,61 @@ struct DepositInfoSheet: View {
         if deposit.isAwaitingPayout() {
             return "הפיקדון הגיע לפדיון והכסף עדיין בו. אפשר להעביר אותו מהתזכורת שתיפתח, או לערוך את החשבון."
         }
-        guard deposit.depositTerms != nil else {
+        guard deposit.depositLadder != nil else {
             return "חיסכון פתוח בלי תאריך פדיון — לא תופיע תזכורת ולא תירשם העברה."
         }
+        if deposit.isReplenishable {
+            return "כל הפקדה צוברת ריבית פשוטה לפי התנאים שלה, והפיקדון כולו נפדה כשההפקדה האחרונה מגיעה לפדיון."
+        }
         return "הריבית מחושבת ריבית פשוטה לפי הימים שחלפו. בפדיון אפשר לתקן לסכום שהבנק שילם בפועל."
+    }
+
+    // MARK: - Sub-deposits
+
+    /// The rungs of a replenishable deposit: the opening amount, then one row
+    /// per transfer that added to it. Each is a deposit in its own right, so
+    /// each shows its own amount, term and rate — and each (bar the opening,
+    /// which has no row of its own) can be opened and corrected when the bank's
+    /// terms turn out to differ from the defaults.
+    private var ladderSection: some View {
+        Section {
+            if deposit.openingDepositAmount > 0 {
+                DepositTrancheRow(
+                    title: String(localized: "הפקדה ראשונה"),
+                    amount: deposit.openingDepositAmount,
+                    currencyCode: deposit.currencyCode,
+                    startDate: deposit.depositStartDate ?? deposit.lastUpdated,
+                    maturityDate: deposit.maturityDate,
+                    ratePercent: deposit.interestRatePercent
+                )
+            }
+
+            ForEach(deposit.liveDepositTranches) { tranche in
+                NavigationLink {
+                    DepositTrancheEditorView(tranche: tranche, deposit: deposit)
+                } label: {
+                    DepositTrancheRow(
+                        title: tranche.note.isEmpty ? String(localized: "הפקדה") : tranche.note,
+                        amount: tranche.amount,
+                        currencyCode: deposit.currencyCode,
+                        startDate: tranche.startDate,
+                        maturityDate: tranche.maturityDate ?? deposit.maturityDate,
+                        ratePercent: tranche.interestRatePercent ?? deposit.interestRatePercent
+                    )
+                }
+            }
+        } header: {
+            Text("ההפקדות בפיקדון")
+        } footer: {
+            Text(ladderFooter)
+        }
+    }
+
+    private var ladderFooter: LocalizedStringKey {
+        if deposit.liveDepositTranches.isEmpty {
+            return "כל העברה לפיקדון הזה תופיע כאן כהפקדה נפרדת, עם התקופה והריבית שלה."
+        }
+        return "אפשר לפתוח כל הפקדה ולתקן את הריבית ומועד הפדיון שלה למה שסוכם בבנק."
     }
 
     // MARK: - Progress
@@ -196,7 +261,7 @@ struct DepositInfoSheet: View {
                 HStack {
                     Text(deposit.depositStartDate?.formatted(date: .numeric, time: .omitted) ?? "")
                     Spacer(minLength: Theme.Spacing.sm)
-                    Text(deposit.maturityDate?.formatted(date: .numeric, time: .omitted) ?? "")
+                    Text(deposit.effectiveMaturityDate?.formatted(date: .numeric, time: .omitted) ?? "")
                 }
                 .font(Theme.Typography.captionSmall)
                 .foregroundStyle(Theme.Colors.textSecondary)
@@ -252,6 +317,191 @@ struct DepositInfoSheet: View {
 
     private var entries: [DepositHistoryEntry] {
         DepositHistoryEntry.entries(for: deposit)
+    }
+}
+
+// MARK: - Sub-deposit row
+
+/// One rung of a replenishable deposit, as a plain read-only row: what went in,
+/// over what window, at what rate.
+///
+/// Takes values rather than the `DepositTranche` model so the same row can draw
+/// the *opening* deposit, which has no row of its own in the store (see
+/// `DepositLadder.make`).
+private struct DepositTrancheRow: View {
+    let title: String
+    let amount: Decimal
+    let currencyCode: String
+    let startDate: Date
+    let maturityDate: Date?
+    let ratePercent: Decimal?
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.sm) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(Theme.Typography.body)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Text(subtitle)
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+
+            Spacer(minLength: Theme.Spacing.sm)
+
+            Text(amount.formatted(.currency(code: currencyCode)))
+                .font(Theme.Typography.amount)
+                .foregroundStyle(Theme.Colors.textPrimary)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .layoutPriority(1)
+        }
+    }
+
+    /// Numeric dates, like the assets-card subtitle: this is one line under a
+    /// title, and the spelled-out form ran past it.
+    private var subtitle: String {
+        var parts: [String] = [startDate.formatted(date: .numeric, time: .omitted)]
+        if let maturityDate {
+            parts.append(maturityDate.formatted(date: .numeric, time: .omitted))
+        }
+        var text = parts.joined(separator: " ← ")
+        if let ratePercent, ratePercent > 0 {
+            text += " • \(ratePercent.formatted(.number.precision(.fractionLength(0...2))))%"
+        }
+        return text
+    }
+}
+
+// MARK: - Sub-deposit editor
+
+/// Correct one sub-deposit's terms.
+///
+/// The rung was created from a transfer with the deposit's defaults, which is
+/// right most of the time and wrong exactly when the bank quoted something
+/// else for that particular deposit — so rate and maturity are editable and
+/// nothing else is. The amount isn't: it's what the transfer actually moved,
+/// and changing it here would put the ladder and the ledger at odds (edit the
+/// transfer instead, or delete it and enter it again).
+private struct DepositTrancheEditorView: View {
+    /// Held plainly, not `@Bindable`: nothing here binds straight to the model.
+    /// The two editable fields are optional in the store and non-optional in
+    /// their controls, so they go through `@State` and are written back on save.
+    let tranche: DepositTranche
+    let deposit: Account
+
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+
+    @ScaledMetric(relativeTo: .body) private var rateFieldWidth: CGFloat = 56
+
+    /// Bound copies of the two optional stored fields. `DecimalField` and
+    /// `DatePicker` both want a non-optional, and the mapping back to `nil`
+    /// (no rate agreed / open-ended) happens once, on save.
+    @State private var ratePercent: Decimal
+    @State private var hasMaturityDate: Bool
+    @State private var maturityDate: Date
+
+    init(tranche: DepositTranche, deposit: Account) {
+        self.tranche = tranche
+        self.deposit = deposit
+        let maturity = tranche.maturityDate ?? deposit.maturityDate
+        _ratePercent = State(initialValue: tranche.interestRatePercent ?? deposit.interestRatePercent ?? 0)
+        _hasMaturityDate = State(initialValue: maturity != nil)
+        _maturityDate = State(
+            initialValue: maturity
+                ?? deposit.defaultTrancheMaturityDate(fundedOn: tranche.startDate)
+                ?? AccountDraft.defaultMaturityDate(from: tranche.startDate)
+        )
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                LabeledContent("סכום ההפקדה") {
+                    Text(tranche.amount.formatted(.currency(code: deposit.currencyCode)))
+                        .monospacedDigit()
+                }
+                LabeledContent("תאריך ההפקדה") {
+                    Text(tranche.startDate.formatted(date: .abbreviated, time: .omitted))
+                }
+            } footer: {
+                Text("הסכום והתאריך נקבעים לפי ההעברה שפתחה את ההפקדה. לשינוי שלהם צריך לערוך את ההעברה ביומן התנועות.")
+            }
+
+            Section {
+                LabeledContent("ריבית שנתית") {
+                    HStack(spacing: Theme.Spacing.xs) {
+                        DecimalField(placeholder: "0", value: $ratePercent)
+                            .frame(width: rateFieldWidth)
+                        Text(verbatim: "%")
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                    }
+                }
+
+                Toggle("תאריך פדיון", isOn: $hasMaturityDate.animation(.easeInOut(duration: 0.2)))
+
+                if hasMaturityDate {
+                    DatePicker(
+                        "מועד הפדיון",
+                        selection: $maturityDate,
+                        in: tranche.startDate...,
+                        displayedComponents: .date
+                    )
+                }
+
+                if case let terms = previewTerms, terms.projectedInterest != 0 {
+                    LabeledContent("צפוי בפדיון") {
+                        VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
+                            Text(terms.projectedValue.formatted(.currency(code: deposit.currencyCode)))
+                                .font(Theme.Typography.amount)
+                                .monospacedDigit()
+                            Text("ריבית \(terms.projectedInterest.formatted(.currency(code: deposit.currencyCode)))")
+                                .font(Theme.Typography.caption)
+                                .foregroundStyle(Theme.Colors.income)
+                                .monospacedDigit()
+                        }
+                    }
+                }
+            } header: {
+                Text("תנאי ההפקדה")
+            } footer: {
+                Text("הפיקדון כולו נפדה במועד המאוחר מבין ההפקדות, ולכן דחייה של ההפקדה הזו עשויה לדחות גם אותו.")
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(Theme.Colors.background)
+        .font(Theme.Typography.body)
+        .navigationTitle(Text("עריכת הפקדה"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("שמירה") {
+                    save()
+                    dismiss()
+                }
+            }
+        }
+    }
+
+    private var previewTerms: DepositTerms {
+        DepositTerms(
+            principal: tranche.amount,
+            annualRatePercent: ratePercent > 0 ? ratePercent : nil,
+            startDate: tranche.startDate,
+            maturityDate: hasMaturityDate ? maturityDate : nil
+        )
+    }
+
+    private func save() {
+        tranche.interestRatePercent = ratePercent > 0 ? ratePercent : nil
+        tranche.maturityDate = hasMaturityDate ? maturityDate : nil
+        try? modelContext.save()
     }
 }
 

@@ -642,13 +642,21 @@ private struct AccountSummaryRow: View {
         if let rate = terms.annualRatePercent, rate > 0 {
             parts.append("\(rate.formatted(.number.precision(.fractionLength(0...2))))%")
         }
+        // How many separate deposits are laddered inside. Only said once there
+        // is more than one — "הפקדה אחת" on an ordinary deposit is noise.
+        let depositCount = account.depositCount
+        if account.isReplenishable, depositCount > 1 {
+            // `String(localized:)` so the count pluralises properly in Hebrew
+            // (הפקדה אחת / שתי הפקדות / N הפקדות) via the catalog.
+            parts.append(String(localized: "\(depositCount) הפקדות"))
+        }
         if account.payoutCompletedAt != nil {
             parts.append("נפדה")
         } else if account.isAwaitingPayout() {
             // Nothing: the "ממתין לפדיון" badge beside the name already says
             // this, and repeating it in the subtitle read as two separate
             // facts about the same deposit.
-        } else if let maturity = account.maturityDate {
+        } else if let maturity = account.effectiveMaturityDate {
             // Numeric, not abbreviated: the row subtitle is one line, and
             // "עד 13 במרץ 2028" ran past it where "עד 13.3.2028" fits.
             parts.append("עד \(maturity.formatted(date: .numeric, time: .omitted))")

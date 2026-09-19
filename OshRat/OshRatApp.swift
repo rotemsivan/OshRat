@@ -17,7 +17,8 @@ struct OshRatApp: App {
             container = try ModelContainer(
                 for: UserProfile.self, Account.self, Holding.self, Category.self,
                     Transaction.self, TransactionAttachment.self, BudgetItem.self,
-                    Goal.self, FXRateSnapshot.self, UserProgress.self
+                    Goal.self, FXRateSnapshot.self, UserProgress.self,
+                    DepositTranche.self
             )
             // Clean up any duplicate category rows left over from earlier
             // dev resets BEFORE topping up the default set — otherwise

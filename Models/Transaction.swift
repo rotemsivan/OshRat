@@ -77,6 +77,19 @@ final class Transaction {
     /// balance, exactly as before).
     var destinationBalanceAfter: Decimal?
 
+    /// Sub-deposits this row funded — at most one, and only when the row is a
+    /// transfer into a replenishable deposit (see `DepositLadderService`).
+    /// Declared here purely to give `DepositTranche.fundingTransaction` its
+    /// inverse, following the same "to-many side owns the declaration" pattern
+    /// as the relationships above.
+    ///
+    /// **Cascade**: no transfer, no sub-deposit. A *soft* delete leaves the rung
+    /// alone (it drops out of the ladder via `DepositTranche.isLive` and comes
+    /// back on restore); only the hard delete at the end of the retention
+    /// window takes it with the row.
+    @Relationship(deleteRule: .cascade, inverse: \DepositTranche.fundingTransaction)
+    var fundedDepositTranches: [DepositTranche] = []
+
     /// When this row was soft-deleted, or `nil` while it's live. Deleting
     /// a transaction reverses its balance effect and hides the row (every
     /// transaction `@Query` filters `deletedAt == nil`) so it can be
