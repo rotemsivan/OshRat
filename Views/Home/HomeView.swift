@@ -5,7 +5,7 @@ import SwiftData
 ///
 /// All visual decisions — colours, fonts, spacing, card shape — come
 /// from `Theme`. Sections, top to bottom:
-///   1. Greeting (with name; in DEBUG, a reset button next to it).
+///   1. Greeting (with name; in DEBUG, the admin panel's hammer next to it).
 ///   2. Assets — combined hero balance in the preferred currency +
 ///      per-account rows.
 ///   3. Budget — combined planned monthly income, needs, wants, net.
@@ -42,7 +42,7 @@ struct HomeView: View {
     /// cached snapshot (or nil if we've never successfully fetched).
     @Query(sort: \FXRateSnapshot.fetchedAt, order: .reverse) private var fxSnapshots: [FXRateSnapshot]
 
-    @State private var selectedTab: HomeBottomBar.Tab = .home
+    @State private var selectedTab: HomeBottomBar.Tab = HomeView.initialTab
     /// The transactions list's filters, owned here rather than by the list.
     /// Switching tabs rebuilds the branch below, which used to wipe them — a
     /// glance at the dashboard shouldn't cost the user the filter they just
@@ -405,7 +405,9 @@ struct HomeView: View {
         HStack(alignment: .top) {
             GreetingHeaderView(name: profiles.first?.name ?? "")
             #if DEBUG
-            DebugResetButton()
+            // Was a bare reset button; the wipe now lives inside the panel
+            // alongside the demo scenarios, so there's one place to go.
+            AdminPanelButton()
             #endif
         }
     }
@@ -484,6 +486,22 @@ struct HomeView: View {
 
     private var preferredCurrencyCode: String {
         profiles.first?.preferredCurrencyCode ?? "ILS"
+    }
+
+    /// Which tab the app opens on. Always `.home`, except in DEBUG where
+    /// `-demoTab analytics` (or transactions / calendar) lands straight on a
+    /// screen — the companion to `-demoScenario`, since the simulator can't be
+    /// driven by gestures from the command line (see CLAUDE.md).
+    private static var initialTab: HomeBottomBar.Tab {
+        #if DEBUG
+        let arguments = CommandLine.arguments
+        if let flagIndex = arguments.firstIndex(of: "-demoTab"),
+           arguments.index(after: flagIndex) < arguments.endIndex,
+           let tab = HomeBottomBar.Tab(rawValue: arguments[arguments.index(after: flagIndex)]) {
+            return tab
+        }
+        #endif
+        return .home
     }
 
     // MARK: - Deposit maturity
@@ -691,85 +709,6 @@ private struct FloatingAddButton: View {
         .accessibilityLabel(Text("תנועה חדשה"))
     }
 }
-
-#if DEBUG
-/// Debug-only button that wipes every SwiftData row and re-seeds the
-/// default categories. Lets the developer re-run the onboarding flow
-/// repeatedly in the Simulator without uninstalling the app. Compiled
-/// out of Release builds entirely.
-private struct DebugResetButton: View {
-    @Environment(\.modelContext) private var modelContext
-    @State private var isConfirming: Bool = false
-
-    var body: some View {
-        Button {
-            isConfirming = true
-        } label: {
-            Image(systemName: "arrow.counterclockwise.circle")
-                .font(Theme.Typography.sectionTitle)
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .padding(Theme.Spacing.sm)
-                .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text("איפוס נתונים (פיתוח בלבד)"))
-        .confirmationDialog(
-            Text("איפוס כל הנתונים?"),
-            isPresented: $isConfirming,
-            titleVisibility: .visible
-        ) {
-            Button("איפוס", role: .destructive) {
-                resetAll()
-            }
-            Button("ביטול", role: .cancel) {}
-        } message: {
-            Text("ימחק את הפרופיל, החשבונות, הנכסים, התקציב והעסקאות. הקטגוריות יוטענו מחדש כברירת מחדל. שימושי בעיקר כדי להריץ שוב את ההתחלה במהלך פיתוח.")
-        }
-    }
-
-    private func resetAll() {
-        // We *used* to call `modelContext.delete(model: T.self)` here
-        // for every type — that's a batch delete, and SwiftData doesn't
-        // always notify `@Query` observers when it runs. The symptom
-        // was that the transactions list (and other dashboard views)
-        // still showed the rows from before the reset until a cold
-        // relaunch. Fetching the rows and deleting them one by one is
-        // slower in theory but reliably fires the change-tracking
-        // that @Query listens to, so views refresh immediately.
-        do {
-            try deleteAll(of: Transaction.self)
-            try deleteAll(of: BudgetItem.self)
-            try deleteAll(of: Goal.self)
-            try deleteAll(of: Holding.self)
-            try deleteAll(of: Account.self)
-            try deleteAll(of: Category.self)
-            try deleteAll(of: UserProfile.self)
-            try deleteAll(of: FXRateSnapshot.self)
-            // XP too, or a reset would drop the user back into onboarding
-            // still carrying their level — and with the setup milestones
-            // already marked paid, they'd never be awarded again.
-            try deleteAll(of: UserProgress.self)
-            try modelContext.save()
-        } catch {
-            print("Reset failed: \(error)")
-        }
-        for category in SeedData.defaultCategories() {
-            modelContext.insert(category)
-        }
-        try? modelContext.save()
-    }
-
-    /// Fetch-then-delete loop. Issues one delete per row so SwiftData
-    /// fires its per-object change notifications — the batch-delete
-    /// variant misses these, leaving any `@Query` observers stale.
-    private func deleteAll<T: PersistentModel>(of type: T.Type) throws {
-        let rows = try modelContext.fetch(FetchDescriptor<T>())
-        for row in rows {
-            modelContext.delete(row)
-        }
-    }
-}
-#endif
 
 #Preview {
     HomeView()

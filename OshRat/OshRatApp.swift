@@ -29,10 +29,48 @@ struct OshRatApp: App {
             // store doesn't already have, so it runs every launch
             // without growing the table.
             SeedData.seedDefaultCategoriesIfNeeded(in: container.mainContext)
+            #if DEBUG
+            Self.applyDemoLaunchArguments(in: container.mainContext)
+            #endif
         } catch {
             fatalError("Could not create the SwiftData container: \(error)")
         }
     }
+
+    #if DEBUG
+    /// Command-line hooks for the demo data, so a scenario can be deployed
+    /// without tapping through the admin panel:
+    ///
+    /// ```
+    /// xcrun simctl launch booted com.rotem.OshRat -demoScenario saver -demoMonths 24
+    /// xcrun simctl launch booted com.rotem.OshRat -resetStore
+    /// ```
+    ///
+    /// Runs here, before any window exists, so the first frame already shows
+    /// the seeded store rather than flashing the old one. Useful for
+    /// screenshots and for `simctl`-driven checks, where no gesture can be
+    /// driven (see the simulator note in CLAUDE.md).
+    private static func applyDemoLaunchArguments(in context: ModelContext) {
+        let arguments = CommandLine.arguments
+
+        if arguments.contains("-resetStore") {
+            DemoDataService.wipe(in: context)
+        }
+
+        guard let flagIndex = arguments.firstIndex(of: "-demoScenario"),
+              arguments.index(after: flagIndex) < arguments.endIndex,
+              let scenario = DemoScenario(rawValue: arguments[arguments.index(after: flagIndex)])
+        else { return }
+
+        var months: Int?
+        if let monthsIndex = arguments.firstIndex(of: "-demoMonths"),
+           arguments.index(after: monthsIndex) < arguments.endIndex {
+            months = Int(arguments[arguments.index(after: monthsIndex)])
+        }
+
+        DemoDataService.deploy(scenario, monthsOverride: months, in: context)
+    }
+    #endif
 
     var body: some Scene {
         WindowGroup {

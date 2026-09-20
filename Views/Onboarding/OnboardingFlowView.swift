@@ -36,6 +36,24 @@ struct OnboardingFlowView: View {
         }
         // Brand-tint everything below this point.
         .tint(Theme.Colors.accent)
+        // The way back into the admin panel after a wipe: with no profile in
+        // the store `ContentView` routes here, and without this the only route
+        // to a demo scenario would be finishing the wizard by hand first.
+        // `.topTrailing` under RTL is the visual top-left, away from the
+        // wizard's own controls.
+        #if DEBUG
+        .overlay(alignment: .topTrailing) {
+            // Wiping from here leaves the wizard holding drafts that point at
+            // categories the wipe deleted (a planned expense keeps a `Category`
+            // reference), and reading one of those would trap. Starting the
+            // wizard over is both the safe answer and the expected one.
+            AdminPanelButton {
+                viewModel = OnboardingViewModel()
+                hasStarted = false
+            }
+            .padding(.horizontal, Theme.Spacing.sm)
+        }
+        #endif
     }
 
     // MARK: - Wizard

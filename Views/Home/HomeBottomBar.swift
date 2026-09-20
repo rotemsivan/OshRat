@@ -11,7 +11,7 @@ import SwiftUI
 ///   * Side icons (currently the transactions tab; placeholder slot
 ///     for future tabs on the other side) live inside the bar.
 struct HomeBottomBar: View {
-    enum Tab: Hashable {
+    enum Tab: String, Hashable {
         case home
         case transactions
         case analytics
