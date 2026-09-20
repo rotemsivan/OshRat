@@ -104,7 +104,7 @@ final class TransactionFilters {
             let lo = calendar.startOfDay(for: min(customStart, customEnd))
             let hiDay = calendar.startOfDay(for: max(customStart, customEnd))
             let end = calendar.date(byAdding: .day, value: 1, to: hiDay) ?? hiDay
-            return DateInterval(start: lo, end: end)
+            return DateInterval(start: lo, end: end-1)
         }
     }
 }
