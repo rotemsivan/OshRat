@@ -147,6 +147,9 @@
 		5EWARD0600000000000000B1 /* WardrobeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0600000000000000F1 /* WardrobeView.swift */; };
 		5EWARD0700000000000000B1 /* WardrobeItemTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0700000000000000F1 /* WardrobeItemTile.swift */; };
 		5EWARD0800000000000000B1 /* WardrobeEntryPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0800000000000000F1 /* WardrobeEntryPoint.swift */; };
+		5EBREM0100000000000000B1 /* BudgetReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBREM0100000000000000F1 /* BudgetReminder.swift */; };
+		5EBREM0200000000000000B1 /* BudgetReminderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBREM0200000000000000F1 /* BudgetReminderService.swift */; };
+		5EBREM0300000000000000B1 /* BudgetReminderToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBREM0300000000000000F1 /* BudgetReminderToast.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -285,6 +288,9 @@
 		5EWARD0600000000000000F1 /* WardrobeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeView.swift; sourceTree = "<group>"; };
 		5EWARD0700000000000000F1 /* WardrobeItemTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeItemTile.swift; sourceTree = "<group>"; };
 		5EWARD0800000000000000F1 /* WardrobeEntryPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeEntryPoint.swift; sourceTree = "<group>"; };
+		5EBREM0100000000000000F1 /* BudgetReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetReminder.swift; sourceTree = "<group>"; };
+		5EBREM0200000000000000F1 /* BudgetReminderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetReminderService.swift; sourceTree = "<group>"; };
+		5EBREM0300000000000000F1 /* BudgetReminderToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetReminderToast.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -465,6 +471,7 @@
 				5EGAM00100000000000000F1 /* XPRules.swift */,
 				5EACHV0100000000000000F1 /* Achievement.swift */,
 				5ECELB0100000000000000F1 /* Celebration.swift */,
+				5EBREM0100000000000000F1 /* BudgetReminder.swift */,
 				5EWARD0100000000000000F1 /* WardrobeItem.swift */,
 				5EWARD0200000000000000F1 /* MascotConfig.swift */,
 				5EACHV0200000000000000F1 /* AchievementEvaluator.swift */,
@@ -513,6 +520,7 @@
 				5EGAM00300000000000000F1 /* ProgressService.swift */,
 				5ECELB0300000000000000F1 /* CelebrationFeedback.swift */,
 				5EWARD0300000000000000F1 /* WardrobeService.swift */,
+				5EBREM0200000000000000F1 /* BudgetReminderService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -556,6 +564,7 @@
 			isa = PBXGroup;
 			children = (
 				5EBD610100000000000000F1 /* BudgetScheduleSection.swift */,
+				5EBREM0300000000000000F1 /* BudgetReminderToast.swift */,
 				5EBD610100000000000000F2 /* BudgetCalendarView.swift */,
 			);
 			path = Budget;
@@ -807,6 +816,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5EBREM0300000000000000B1 /* BudgetReminderToast.swift in Sources */,
+				5EBREM0200000000000000B1 /* BudgetReminderService.swift in Sources */,
+				5EBREM0100000000000000B1 /* BudgetReminder.swift in Sources */,
 				5E17150100000000000000B1 /* IsraeliHolidays.swift in Sources */,
 				5EBD610100000000000000B1 /* BudgetScheduleSection.swift in Sources */,
 				5EBD610100000000000000B2 /* BudgetCalendarView.swift in Sources */,

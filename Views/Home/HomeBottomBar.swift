@@ -20,6 +20,9 @@ struct HomeBottomBar: View {
     }
 
     @Binding var selection: Tab
+    /// A budget line is scheduled for today and the user hasn't opened the
+    /// calendar since — the calendar icon wears a small bell until they do.
+    var calendarHasReminder: Bool = false
 
     // Layout constants — kept as static so the FAB / HomeView can
     // reference the same heights when computing safe-area insets.
@@ -143,7 +146,18 @@ struct HomeBottomBar: View {
                         selection: $selection
                     ) {
                         BarSymbol("calendar")
+                            // `.topTrailing` mirrors under RTL to the visual
+                            // top-left — where Hebrew iOS puts a tab badge.
+                            .overlay(alignment: .topTrailing) {
+                                if calendarHasReminder {
+                                    ReminderBadge()
+                                        .offset(x: 7, y: -6)
+                                        .transition(.scale.combined(with: .opacity))
+                                }
+                            }
+                            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: calendarHasReminder)
                     }
+                    .accessibilityValue(calendarHasReminder ? Text("יש פריט מתוכנן להיום") : Text(verbatim: ""))
                     .frame(maxWidth: .infinity)
                 }
                 .frame(maxWidth: .infinity)
@@ -235,6 +249,21 @@ private struct BarSymbol: View {
     var body: some View {
         Image(systemName: name)
             .font(Theme.Typography.sectionTitle)
+    }
+}
+
+/// The small bell on the calendar icon while a budget reminder is pending.
+/// Filled accent disc with a surface-coloured ring, so it stays legible where
+/// it overlaps the calendar glyph and over the glass bar in both appearances.
+private struct ReminderBadge: View {
+    var body: some View {
+        Image(systemName: "bell.fill")
+            .font(.system(size: 8, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(width: 15, height: 15)
+            .background(Circle().fill(Theme.Colors.expense))
+            .overlay(Circle().strokeBorder(Theme.Colors.surface, lineWidth: 1.5))
+            .accessibilityHidden(true)
     }
 }
 

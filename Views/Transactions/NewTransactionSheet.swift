@@ -58,6 +58,12 @@ struct NewTransactionSheet: View {
     /// applying the new one) instead of inserting a fresh row.
     private let editingTransaction: Transaction?
 
+    /// The scheduled budget occurrence this new row logs, when the sheet was
+    /// opened from a budget reminder or the calendar's wallet swipe. The form
+    /// opens pre-filled from the line, and the saved row is linked back to the
+    /// occurrence so the calendar can grey it out.
+    private let budgetLink: BudgetLink?
+
     /// Optional ping for the parent ("a transaction was saved"). The
     /// sheet handles the SwiftData insert/update internally — this is
     /// just so callers can react (e.g. haptic, confetti) without
@@ -103,8 +109,34 @@ struct NewTransactionSheet: View {
     ///     `State(initialValue:)` so the sheet opens pre-filled.
     ///   - onSaved: optional callback fired after the save lands.
     init(transaction: Transaction? = nil, onSaved: ((Transaction) -> Void)? = nil) {
+        self.init(transaction: transaction, budgetLink: nil, onSaved: onSaved)
+    }
+
+    /// A new row logging one scheduled occurrence of a budget line: kind,
+    /// amount, currency, category and title come from the line. The date
+    /// stays **today** — the row records when the money actually moved, while
+    /// `occurrenceDay` records which scheduled day it settles (logging next
+    /// week's rent early is allowed and greys next week, not today).
+    init(logging item: BudgetItem, occurrenceDay: Date, onSaved: ((Transaction) -> Void)? = nil) {
+        self.init(
+            transaction: nil,
+            budgetLink: BudgetLink(item: item, occurrenceDay: occurrenceDay),
+            onSaved: onSaved
+        )
+    }
+
+    private init(transaction: Transaction?, budgetLink: BudgetLink?, onSaved: ((Transaction) -> Void)?) {
         self.editingTransaction = transaction
+        self.budgetLink = budgetLink
         self.onSaved = onSaved
+
+        if let item = budgetLink?.item {
+            _kind = State(initialValue: SheetKind(item.kind))
+            _category = State(initialValue: item.category)
+            _title = State(initialValue: Self.suggestedTitle(for: item))
+            _amount = State(initialValue: item.plannedAmount)
+            _amountCurrencyCode = State(initialValue: item.currencyCode)
+        }
 
         if let transaction {
             _kind = State(initialValue: SheetKind(transaction.kind))
@@ -251,7 +283,12 @@ struct NewTransactionSheet: View {
                 }
             }
         }
-        .onChange(of: sourceAccount) { _, new in
+        .onChange(of: sourceAccount) { old, new in
+            // A budget line's amount arrives in the line's own currency, so
+            // the first account `primeDefaults` picks mustn't re-label it —
+            // "$1,000 salary" silently becoming "₪1,000" is exactly the
+            // surprise the snap below exists to prevent.
+            if old == nil, budgetLink != nil { return }
             // When the user switches accounts, snap the amount currency
             // to the new account's currency. Avoids the silent surprise
             // of typing 50 in "USD" while the new account is ILS.
@@ -698,13 +735,38 @@ struct NewTransactionSheet: View {
             // default lookup honours that — a favourite savings account
             // shouldn't quietly become the seed for an expense.
             let pool = selectableAccounts
-            sourceAccount = pool.first(where: { $0.isFavorite }) ?? pool.first
+            // Logging a budget line prefers an account in the line's own
+            // currency, so the common case needs no conversion at all.
+            let matching = budgetLink.map { link in
+                pool.filter { $0.currencyCode == link.item.currencyCode }
+            } ?? []
+            sourceAccount = matching.first(where: { $0.isFavorite })
+                ?? matching.first
+                ?? pool.first(where: { $0.isFavorite })
+                ?? pool.first
+        }
+        if let link = budgetLink {
+            // The amount and currency were seeded from the line in `init`;
+            // only a missing category (typical for income lines) is filled
+            // here, by the line's name when a category of that kind shares it.
+            if category == nil {
+                category = filteredCategories.first { $0.name == link.item.name }
+            }
+            return
         }
         if let account = sourceAccount {
             amountCurrencyCode = account.currencyCode
         } else {
             amountCurrencyCode = preferredCurrencyCode
         }
+    }
+
+    /// The title a logged budget line starts with: its own name when it has
+    /// one, otherwise its category's — `canConfirm` needs a title, and the
+    /// user shouldn't have to retype what the line already says.
+    private static func suggestedTitle(for item: BudgetItem) -> String {
+        let name = item.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? (item.category?.name ?? "") : name
     }
 
     /// Flip the transfer's two endpoints in place. Wired to the arrow
@@ -834,6 +896,10 @@ struct NewTransactionSheet: View {
             category: category,
             account: account
         )
+        if let budgetLink {
+            transaction.budgetItem = budgetLink.item
+            transaction.budgetOccurrenceDate = budgetLink.occurrenceDay
+        }
         modelContext.insert(transaction)
         return transaction
     }
@@ -906,6 +972,16 @@ struct NewTransactionSheet: View {
             modelContext.insert(attachment)
         }
     }
+}
+
+// MARK: - Budget link
+
+/// The scheduled occurrence a new row is logging — see
+/// `NewTransactionSheet.init(logging:occurrenceDay:)`.
+private struct BudgetLink {
+    let item: BudgetItem
+    /// Start of the scheduled day.
+    let occurrenceDay: Date
 }
 
 // MARK: - Sheet-local kind

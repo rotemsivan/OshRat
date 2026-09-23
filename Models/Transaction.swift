@@ -114,6 +114,21 @@ final class Transaction {
     /// having to remember.
     var createdAt: Date?
 
+    // MARK: - Logged budget occurrence
+
+    /// The scheduled budget line this row was logged from, via the budget
+    /// reminder or the calendar's wallet swipe. `nil` for everything else.
+    /// Nullify: deleting the line leaves the transaction as ordinary history.
+    /// Inverse declared on `BudgetItem.loggedTransactions`.
+    var budgetItem: BudgetItem?
+
+    /// *Which* occurrence of `budgetItem` this row logs (start of that day),
+    /// kept apart from `date` on purpose: the transaction is dated when the
+    /// money moved (today by default), but the calendar has to grey out the
+    /// day the line was *scheduled* — logging next week's rent early should
+    /// mark next week, not today. See `BudgetOccurrence`.
+    var budgetOccurrenceDate: Date?
+
     init(
         amount: Decimal = 0,
         kind: TransactionKind = .expense,

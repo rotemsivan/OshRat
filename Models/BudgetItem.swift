@@ -89,6 +89,29 @@ final class BudgetItem {
     /// through `UserProgress.budgetLastTouchedAt` instead.
     var lastEditedAt: Date?
 
+    // MARK: - Logging & reminders
+
+    /// Transactions logged from this line's occurrences (the reminder toast
+    /// or the calendar's wallet swipe). Nullify: deleting the line keeps the
+    /// money history. Which occurrence each one logs is on
+    /// `Transaction.budgetOccurrenceDate`.
+    @Relationship(deleteRule: .nullify, inverse: \Transaction.budgetItem)
+    var loggedTransactions: [Transaction] = []
+
+    /// Start of the day whose reminder toast has already played for this
+    /// line, so it plays once per occurrence rather than on every launch.
+    ///
+    /// Stored on the line rather than in `UserDefaults` (where the overrun
+    /// latch lives) because it's per line: it has to follow the line and go
+    /// away with it, and a `UserDefaults` key would need a stable string for a
+    /// `PersistentIdentifier`. Both reminder fields are deliberately *not* in
+    /// `editableFields` — seeing a reminder isn't editing the budget.
+    var reminderAnnouncedFor: Date?
+
+    /// Start of the day the user last saw this line's occurrence in the
+    /// calendar tab. Clears the calendar tab's reminder badge for that day.
+    var reminderAcknowledgedFor: Date?
+
     init(
         name: String = "",
         plannedAmount: Decimal = 0,
@@ -372,6 +395,20 @@ final class BudgetItem {
 
     private static func isNonBusinessDay(_ date: Date, calendar: Calendar) -> Bool {
         calendar.component(.weekday, from: date) == 7 || IsraeliHolidays.isBankHoliday(date)
+    }
+
+    /// How the line reads as a one-line title: the source name for income;
+    /// the category (plus the optional note) for an expense. Shared by the
+    /// calendar rows and the reminder toast so a line has one name.
+    var displayTitle: String {
+        switch kind {
+        case .income:
+            return name.isEmpty ? "הכנסה" : name
+        case .expense:
+            let categoryName = category?.name ?? "ללא קטגוריה"
+            let note = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            return note.isEmpty ? categoryName : "\(categoryName) — \(note)"
+        }
     }
 
     /// Short Hebrew description of the cadence, for budget rows and the

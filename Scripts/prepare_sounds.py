@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepares the app's celebration sounds into OshRat/Sounds/.
+"""Prepares the app's celebration and reminder sounds into OshRat/Sounds/.
 
     python3 Scripts/prepare_sounds.py
 
@@ -8,7 +8,7 @@ public domain, free for commercial use, no attribution required (credited in
 Scripts/SOUNDS_CREDITS.md anyway). An earlier version synthesised its own
 chimes; they came out thin and sharp next to sounds made by a sound designer.
 
-This script downloads the packs, takes the three picks below, gives each a
+This script downloads the packs, takes the picks below, gives each a
 short fade-in and fade-out so nothing clicks, sets it to a gentle peak level,
 and converts it to CAF with `afconvert` (ships with macOS). To try a different
 sound, change its source name and rerun — then re-time the matching haptic
@@ -22,16 +22,20 @@ PACKS = {
     "jingles": "https://kenney.nl/media/pages/assets/music-jingles/f37e530b9e-1677590399/kenney_music-jingles.zip",
 }
 
-# (output name, pack, file inside the pack, target peak level)
+# (output name, pack, file inside the pack, target peak level). Written to
+# OshRat/Sounds/<output name>.caf.
 PICKS = [
     # A single warm "confirmation" tone — the smallest moment.
-    ("transaction", "interface", "Audio/confirmation_001.ogg", 0.11),
+    ("celebration-transaction", "interface", "Audio/confirmation_001.ogg", 0.11),
     # Bronze and silver achievements — a two-note steel-drum phrase.
-    ("achievement", "jingles", "Audio/Steel jingles/jingles_STEEL04.ogg", 0.13),
+    ("celebration-achievement", "jingles", "Audio/Steel jingles/jingles_STEEL04.ogg", 0.13),
     # Gold achievements — its sibling phrase, a touch louder for the rarest patches.
-    ("achievement-gold", "jingles", "Audio/Steel jingles/jingles_STEEL08.ogg", 0.14),
+    ("celebration-achievement-gold", "jingles", "Audio/Steel jingles/jingles_STEEL08.ogg", 0.14),
     # Four plucked notes rising — the same voice, a bigger moment.
-    ("levelup", "jingles", "Audio/Pizzicato jingles/jingles_PIZZI15.ogg", 0.14),
+    ("celebration-levelup", "jingles", "Audio/Pizzicato jingles/jingles_PIZZI15.ogg", 0.14),
+    # The budget reminder — not a celebration, so not a phrase: one solid,
+    # round bell strike that reads as "something to do", apart from the chimes.
+    ("reminder-budget", "interface", "Audio/bong_001.ogg", 0.13),
 ]
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "OshRat", "Sounds")
@@ -84,6 +88,6 @@ for out_name, pack, member, peak in PICKS:
 
     wav = os.path.join(TMP, out_name + ".wav")
     write_wav(wav, rate, shaped)
-    caf = os.path.join(OUT, f"celebration-{out_name}.caf")
+    caf = os.path.join(OUT, f"{out_name}.caf")
     subprocess.run(["afconvert", "-f", "caff", "-d", "LEI16", wav, caf], check=True)
     print(f"{os.path.basename(caf)}: {len(x) / rate:.2f}s, peak {peak}, note onsets {onsets(rate, shaped)}")

@@ -31,6 +31,11 @@ struct HomeView: View {
     @Query(filter: #Predicate<Account> { $0.deletedAt != nil })
     private var deletedAccounts: [Account]
     @Query private var budgetItems: [BudgetItem]
+    /// Live transactions that log a scheduled budget occurrence — what tells
+    /// the budget reminder a line is already taken care of. Its own narrow
+    /// query rather than a pass over `transactions`, which is the whole ledger.
+    @Query(filter: #Predicate<Transaction> { $0.deletedAt == nil && $0.budgetOccurrenceDate != nil })
+    private var budgetLoggedTransactions: [Transaction]
     /// XP / streak standing. A `@Query` rather than a one-off fetch so the
     /// dashboard card and the level-up toast both re-render the moment
     /// `ProgressService` writes — including when the write came from inside a
@@ -114,6 +119,14 @@ struct HomeView: View {
     /// happened.
     @State private var autoPaidExtraCount: Int = 0
 
+    /// The budget occurrence a reminder toast tap is logging. Presented from
+    /// here (not the calendar) because the toast plays over every tab.
+    @State private var budgetLogRequest: BudgetLogRequest?
+    /// Start of today, for the budget reminder. State rather than read from
+    /// `.now` on each render so that a day rolling over while the app is open
+    /// actually re-renders — nothing else would prompt one at midnight.
+    @State private var today: Date = BudgetReminderService.calendar.startOfDay(for: .now)
+
     var body: some View {
         ZStack {
             Theme.Colors.background.ignoresSafeArea()
@@ -151,7 +164,10 @@ struct HomeView: View {
             .animation(.easeInOut(duration: 0.2), value: selectedTab)
         }
         .safeAreaInset(edge: .bottom) {
-            HomeBottomBar(selection: $selectedTab)
+            HomeBottomBar(
+                selection: $selectedTab,
+                calendarHasReminder: BudgetReminderService.needsAttention(budgetDueToday, on: today)
+            )
                 .padding(.horizontal, Theme.Spacing.md)
                 // The home button pops above the bar by half its
                 // diameter — reserve that headroom in the inset so
@@ -191,15 +207,29 @@ struct HomeView: View {
         // Unmounting mid-run is safe: the toast leaves the queue alone when
         // its task is cancelled, so the celebration replays once the way is
         // clear.
+        //
+        // The budget reminder shares the slot and waits its turn behind any
+        // celebration, so the two banners never stack or talk over each other.
         .overlay(alignment: .top) {
-            if !isPresentingModal, let celebration = progressRows.first?.nextCelebration {
-                CelebrationToast(
-                    celebration: celebration,
-                    // An achievement's toast leads to the shelf it now sits on.
-                    onOpenAchievements: { selectedTab = .profile },
-                    onOpenWardrobe: { openWardrobe(from: .toast) },
-                    onDismiss: { ProgressService.dismissCelebration(in: modelContext) }
-                )
+            if !isPresentingModal {
+                if let celebration = progressRows.first?.nextCelebration {
+                    CelebrationToast(
+                        celebration: celebration,
+                        // An achievement's toast leads to the shelf it now sits on.
+                        onOpenAchievements: { selectedTab = .profile },
+                        onOpenWardrobe: { openWardrobe(from: .toast) },
+                        onDismiss: { ProgressService.dismissCelebration(in: modelContext) }
+                    )
+                } else if let reminder = BudgetReminderService.nextReminder(budgetDueToday, on: today) {
+                    BudgetReminderToast(
+                        reminder: reminder,
+                        onOpen: { openReminder(reminder) },
+                        onDismiss: {
+                            let items = budgetItems.filter { reminder.itemIDs.contains($0.persistentModelID) }
+                            BudgetReminderService.markAnnounced(items, on: reminder.day, in: modelContext)
+                        }
+                    )
+                }
             }
         }
         .sheet(isPresented: $isAddingTransaction) {
@@ -207,6 +237,11 @@ struct HomeView: View {
         }
         .sheet(isPresented: $isEditingBudget) {
             BudgetEditorSheet()
+        }
+        .sheet(item: $budgetLogRequest) { request in
+            if let item = budgetItems.first(where: { $0.persistentModelID == request.itemID }) {
+                NewTransactionSheet(logging: item, occurrenceDay: request.occurrenceDay)
+            }
         }
         .sheet(isPresented: $isShowingRecentlyDeleted) {
             RecentlyDeletedView()
@@ -263,6 +298,13 @@ struct HomeView: View {
         // If the user hasn't onboarded yet, `ContentView` never mounts
         // `HomeView`, so the URL is quietly ignored — correct, since
         // there's no account to log a transaction against.
+        // A day rolling over while the app is open (or while it sat in the
+        // background) moves the budget reminder on to the new day's lines.
+        // `significantTimeChangeNotification` is posted on the main thread at
+        // midnight and on time-zone / clock changes.
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+            today = BudgetReminderService.calendar.startOfDay(for: .now)
+        }
         .onOpenURL { url in
             guard url.scheme == "oshrat", url.host() == "new-transaction" else { return }
             isAddingTransaction = true
@@ -577,6 +619,27 @@ struct HomeView: View {
         return .home
     }
 
+    // MARK: - Budget reminder
+
+    /// Today's scheduled lines that no transaction logs yet.
+    private var budgetDueToday: [BudgetItem] {
+        BudgetReminderService.dueItems(
+            on: today,
+            in: budgetItems,
+            logged: BudgetReminderService.loggedOccurrences(from: budgetLoggedTransactions)
+        )
+    }
+
+    /// A single reminder goes straight to the pre-filled sheet; a batch goes
+    /// to the calendar, where every line it covers is marked.
+    private func openReminder(_ reminder: BudgetReminder) {
+        if reminder.isBatch {
+            selectedTab = .calendar
+        } else if let id = reminder.itemIDs.first {
+            budgetLogRequest = BudgetLogRequest(itemID: id, occurrenceDay: reminder.day)
+        }
+    }
+
     private func openWardrobe(from entryPoint: WardrobeEntryPoint) {
         wardrobeEntryPoint = entryPoint
         isShowingWardrobe = true
@@ -586,6 +649,7 @@ struct HomeView: View {
     /// place a level-up can be earned is one of these, or a task of this view.
     private var isPresentingModal: Bool {
         isAddingTransaction
+            || budgetLogRequest != nil
             || isEditingBudget
             || isShowingRecentlyDeleted
             || isShowingWardrobe

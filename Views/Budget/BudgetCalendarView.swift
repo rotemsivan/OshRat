@@ -21,10 +21,20 @@ private let holidayTint = Color(light: Color(hex: "7E57C2"), dark: Color(hex: "B
 /// Adding and editing reuse the very same income/expense editor sheets as
 /// the dashboard budget editor (now schedule-aware), so a line created here
 /// behaves identically to one created during onboarding.
+///
+/// It's also where scheduled lines become real transactions: a day's rows
+/// swipe (visual right → the wallet, which opens the new-transaction sheet
+/// pre-filled; visual left → delete), occurrences already logged turn grey,
+/// and opening the tab acknowledges today's budget reminder — clearing the
+/// badge on the tab bar and marking the rows it was about.
 struct BudgetCalendarView: View {
     @Environment(\.modelContext) private var modelContext
 
     @Query(sort: \BudgetItem.name) private var budgetItems: [BudgetItem]
+    /// Live transactions that log a budget occurrence — what greys a row.
+    /// Filtered in the store so the calendar doesn't scan the whole ledger.
+    @Query(filter: #Predicate<Transaction> { $0.deletedAt == nil && $0.budgetOccurrenceDate != nil })
+    private var budgetLoggedTransactions: [Transaction]
     @Query(sort: \Category.name) private var categories: [Category]
     @Query private var profiles: [UserProfile]
     @Query(sort: \FXRateSnapshot.fetchedAt, order: .reverse) private var fxSnapshots: [FXRateSnapshot]
@@ -41,20 +51,33 @@ struct BudgetCalendarView: View {
     @State private var pendingIncomeItem: BudgetItem?
     @State private var editingExpense: PlannedExpenseDraft?
     @State private var pendingExpenseItem: BudgetItem?
+    /// The occurrence the wallet swipe is logging, as an id + day (not the
+    /// model — see `CalendarDayEntry`).
+    @State private var loggingRequest: BudgetLogRequest?
+    /// The row whose delete is awaiting confirmation. A budget line has no
+    /// Recently Deleted, and a recurring one takes every month with it, so a
+    /// full swipe asks first — the same call `AssetsSummaryCard` makes for
+    /// accounts.
+    @State private var entryPendingDelete: CalendarDayEntry?
+    /// Row height for the day's embedded list, which can't size itself (see
+    /// `dayItemsList`). Scaled so larger text sizes don't clip the second line.
+    @ScaledMetric(relativeTo: .body) private var dayRowHeight: CGFloat = 64
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// Scroll anchor for the selected-day card.
+    private static let selectedDayAnchor = "selectedDay"
 
     var body: some View {
         ZStack {
             Theme.Colors.background.ignoresSafeArea()
+            ScrollViewReader { proxy in
             ScrollView {
+                // The month's plan rides inside the calendar card as one line,
+                // so the day's items sit as close under the grid as they can.
                 VStack(spacing: Theme.Spacing.lg) {
                     calendarCard
-                    MonthPlanSummary(
-                        income: monthTotals.income,
-                        expense: monthTotals.expense,
-                        currencyCode: preferredCurrencyCode,
-                        fxUnavailable: monthTotals.fxUnavailable
-                    )
                     selectedDaySection
+                        .id(Self.selectedDayAnchor)
                 }
                 .padding(.horizontal, Theme.Spacing.lg)
                 // No top pad — the large navigation title above already
@@ -67,6 +90,16 @@ struct BudgetCalendarView: View {
                 .padding(.bottom, HomeBottomBar.floatingButtonClearance)
             }
             .scrollIndicators(.hidden)
+            // A six-week month pushes the day card under the tab bar, so a
+            // tapped date scrolls its items up into view. Only on a change:
+            // landing on the tab keeps the calendar itself in view.
+            .onChange(of: selectedDay) { _, newDay in
+                guard newDay != nil else { return }
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
+                    proxy.scrollTo(Self.selectedDayAnchor, anchor: .top)
+                }
+            }
+            }
         }
         .navigationTitle(Text("יומן התקציב"))
         // Large, matching תובנות and תנועות — one title style across the tabs.
@@ -95,17 +128,57 @@ struct BudgetCalendarView: View {
                 onCancel: {}
             )
         }
+        .sheet(item: $loggingRequest) { request in
+            if let item = budgetItem(for: request.itemID) {
+                NewTransactionSheet(logging: item, occurrenceDay: request.occurrenceDay)
+            }
+        }
+        .alert(
+            Text("מחיקת הפריט מהתקציב?"),
+            isPresented: deleteAlertBinding,
+            presenting: entryPendingDelete
+        ) { entry in
+            Button("מחיקה", role: .destructive) { delete(entry) }
+            Button("ביטול", role: .cancel) {}
+        } message: { entry in
+            if entry.isRecurring {
+                Text("זה פריט קבוע — המחיקה תסיר אותו מכל החודשים, לא רק מהיום הזה.")
+            } else {
+                Text("לא ניתן לשחזר את הפריט אחרי המחיקה.")
+            }
+        }
+        // Opening the tab *is* seeing today's reminder: stamp today's due lines
+        // as acknowledged, which clears the tab-bar badge (and any toast still
+        // waiting for them). Keyed on the due set so a line added for today
+        // while the tab is open is acknowledged too.
+        .task(id: dueTodayIDs) {
+            BudgetReminderService.markAcknowledged(dueToday, on: today, in: modelContext)
+        }
     }
 
     // MARK: - Calendar
 
     private var calendarCard: some View {
-        BudgetMonthCalendar(
-            selectedDay: $selectedDay,
-            visibleMonth: $visibleMonth,
-            calendar: calendar,
-            decorations: decorations
-        )
+        VStack(spacing: Theme.Spacing.sm) {
+            BudgetMonthCalendar(
+                selectedDay: $selectedDay,
+                visibleMonth: $visibleMonth,
+                calendar: calendar,
+                decorations: decorations
+            )
+            .frame(maxWidth: .infinity)
+
+            Rectangle()
+                .fill(Theme.Colors.separator)
+                .frame(height: 1)
+
+            MonthPlanStrip(
+                income: monthTotals.income,
+                expense: monthTotals.expense,
+                currencyCode: preferredCurrencyCode,
+                fxUnavailable: monthTotals.fxUnavailable
+            )
+        }
         .frame(maxWidth: .infinity)
         .cardStyle()
     }
@@ -127,21 +200,14 @@ struct BudgetCalendarView: View {
                     .frame(maxWidth: .infinity, alignment: .trailing)
             }
 
-            if selectedDayItems.isEmpty {
+            let entries = selectedDayEntries
+            if entries.isEmpty {
                 Text("אין פריטים מתוכננים ליום זה.")
                     .font(Theme.Typography.body)
                     .foregroundStyle(Theme.Colors.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .trailing)
             } else {
-                ForEach(selectedDayItems) { item in
-                    CalendarItemRow(item: item)
-                        .contentShape(.rect)
-                        .onTapGesture { edit(item) }
-                        .contextMenu {
-                            Button("עריכה", systemImage: "pencil") { edit(item) }
-                            Button("מחיקה", systemImage: "trash", role: .destructive) { delete(item) }
-                        }
-                }
+                dayItemsList(entries)
             }
 
             addMenu {
@@ -154,6 +220,65 @@ struct BudgetCalendarView: View {
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
         .cardStyle()
+    }
+
+    /// The day's rows, in a `List` purely for `.swipeActions` (they're
+    /// `List`-only) — the same embedded, scroll-disabled, fixed-height list
+    /// `AssetsSummaryCard` uses, so the screen's `ScrollView` stays the one
+    /// scroller.
+    ///
+    /// Directions follow the other lists under RTL: the **trailing** edge
+    /// (visual left, reached by swiping right) holds delete, and a full swipe
+    /// fires it; the **leading** edge (visual right, swiping left) holds the
+    /// wallet, which logs the occurrence. An occurrence already logged loses
+    /// the wallet — logging it twice would count the money twice; deleting
+    /// that transaction brings the wallet back.
+    private func dayItemsList(_ entries: [CalendarDayEntry]) -> some View {
+        List {
+            ForEach(entries) { entry in
+                CalendarItemRow(entry: entry)
+                    .contentShape(.rect)
+                    .onTapGesture { edit(entry) }
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityHint(Text("הקש לעריכה"))
+                    .contextMenu {
+                        if !entry.isLogged {
+                            Button("רישום כתנועה", systemImage: "wallet.bifold") { log(entry) }
+                        }
+                        Button("עריכה", systemImage: "pencil") { edit(entry) }
+                        Button("מחיקה", systemImage: "trash", role: .destructive) {
+                            entryPendingDelete = entry
+                        }
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets())
+                    .frame(height: dayRowHeight)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            entryPendingDelete = entry
+                        } label: {
+                            Image(systemName: "trash")
+                        }
+                        .accessibilityLabel(Text("מחיקה"))
+                    }
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        if !entry.isLogged {
+                            Button {
+                                log(entry)
+                            } label: {
+                                Image(systemName: "wallet.bifold")
+                            }
+                            .tint(entry.kind == .income ? Theme.Colors.income : Theme.Colors.expense)
+                            .accessibilityLabel(Text("רישום כתנועה"))
+                        }
+                    }
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .scrollDisabled(true)
+        .frame(height: CGFloat(entries.count) * dayRowHeight)
     }
 
     // MARK: - Actions
@@ -185,7 +310,8 @@ struct BudgetCalendarView: View {
         editingExpense = PlannedExpenseDraft(currencyCode: preferredCurrencyCode, schedule: seededSchedule())
     }
 
-    private func edit(_ item: BudgetItem) {
+    private func edit(_ entry: CalendarDayEntry) {
+        guard let item = budgetItem(for: entry.id) else { return }
         switch item.kind {
         case .income:
             pendingIncomeItem = item
@@ -196,7 +322,15 @@ struct BudgetCalendarView: View {
         }
     }
 
-    private func delete(_ item: BudgetItem) {
+    private func log(_ entry: CalendarDayEntry) {
+        loggingRequest = BudgetLogRequest(itemID: entry.id, occurrenceDay: entry.occurrenceDay)
+    }
+
+    /// A hard delete, so the rows render from `CalendarDayEntry` values: the
+    /// outgoing row keeps being drawn while it animates away, and reading a
+    /// deleted model then traps (see CLAUDE.md, "Soft delete vs hard delete").
+    private func delete(_ entry: CalendarDayEntry) {
+        guard let item = budgetItem(for: entry.id) else { return }
         withAnimation {
             modelContext.delete(item)
             // A deleted line changes the month's plan; the budget
@@ -268,19 +402,62 @@ struct BudgetCalendarView: View {
         return (comps.month ?? 1, comps.year ?? 2000)
     }
 
-    /// Budget lines that resolve to the tapped day. Computed from the
-    /// selected day's *own* month (not the visible month) so the detail list
-    /// stays correct even if the user has paged the calendar elsewhere while
-    /// keeping an earlier day selected.
-    private var selectedDayItems: [BudgetItem] {
+    /// The tapped day's rows, as value snapshots. Resolved through
+    /// `BudgetReminderService.occurrence(of:on:)` — the selected day's *own*
+    /// month, not the visible one, so the list stays right if the user pages
+    /// away while keeping an earlier day selected — and through the same
+    /// service the reminder uses, so "due today" can't mean two things.
+    private var selectedDayEntries: [CalendarDayEntry] {
         guard let selectedDay else { return [] }
-        let comps = calendar.dateComponents([.month, .year], from: selectedDay)
-        let month = comps.month ?? 1
-        let year = comps.year ?? 2000
-        return budgetItems.filter { item in
-            guard let date = item.occurrenceDate(inMonth: month, year: year, calendar: calendar) else { return false }
-            return calendar.isDate(date, inSameDayAs: selectedDay)
+        let logged = loggedOccurrences
+        let isToday = calendar.isDate(selectedDay, inSameDayAs: today)
+        return budgetItems.compactMap { item in
+            guard let occurrence = BudgetReminderService.occurrence(of: item, on: selectedDay) else { return nil }
+            let isLogged = logged.contains(occurrence)
+            return CalendarDayEntry(
+                id: item.persistentModelID,
+                occurrenceDay: occurrence.day,
+                title: item.displayTitle,
+                schedule: item.scheduleDescription,
+                amount: item.plannedAmount,
+                currencyCode: item.currencyCode,
+                kind: item.kind,
+                dotColor: budgetDotColor(for: item),
+                isRecurring: !item.isOneTime,
+                isLogged: isLogged,
+                isDueToday: isToday && !isLogged
+            )
         }
+    }
+
+    private var loggedOccurrences: Set<BudgetOccurrence> {
+        BudgetReminderService.loggedOccurrences(from: budgetLoggedTransactions)
+    }
+
+    private var today: Date { calendar.startOfDay(for: .now) }
+
+    /// Today's lines that nothing has logged yet — what the reminder is about.
+    private var dueToday: [BudgetItem] {
+        BudgetReminderService.dueItems(on: today, in: budgetItems, logged: loggedOccurrences)
+    }
+
+    private var dueTodayIDs: [PersistentIdentifier] {
+        dueToday.map(\.persistentModelID)
+    }
+
+    /// Looks a row's line back up from the live query. A line deleted in the
+    /// meantime is simply absent, rather than a model that traps on read.
+    private func budgetItem(for id: PersistentIdentifier) -> BudgetItem? {
+        budgetItems.first { $0.persistentModelID == id }
+    }
+
+    /// `.alert(presenting:)` wants a `Binding<Bool>`; bridge it through the
+    /// optional entry, like `HomeView`'s auto-payout alert.
+    private var deleteAlertBinding: Binding<Bool> {
+        Binding(
+            get: { entryPendingDelete != nil },
+            set: { if !$0 { entryPendingDelete = nil } }
+        )
     }
 
     private var selectedDayHoliday: IsraeliHoliday? {
@@ -296,6 +473,7 @@ struct BudgetCalendarView: View {
     /// UIKit).
     private var decorations: [Date: CalendarDayDecoration] {
         var result: [Date: CalendarDayDecoration] = [:]
+        let logged = loggedOccurrences
 
         for offset in -1...1 {
             guard let monthDate = calendar.date(byAdding: .month, value: offset, to: visibleMonth),
@@ -304,11 +482,15 @@ struct BudgetCalendarView: View {
             let month = comps.month ?? 1
             let year = comps.year ?? 2000
 
-            // Budget lines that land on a concrete day this month.
+            // Budget lines that land on a concrete day this month. A logged
+            // occurrence's dot goes grey, matching its row below.
             for item in budgetItems {
                 guard let date = item.occurrenceDate(inMonth: month, year: year, calendar: calendar) else { continue }
                 let day = calendar.startOfDay(for: date)
-                result[day, default: CalendarDayDecoration()].dotColors.append(budgetDotColor(for: item))
+                let isLogged = logged.contains(BudgetOccurrence(itemID: item.persistentModelID, day: day))
+                result[day, default: CalendarDayDecoration()].dotColors.append(
+                    isLogged ? loggedTint : budgetDotColor(for: item)
+                )
             }
 
             // Shabbat + Israeli holidays, day by day.
@@ -377,6 +559,10 @@ struct BudgetCalendarView: View {
         calendar.dateInterval(of: .month, for: date)?.start ?? date
     }
 }
+
+/// Colour of an occurrence that has already been logged — its dot on the
+/// grid and its row in the day list. Grey reads as "done, nothing to do".
+private let loggedTint = Theme.Colors.textSecondary.opacity(0.6)
 
 /// Dot colour for a budget line on the calendar: income green, a "want"
 /// expense its calmer orange, everything else the expense red. Shared by the
@@ -605,23 +791,58 @@ private final class DecorationDotsView: UIView {
 
 // MARK: - Item rows
 
+/// What one row of the day list shows, captured as plain values.
+///
+/// The rows are built from these rather than from `BudgetItem`: deleting a
+/// line is a hard delete, and SwiftUI keeps drawing the outgoing row while it
+/// animates away — a row still reading the model then traps (CLAUDE.md,
+/// "Soft delete vs hard delete"). Anything that needs the model looks it up by
+/// `id` at the moment it acts.
+private struct CalendarDayEntry: Identifiable {
+    let id: PersistentIdentifier
+    /// Start of the scheduled day — which occurrence the row stands for.
+    let occurrenceDay: Date
+    let title: String
+    let schedule: String
+    let amount: Decimal
+    let currencyCode: String
+    let kind: TransactionKind
+    let dotColor: Color
+    let isRecurring: Bool
+    /// A live transaction already logs this occurrence — the row turns grey.
+    let isLogged: Bool
+    /// Today's, and not yet logged: what the budget reminder is about.
+    let isDueToday: Bool
+}
+
+/// Asks the calendar to open the new-transaction sheet for one occurrence.
+/// An id rather than the model, for the same reason as `CalendarDayEntry`.
+struct BudgetLogRequest: Identifiable, Hashable {
+    let itemID: PersistentIdentifier
+    let occurrenceDay: Date
+
+    var id: Self { self }
+}
+
 /// A scheduled-line row inside the selected-day list: a kind/nature dot,
-/// the line's name + cadence, and its amount.
+/// the line's name + cadence, and its amount. Logged occurrences are drawn in
+/// grey with a check; today's unlogged ones carry the reminder's bell and an
+/// accent wash, which is how opening the tab "marks" what it reminded about.
 private struct CalendarItemRow: View {
-    let item: BudgetItem
+    let entry: CalendarDayEntry
 
     var body: some View {
         HStack(spacing: Theme.Spacing.sm) {
             Circle()
-                .fill(budgetDotColor(for: item))
+                .fill(entry.isLogged ? loggedTint : entry.dotColor)
                 .frame(width: 10, height: 10)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text(entry.title)
                     .font(Theme.Typography.body)
-                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .foregroundStyle(entry.isLogged ? Theme.Colors.textSecondary : Theme.Colors.textPrimary)
                     .lineLimit(1)
-                Text(item.scheduleDescription)
+                statusLine
                     .font(Theme.Typography.caption)
                     .foregroundStyle(Theme.Colors.textSecondary)
                     .lineLimit(1)
@@ -629,32 +850,72 @@ private struct CalendarItemRow: View {
 
             Spacer(minLength: Theme.Spacing.sm)
 
-            Text(item.plannedAmount.formatted(.currency(code: item.currencyCode)))
+            Text(entry.amount.formatted(.currency(code: entry.currencyCode)))
                 .font(Theme.Typography.amount)
-                .foregroundStyle(Theme.Colors.textPrimary)
+                .foregroundStyle(entry.isLogged ? Theme.Colors.textSecondary : Theme.Colors.textPrimary)
                 .monospacedDigit()
                 .lineLimit(1)
         }
+        .padding(.horizontal, Theme.Spacing.sm)
+        .frame(maxHeight: .infinity)
+        .background {
+            if entry.isDueToday {
+                RoundedRectangle(cornerRadius: Theme.Radius.button, style: .continuous)
+                    .fill(Theme.Colors.accent.opacity(0.08))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Theme.Radius.button, style: .continuous)
+                            .strokeBorder(Theme.Colors.accent.opacity(0.35), lineWidth: 1)
+                    }
+            }
+        }
+        .padding(.vertical, Theme.Spacing.xxs)
     }
 
-    private var title: String {
-        switch item.kind {
-        case .income:
-            return item.name.isEmpty ? "הכנסה" : item.name
-        case .expense:
-            let categoryName = item.category?.name ?? "ללא קטגוריה"
-            let note = item.name.trimmingCharacters(in: .whitespacesAndNewlines)
-            return note.isEmpty ? categoryName : "\(categoryName) — \(note)"
+    /// The cadence, prefixed by the occurrence's state when it has one.
+    @ViewBuilder
+    private var statusLine: some View {
+        if entry.isLogged {
+            Label {
+                Text("נרשם כתנועה · \(entry.schedule)")
+            } icon: {
+                Image(systemName: "checkmark.circle.fill")
+            }
+            .labelStyle(CompactLabelStyle())
+        } else if entry.isDueToday {
+            Label {
+                Text("להיום · החליקו לרישום")
+            } icon: {
+                Image(systemName: "bell.fill")
+                    .foregroundStyle(Theme.Colors.accent)
+            }
+            .labelStyle(CompactLabelStyle())
+        } else {
+            Text(entry.schedule)
         }
     }
 }
 
-// MARK: - Month plan summary
+/// Icon and title tight together, for a caption-sized status line.
+private struct CompactLabelStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: Theme.Spacing.xs) {
+            configuration.icon
+            configuration.title
+        }
+    }
+}
 
-/// Compact roll-up of the visible month's planned income, expense and net,
-/// in the preferred currency. The first thing the user sees when they land
-/// on a month.
-private struct MonthPlanSummary: View {
+// MARK: - Month plan strip
+
+/// The visible month's planned income, expense and net as one line along the
+/// bottom of the calendar card — icons in place of the words, the same arrows
+/// the add menu uses for income and expense. It used to be a card of its own,
+/// which cost the day's items a screen's worth of room.
+///
+/// Whole shekels: three full amounts with agorot don't fit one phone-width
+/// line, and a plan is an estimate anyway. At large text sizes the three
+/// stack instead of squeezing.
+private struct MonthPlanStrip: View {
     let income: Decimal
     let expense: Decimal
     let currencyCode: String
@@ -663,46 +924,72 @@ private struct MonthPlanSummary: View {
     private var net: Decimal { income - expense }
 
     var body: some View {
-        VStack(alignment: .trailing, spacing: Theme.Spacing.sm) {
-            row(title: "הכנסות מתוכננות", amount: income, color: Theme.Colors.income)
-            row(title: "הוצאות מתוכננות", amount: expense, color: Theme.Colors.expense)
-
-            HStack {
-                Text("נטו")
-                    .font(Theme.Typography.body)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                Spacer()
-                Text(net.formattedSignedCurrency(currencyCode))
-                    .font(Theme.Typography.amount)
-                    .foregroundStyle(net >= 0 ? Theme.Colors.income : Theme.Colors.expense)
-                    .monospacedDigit()
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: Theme.Spacing.md) {
+                figures
             }
-
-            if fxUnavailable {
-                Text("חלק מהסכומים לא הומרו — שערי חליפין לא זמינים.")
-                    .font(Theme.Typography.caption)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                figures
             }
         }
-        .frame(maxWidth: .infinity, alignment: .trailing)
-        .cardStyle()
+        .frame(maxWidth: .infinity)
     }
 
-    private func row(title: LocalizedStringKey, amount: Decimal, color: Color) -> some View {
-        HStack {
-            Circle()
-                .fill(color)
-                .frame(width: 8, height: 8)
-            Text(title)
-                .font(Theme.Typography.body)
-                .foregroundStyle(Theme.Colors.textPrimary)
-            Spacer()
-            Text(amount.formatted(.currency(code: currencyCode)))
-                .font(Theme.Typography.amount)
+    @ViewBuilder
+    private var figures: some View {
+        figure(
+            symbol: "arrow.down.left",
+            color: Theme.Colors.income,
+            text: rounded(income),
+            spoken: "הכנסות מתוכננות"
+        )
+        figure(
+            symbol: "arrow.up.right",
+            color: Theme.Colors.expense,
+            text: rounded(expense),
+            spoken: "הוצאות מתוכננות"
+        )
+        figure(
+            symbol: "equal",
+            color: net >= 0 ? Theme.Colors.income : Theme.Colors.expense,
+            text: signedRounded(net),
+            spoken: "נטו"
+        )
+        if fxUnavailable {
+            Image(systemName: "exclamationmark.triangle")
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .accessibilityLabel(Text("חלק מהסכומים לא הומרו — שערי חליפין לא זמינים."))
+        }
+    }
+
+    private func figure(symbol: String, color: Color, text: String, spoken: LocalizedStringKey) -> some View {
+        HStack(spacing: Theme.Spacing.xs) {
+            Image(systemName: symbol)
+                .font(Theme.Typography.caption.weight(.bold))
+                .foregroundStyle(color)
+            Text(text)
+                .font(Theme.Typography.bodySmall.weight(.semibold))
                 .foregroundStyle(Theme.Colors.textPrimary)
                 .monospacedDigit()
+                .lineLimit(1)
         }
+        // Icons carry no words, so VoiceOver gets the name back.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(spoken))
+        .accessibilityValue(Text(text))
+    }
+
+    private func rounded(_ amount: Decimal) -> String {
+        amount.formatted(.currency(code: currencyCode).precision(.fractionLength(0)))
+    }
+
+    /// Same bidi-isolated trailing sign as `formattedSignedCurrency`, so the
+    /// "+" / "-" stays on the visual left under RTL (see CLAUDE.md).
+    private func signedRounded(_ amount: Decimal) -> String {
+        let body = rounded(Swift.abs(amount))
+        guard amount != 0 else { return body }
+        return "\(body)\u{2066}\(amount > 0 ? "+" : "-")\u{2069}"
     }
 }
 

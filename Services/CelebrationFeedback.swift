@@ -3,9 +3,10 @@ import CoreHaptics
 
 /// The app's celebration sounds and the haptic patterns that go with them.
 ///
-/// Four moments, rising in size: a new transaction gets one warm tone, an
-/// achievement a two-note steel-drum phrase (a sibling phrase for gold), a
-/// level-up four plucked-string notes. The sounds are CC0
+/// Four celebration moments, rising in size: a new transaction gets one warm
+/// tone, an achievement a two-note steel-drum phrase (a sibling phrase for
+/// gold), a level-up four plucked-string notes. A fifth, the budget reminder,
+/// is a nudge rather than a reward and gets one solid bell strike. The sounds are CC0
 /// assets by Kenney, prepared by `Scripts/prepare_sounds.py` (credits in
 /// `Scripts/SOUNDS_CREDITS.md`) — an earlier, synthesised set came out thin
 /// and sharp. Each haptic taps exactly on its sound's notes; the script prints
@@ -35,6 +36,9 @@ final class CelebrationFeedback {
         /// Gold patches — the rarest, so they get their own phrase.
         case goldAchievement
         case levelUp
+        /// A budget line is scheduled for today. Not a celebration, so it
+        /// deliberately doesn't sound like one: a single solid bell strike.
+        case budgetReminder
 
         fileprivate var soundName: String {
             switch self {
@@ -42,6 +46,7 @@ final class CelebrationFeedback {
             case .achievement:       return "celebration-achievement"
             case .goldAchievement:   return "celebration-achievement-gold"
             case .levelUp:           return "celebration-levelup"
+            case .budgetReminder:    return "reminder-budget"
             }
         }
 
@@ -61,6 +66,10 @@ final class CelebrationFeedback {
             case .levelUp:
                 // Climbing with the notes to a decisive last tap.
                 return [(0.00, 0.45, 0.45), (0.13, 0.60, 0.50), (0.25, 0.75, 0.60), (0.36, 1.00, 0.75)]
+            case .budgetReminder:
+                // One full, low-sharpness tap — a knock rather than a click,
+                // matching the bell's weight. Still a transient, never a buzz.
+                return [(0.00, 0.90, 0.30)]
             }
         }
     }
