@@ -412,7 +412,10 @@ private struct BudgetProgressRow: View {
                     .font(Theme.Typography.body)
                     .foregroundStyle(Theme.Colors.textPrimary)
                 Spacer(minLength: Theme.Spacing.sm)
+                // Claims its width before the label does: the figures are the
+                // point of the row, and the label is a single short word.
                 amounts
+                    .layoutPriority(1)
             }
 
             HStack(spacing: Theme.Spacing.sm) {
@@ -440,26 +443,46 @@ private struct BudgetProgressRow: View {
 
     /// Actual amount, then the planned figure it's measured against — or a
     /// "not budgeted" note when there was no plan for this bucket.
-    @ViewBuilder
+    ///
+    /// Side by side when they fit, stacked when they don't. This used to be
+    /// one `HStack` with `.minimumScaleFactor(0.7)`, which let each row shrink
+    /// independently to whatever width the layout handed it — so one row's
+    /// figures could render at 70% beside full-size neighbours. Stacking keeps
+    /// every row at the same type size. The two candidates genuinely differ in
+    /// width, which is what `ViewThatFits` needs to choose between them.
     private var amounts: some View {
-        HStack(spacing: Theme.Spacing.xs) {
-            Text(line.actual.formattedCurrency(code))
-                .font(Theme.Typography.amount)
-                .foregroundStyle(amountColor)
-                .monospacedDigit()
-            if line.planned > 0 {
-                Text("מתוך \(line.planned.formattedCurrency(code))")
-                    .font(Theme.Typography.caption)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .monospacedDigit()
-            } else if line.isUnbudgetedSpend {
-                Text("לא תוקצב")
-                    .font(Theme.Typography.caption)
-                    .foregroundStyle(Theme.Colors.expense)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: Theme.Spacing.xs) {
+                actualText
+                planNote
+            }
+            VStack(alignment: .trailing, spacing: 0) {
+                actualText
+                planNote
             }
         }
         .lineLimit(1)
-        .minimumScaleFactor(0.7)
+    }
+
+    private var actualText: some View {
+        Text(line.actual.formattedCurrency(code))
+            .font(Theme.Typography.amount)
+            .foregroundStyle(amountColor)
+            .monospacedDigit()
+    }
+
+    @ViewBuilder
+    private var planNote: some View {
+        if line.planned > 0 {
+            Text("מתוך \(line.planned.formattedCurrency(code))")
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .monospacedDigit()
+        } else if line.isUnbudgetedSpend {
+            Text("לא תוקצב")
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.expense)
+        }
     }
 
     private var accessibilityLabel: String {

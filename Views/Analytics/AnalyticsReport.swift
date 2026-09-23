@@ -520,14 +520,20 @@ extension Decimal {
         formatted(.currency(code: code))
     }
 
-    /// Currency string whose leading +/- sign is forced to the visual
-    /// left even inside an RTL (Hebrew) view. The bidi-neutral sign would
-    /// otherwise inherit RTL direction and land on the visual right of the
-    /// number. Same U+2066 LRI … U+2069 PDI trick the dashboard cards use.
+    /// Currency string with a +/- sign on the visual left inside an RTL
+    /// (Hebrew) view, laid out exactly like `formattedCurrency` otherwise:
+    /// "+₪ 7,638.50" beside a plain "₪ 29,330.00".
+    ///
+    /// Only the *sign* is isolated (U+2066 LRI … U+2069 PDI), and it goes
+    /// logically **last**, which an RTL line places leftmost. Isolating the
+    /// whole string instead forced the Hebrew currency format (which carries
+    /// its own RLMs) into left-to-right order and moved the ₪ to the right of
+    /// the number, so a signed amount no longer matched the unsigned ones
+    /// around it.
     func formattedSignedCurrency(_ code: String) -> String {
         let body = Swift.abs(self).formatted(.currency(code: code))
-        let sign: String
-        if self > 0 { sign = "+" } else if self < 0 { sign = "-" } else { sign = "" }
-        return "\u{2066}\(sign)\(body)\u{2069}"
+        guard self != 0 else { return body }
+        let sign = self > 0 ? "+" : "-"
+        return "\(body)\u{2066}\(sign)\u{2069}"
     }
 }
