@@ -170,8 +170,15 @@ struct HomeView: View {
         // the XP that triggered one was almost certainly earned in a sheet on
         // top of some other tab, and the user should see it wherever they are.
         // The toast clears the flag itself once it has finished animating out.
+        //
+        // It waits out any sheet or alert presented from here: an overlay on
+        // this view sits *under* them, so a toast mounted then would play its
+        // whole run unseen and clear the flag — which is how a deposit's
+        // maturity prompt used to eat a batch of retroactive level-ups.
+        // Unmounting mid-run is safe: the toast leaves the flag set when its
+        // task is cancelled, so the celebration replays once the way is clear.
         .overlay(alignment: .top) {
-            if let level = progressRows.first?.pendingLevelUpLevel {
+            if !isPresentingModal, let level = progressRows.first?.pendingLevelUpLevel {
                 LevelUpToast(level: level) {
                     ProgressService.clearPendingLevelUp(in: modelContext)
                 }
@@ -524,6 +531,20 @@ struct HomeView: View {
         }
         #endif
         return .home
+    }
+
+    /// Whether any sheet or alert presented from this view is up — every
+    /// place a level-up can be earned is one of these, or a task of this view.
+    private var isPresentingModal: Bool {
+        isAddingTransaction
+            || isEditingBudget
+            || isShowingRecentlyDeleted
+            || isAddingAccount
+            || editingAccount != nil
+            || depositShowingInfo != nil
+            || depositAwaitingPayout != nil
+            || autoPaidDeposit != nil
+            || overrunAlertPresented
     }
 
     // MARK: - Deposit maturity

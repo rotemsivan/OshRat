@@ -27,6 +27,10 @@ struct LevelUpToast: View {
     /// Hebrew sentence, short enough not to sit on the dashboard.
     private static let holdDuration: Duration = .seconds(2.6)
     private static let slideDuration: TimeInterval = 0.35
+    /// A beat before sliding in. The toast usually mounts the moment a sheet
+    /// starts to dismiss (`HomeView` holds it back while one is up), and
+    /// arriving while the sheet is still sliding away splits the eye.
+    private static let entranceDelay: Duration = .seconds(0.4)
 
     var body: some View {
         HStack(spacing: Theme.Spacing.sm) {
@@ -75,6 +79,11 @@ struct LevelUpToast: View {
     /// leave the pending flag alone so the celebration comes back rather than
     /// being silently eaten.
     private func run() async {
+        do {
+            try await Task.sleep(for: Self.entranceDelay)
+        } catch {
+            return
+        }
         withAnimation(.spring(response: Self.slideDuration, dampingFraction: 0.8)) {
             isShowing = true
         }
