@@ -97,7 +97,7 @@ struct BudgetEditorSheet: View {
                             deleteIncome(item)
                         } label: {
                             Image(systemName: "trash")
-                        }
+                        }.tint(.red)
                         .accessibilityLabel(Text("מחיקה"))
                     }
                 }
@@ -136,7 +136,7 @@ struct BudgetEditorSheet: View {
                             deleteExpense(item)
                         } label: {
                             Image(systemName: "trash")
-                        }
+                        }.tint(.red)
                         .accessibilityLabel(Text("מחיקה"))
                     }
                 }
