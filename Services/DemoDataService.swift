@@ -352,6 +352,7 @@ enum DemoDataService {
         // XP too — otherwise the user lands back in onboarding still carrying
         // their level, with the setup milestones already marked as paid.
         deleteAll(UserProgress.self, in: context)
+        deleteAll(MascotConfig.self, in: context)
         try? context.save()
 
         if reseedCategories {

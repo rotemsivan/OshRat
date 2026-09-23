@@ -64,6 +64,15 @@ struct HomeView: View {
     /// Drives the "Recently Deleted" sheet, opened from the assets card
     /// when there are soft-deleted accounts to recover.
     @State private var isShowingRecentlyDeleted: Bool = false
+    /// Drives the wardrobe. Owned here because two tabs open it — the
+    /// dashboard's greeting rat and the profile picture — and a level-up
+    /// toast that unlocked an item does too.
+    @State private var isShowingWardrobe: Bool = HomeView.opensWardrobeAtLaunch
+    /// Which rat opened the wardrobe, so it zooms out of the right one.
+    @State private var wardrobeEntryPoint: WardrobeEntryPoint = .greeting
+    /// Shared by the rats the wardrobe zooms out of and the zoom itself.
+    @Namespace private var wardrobeTransition
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// The period the budget card shows: the card's segmented control picks
     /// the unit (month/year) and the surrounding carousel steps the anchor
     /// back and forward in time — same vocabulary as the Analytics roadmap.
@@ -131,7 +140,10 @@ struct HomeView: View {
                     }
                 case .profile:
                     NavigationStack {
-                        ProfileView()
+                        ProfileView(
+                            wardrobeTransition: wardrobeTransition,
+                            onOpenWardrobe: { openWardrobe(from: .profilePicture) }
+                        )
                     }
                 }
             }
@@ -184,7 +196,8 @@ struct HomeView: View {
                 CelebrationToast(
                     celebration: celebration,
                     // An achievement's toast leads to the shelf it now sits on.
-                    onOpen: { selectedTab = .profile },
+                    onOpenAchievements: { selectedTab = .profile },
+                    onOpenWardrobe: { openWardrobe(from: .toast) },
                     onDismiss: { ProgressService.dismissCelebration(in: modelContext) }
                 )
             }
@@ -197,6 +210,18 @@ struct HomeView: View {
         }
         .sheet(isPresented: $isShowingRecentlyDeleted) {
             RecentlyDeletedView()
+        }
+        // A screen of its own rather than a sheet: the wardrobe grows out of
+        // the rat that was tapped (the system zoom transition), and a swipe
+        // down shrinks it back into it. Reduce Motion gets the plain
+        // presentation instead of the zoom.
+        .fullScreenCover(isPresented: $isShowingWardrobe) {
+            if reduceMotion {
+                WardrobeView()
+            } else {
+                WardrobeView()
+                    .navigationTransition(.zoom(sourceID: wardrobeEntryPoint, in: wardrobeTransition))
+            }
         }
         .sheet(isPresented: $isAddingAccount) {
             AccountEditorSheet(
@@ -437,7 +462,11 @@ struct HomeView: View {
 
     private var headerRow: some View {
         HStack(alignment: .top) {
-            GreetingHeaderView(name: profiles.first?.name ?? "")
+            GreetingHeaderView(
+                name: profiles.first?.name ?? "",
+                wardrobeTransition: wardrobeTransition,
+                onAvatarTap: { openWardrobe(from: .greeting) }
+            )
             #if DEBUG
             // Was a bare reset button; the wipe now lives inside the panel
             // alongside the demo scenarios, so there's one place to go.
@@ -526,6 +555,16 @@ struct HomeView: View {
     /// `-demoTab analytics` (or transactions / calendar) lands straight on a
     /// screen — the companion to `-demoScenario`, since the simulator can't be
     /// driven by gestures from the command line (see CLAUDE.md).
+    /// `-demoWardrobe` opens the wardrobe at launch, for screenshots — the
+    /// simulator can't tap the rat.
+    private static var opensWardrobeAtLaunch: Bool {
+        #if DEBUG
+        return CommandLine.arguments.contains("-demoWardrobe")
+        #else
+        return false
+        #endif
+    }
+
     private static var initialTab: HomeBottomBar.Tab {
         #if DEBUG
         let arguments = CommandLine.arguments
@@ -538,12 +577,18 @@ struct HomeView: View {
         return .home
     }
 
+    private func openWardrobe(from entryPoint: WardrobeEntryPoint) {
+        wardrobeEntryPoint = entryPoint
+        isShowingWardrobe = true
+    }
+
     /// Whether any sheet or alert presented from this view is up — every
     /// place a level-up can be earned is one of these, or a task of this view.
     private var isPresentingModal: Bool {
         isAddingTransaction
             || isEditingBudget
             || isShowingRecentlyDeleted
+            || isShowingWardrobe
             || isAddingAccount
             || editingAccount != nil
             || depositShowingInfo != nil

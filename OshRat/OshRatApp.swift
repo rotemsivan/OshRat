@@ -18,7 +18,7 @@ struct OshRatApp: App {
                 for: UserProfile.self, Account.self, Holding.self, Category.self,
                     Transaction.self, TransactionAttachment.self, BudgetItem.self,
                     Goal.self, FXRateSnapshot.self, UserProgress.self,
-                    DepositTranche.self
+                    DepositTranche.self, MascotConfig.self
             )
             // Clean up any duplicate category rows left over from earlier
             // dev resets BEFORE topping up the default set — otherwise
@@ -44,7 +44,12 @@ struct OshRatApp: App {
     /// ```
     /// xcrun simctl launch booted com.rotem.OshRat -demoScenario saver -demoMonths 24
     /// xcrun simctl launch booted com.rotem.OshRat -resetStore
+    /// xcrun simctl launch booted com.rotem.OshRat -demoEquip item-hat-propeller-red
     /// ```
+    ///
+    /// `-demoEquip` runs after any deploy (which starts the rat bare), so the
+    /// two combine. The item still has to be unlocked at the store's level to
+    /// show — `UserAvatar` hides anything the level hasn't reached.
     ///
     /// Runs here, before any window exists, so the first frame already shows
     /// the seeded store rather than flashing the old one. Useful for
@@ -57,18 +62,23 @@ struct OshRatApp: App {
             DemoDataService.wipe(in: context)
         }
 
-        guard let flagIndex = arguments.firstIndex(of: "-demoScenario"),
-              arguments.index(after: flagIndex) < arguments.endIndex,
-              let scenario = DemoScenario(rawValue: arguments[arguments.index(after: flagIndex)])
-        else { return }
-
-        var months: Int?
-        if let monthsIndex = arguments.firstIndex(of: "-demoMonths"),
-           arguments.index(after: monthsIndex) < arguments.endIndex {
-            months = Int(arguments[arguments.index(after: monthsIndex)])
+        if let flagIndex = arguments.firstIndex(of: "-demoScenario"),
+           arguments.index(after: flagIndex) < arguments.endIndex,
+           let scenario = DemoScenario(rawValue: arguments[arguments.index(after: flagIndex)]) {
+            var months: Int?
+            if let monthsIndex = arguments.firstIndex(of: "-demoMonths"),
+               arguments.index(after: monthsIndex) < arguments.endIndex {
+                months = Int(arguments[arguments.index(after: monthsIndex)])
+            }
+            DemoDataService.deploy(scenario, monthsOverride: months, in: context)
         }
 
-        DemoDataService.deploy(scenario, monthsOverride: months, in: context)
+        if let flagIndex = arguments.firstIndex(of: "-demoEquip"),
+           arguments.index(after: flagIndex) < arguments.endIndex,
+           let item = WardrobeItem.withID(arguments[arguments.index(after: flagIndex)]) {
+            WardrobeService.config(in: context).setEquippedID(item.id, for: item.slot)
+            try? context.save()
+        }
     }
     #endif
 

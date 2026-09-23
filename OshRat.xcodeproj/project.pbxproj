@@ -137,6 +137,16 @@
 		5EPRF00100000000000000B1 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPRF00100000000000000F1 /* ProfileView.swift */; };
 		5ETRSH0100000000000000C1 /* TrashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F2 /* TrashService.swift */; };
 		5ETRSH0100000000000000C2 /* TrashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F2 /* TrashService.swift */; };
+		5EWARD0100000000000000B1 /* WardrobeItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0100000000000000F1 /* WardrobeItem.swift */; };
+		5EWARD0100000000000000C1 /* WardrobeItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0100000000000000F1 /* WardrobeItem.swift */; };
+		5EWARD0100000000000000C2 /* WardrobeItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0100000000000000F1 /* WardrobeItem.swift */; };
+		5EWARD0200000000000000B1 /* MascotConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0200000000000000F1 /* MascotConfig.swift */; };
+		5EWARD0300000000000000B1 /* WardrobeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0300000000000000F1 /* WardrobeService.swift */; };
+		5EWARD0400000000000000B1 /* UserAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0400000000000000F1 /* UserAvatar.swift */; };
+		5EWARD0500000000000000B1 /* AvatarPortrait.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0500000000000000F1 /* AvatarPortrait.swift */; };
+		5EWARD0600000000000000B1 /* WardrobeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0600000000000000F1 /* WardrobeView.swift */; };
+		5EWARD0700000000000000B1 /* WardrobeItemTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0700000000000000F1 /* WardrobeItemTile.swift */; };
+		5EWARD0800000000000000B1 /* WardrobeEntryPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0800000000000000F1 /* WardrobeEntryPoint.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -267,6 +277,14 @@
 		5EGAM00600000000000000F1 /* XPLevelBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPLevelBadge.swift; sourceTree = "<group>"; };
 		5EPICK0100000000000000F1 /* PickerRowLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerRowLabel.swift; sourceTree = "<group>"; };
 		5EPRF00100000000000000F1 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		5EWARD0100000000000000F1 /* WardrobeItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeItem.swift; sourceTree = "<group>"; };
+		5EWARD0200000000000000F1 /* MascotConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotConfig.swift; sourceTree = "<group>"; };
+		5EWARD0300000000000000F1 /* WardrobeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeService.swift; sourceTree = "<group>"; };
+		5EWARD0400000000000000F1 /* UserAvatar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserAvatar.swift; sourceTree = "<group>"; };
+		5EWARD0500000000000000F1 /* AvatarPortrait.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarPortrait.swift; sourceTree = "<group>"; };
+		5EWARD0600000000000000F1 /* WardrobeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeView.swift; sourceTree = "<group>"; };
+		5EWARD0700000000000000F1 /* WardrobeItemTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeItemTile.swift; sourceTree = "<group>"; };
+		5EWARD0800000000000000F1 /* WardrobeEntryPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeEntryPoint.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -374,6 +392,8 @@
 				5EBD610100000000000000A1 /* Budget */,
 				5E17150100000000000000D3 /* RecentlyDeleted */,
 				5EGAM00000000000000000A1 /* Gamification */,
+				5EWARDGR00000000000000A1 /* Avatar */,
+				5EWARDGR00000000000000A2 /* Wardrobe */,
 				5EPRF00000000000000000A1 /* Profile */,
 				5EADM00000000000000000A1 /* Admin */,
 			);
@@ -445,6 +465,8 @@
 				5EGAM00100000000000000F1 /* XPRules.swift */,
 				5EACHV0100000000000000F1 /* Achievement.swift */,
 				5ECELB0100000000000000F1 /* Celebration.swift */,
+				5EWARD0100000000000000F1 /* WardrobeItem.swift */,
+				5EWARD0200000000000000F1 /* MascotConfig.swift */,
 				5EACHV0200000000000000F1 /* AchievementEvaluator.swift */,
 				5EGAM00200000000000000F1 /* UserProgress.swift */,
 				5ED3E0E72FD1BB4D003083F0 /* Holding.swift */,
@@ -490,6 +512,7 @@
 				5EADM00200000000000000F1 /* DemoScenarioBlueprints.swift */,
 				5EGAM00300000000000000F1 /* ProgressService.swift */,
 				5ECELB0300000000000000F1 /* CelebrationFeedback.swift */,
+				5EWARD0300000000000000F1 /* WardrobeService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -572,6 +595,25 @@
 				5EPRF00100000000000000F1 /* ProfileView.swift */,
 			);
 			path = Profile;
+			sourceTree = "<group>";
+		};
+		5EWARDGR00000000000000A1 /* Avatar */ = {
+			isa = PBXGroup;
+			children = (
+				5EWARD0400000000000000F1 /* UserAvatar.swift */,
+				5EWARD0500000000000000F1 /* AvatarPortrait.swift */,
+			);
+			path = Avatar;
+			sourceTree = "<group>";
+		};
+		5EWARDGR00000000000000A2 /* Wardrobe */ = {
+			isa = PBXGroup;
+			children = (
+				5EWARD0600000000000000F1 /* WardrobeView.swift */,
+				5EWARD0700000000000000F1 /* WardrobeItemTile.swift */,
+				5EWARD0800000000000000F1 /* WardrobeEntryPoint.swift */,
+			);
+			path = Wardrobe;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -828,6 +870,14 @@
 				5EGAM00100000000000000B1 /* XPRules.swift in Sources */,
 				5EACHV0100000000000000B1 /* Achievement.swift in Sources */,
 				5ECELB0100000000000000B1 /* Celebration.swift in Sources */,
+				5EWARD0100000000000000B1 /* WardrobeItem.swift in Sources */,
+				5EWARD0200000000000000B1 /* MascotConfig.swift in Sources */,
+				5EWARD0300000000000000B1 /* WardrobeService.swift in Sources */,
+				5EWARD0400000000000000B1 /* UserAvatar.swift in Sources */,
+				5EWARD0500000000000000B1 /* AvatarPortrait.swift in Sources */,
+				5EWARD0600000000000000B1 /* WardrobeView.swift in Sources */,
+				5EWARD0700000000000000B1 /* WardrobeItemTile.swift in Sources */,
+				5EWARD0800000000000000B1 /* WardrobeEntryPoint.swift in Sources */,
 				5EACHV0200000000000000B1 /* AchievementEvaluator.swift in Sources */,
 				5EGAM00200000000000000B1 /* UserProgress.swift in Sources */,
 				5EGAM00300000000000000B1 /* ProgressService.swift in Sources */,
@@ -862,6 +912,7 @@
 				5EGAM00100000000000000C1 /* XPRules.swift in Sources */,
 				5EACHV0100000000000000C1 /* Achievement.swift in Sources */,
 				5ECELB0100000000000000C1 /* Celebration.swift in Sources */,
+				5EWARD0100000000000000C1 /* WardrobeItem.swift in Sources */,
 				5EACHV0200000000000000C1 /* AchievementEvaluator.swift in Sources */,
 				5EFILT0100000000000000C1 /* TransactionFilters.swift in Sources */,
 				5ETRSH0100000000000000C1 /* TrashService.swift in Sources */,
@@ -892,6 +943,7 @@
 				5EGAM00100000000000000C2 /* XPRules.swift in Sources */,
 				5EACHV0100000000000000C2 /* Achievement.swift in Sources */,
 				5ECELB0100000000000000C2 /* Celebration.swift in Sources */,
+				5EWARD0100000000000000C2 /* WardrobeItem.swift in Sources */,
 				5EACHV0200000000000000C2 /* AchievementEvaluator.swift in Sources */,
 				5ETRSH0100000000000000C2 /* TrashService.swift in Sources */,
 				5EGAMUP0100000000000C2 /* UserProgress.swift in Sources */,

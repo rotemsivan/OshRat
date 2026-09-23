@@ -161,7 +161,7 @@ shows earned patches/medals.
    recently earned* achievement. The streak currently sits in that pill as a stand-in — its
    permanent home is the profile's stats row, so phase 2 replaces the pill rather than moving
    the streak anywhere.
-3. **Mascot customization** — layered mascot rendering + wardrobe screen + a first item set
+3. **Mascot customization** — layered mascot rendering + wardrobe screen + a first item set. **Built**: `UserAvatar` / `WardrobeView` with eight hats unlocking at levels 2–20 (see CLAUDE.md, *Wardrobe & avatar*); outfits, props and backgrounds await art
    (this is where the mascot is re-cut into layers).
 4. **Polish** — more items, haptics/animation, optional Home-Screen widget (streak/level).
 

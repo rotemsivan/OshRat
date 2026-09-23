@@ -16,6 +16,12 @@ import SwiftData
 /// standing" from "change your details" is the same call that split
 /// `DepositInfoSheet` off the account editor.
 struct ProfileView: View {
+    /// The namespace the wardrobe's zoom transition grows out of the
+    /// profile picture in. `HomeView` owns the wardrobe, since the
+    /// dashboard's greeting rat opens the same screen.
+    let wardrobeTransition: Namespace.ID
+    var onOpenWardrobe: () -> Void = {}
+
     @Query private var profiles: [UserProfile]
     /// Sorted oldest-first to match the row `ProgressService` resolves to —
     /// the same ordering `HomeView` uses, so the card here and the battery on
@@ -73,7 +79,13 @@ struct ProfileView: View {
     /// greeting mascot.
     private var identityHeader: some View {
         HStack(spacing: Theme.Spacing.md) {
-            ProfileAvatar()
+            // The rat is the way into the wardrobe — tap yourself to dress.
+            Button(action: onOpenWardrobe) {
+                ProfileAvatar(wardrobeTransition: wardrobeTransition)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("המלתחה"))
+            .accessibilityHint(Text("הלבשת העכבר שלך"))
 
             VStack(alignment: .leading, spacing: Theme.Spacing.xxs) {
                 Text(verbatim: name.isEmpty ? String(localized: "ללא שם") : name)
@@ -93,7 +105,9 @@ struct ProfileView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
+        // `.contain`, not `.combine`: combining would fold the avatar button
+        // into one element with the name and lose its action.
+        .accessibilityElement(children: .contain)
     }
 
     // MARK: - Stats
@@ -218,79 +232,56 @@ struct ProfileView: View {
 
 // MARK: - Avatar
 
-/// The profile picture: the mascot's head, framed in a circle.
+/// The profile picture: the user's own rat — dressed however they dressed it
+/// in the wardrobe — framed in a circle.
 ///
-/// The bust art is a 400×520 portrait, so dropping it into a circle needs the
-/// crop worked out rather than a plain `.scaledToFill()`, which would slice
-/// the ears off: in `rat-mascot-thumbsup` the head sits at (200, 160) — centred
-/// horizontally, but only ~31% down — and the ears span 45% of the width. The
-/// two constants below do that framing, and hold at any diameter.
-///
-/// Phase 3 of GAMIFICATION.md replaces this single `Image` with the layered
-/// wardrobe render; the framing maths is what stays, since every layer is
-/// drawn against the same canvas. `diameter` is a parameter for the same
-/// reason — the wardrobe screen wants this same view rendered large.
+/// The crop maths lives in `AvatarPortrait`, shared with the wardrobe's
+/// tiles. It switches to the roomier framing when a hat is on, since a
+/// propeller would otherwise lose its blades to the circle's edge.
 private struct ProfileAvatar: View {
     // Bare attribute, with everything supplied in `init`: spelling the
     // arguments here *as well* leaves the wrapper wanting a `wrappedValue`
     // the caller can't give it.
     @ScaledMetric private var diameter: CGFloat
 
-    init(diameter: CGFloat = 68) {
+    /// The wardrobe zooms out of this picture and back into it.
+    let wardrobeTransition: Namespace.ID
+
+    @Query(sort: \MascotConfig.createdAt, order: .forward)
+    private var configs: [MascotConfig]
+
+    init(diameter: CGFloat = 68, wardrobeTransition: Namespace.ID) {
         _diameter = ScaledMetric(wrappedValue: diameter, relativeTo: .largeTitle)
+        self.wardrobeTransition = wardrobeTransition
     }
 
-    /// The bust art's own proportions, so the frame below can be stated in
-    /// one dimension and stay true to the drawing.
-    private static let artAspect: CGFloat = 520 / 400
-
-    /// How much wider than the circle to draw the art. The vertical nudge is
-    /// derived from it: the head centres on y 160 of 520, so dropping the art
-    /// by `0.25 × zoom` lands the head on the circle's centre at any zoom.
-    ///
-    /// The ceiling comes from the ears. They sit at (152, 108) and (248, 108)
-    /// with r 42, which puts each ear's far edge `0.282 × zoom` diameters
-    /// from the head's centre — and, being *above* that centre, they have to
-    /// clear the circle's width at their own height, not its full radius.
-    /// That caps the zoom at ~1.77; 2.15 sheared both ears clean off.
-    ///
-    /// The thumbs-up hand (x 254–320, y 240–346) would need ~2.07 to fall
-    /// outside the circle, so the two can't both be had with this pose: a
-    /// sliver of knuckle at the lower edge is the price of whole ears. Worth
-    /// revisiting if the wardrobe work in GAMIFICATION.md phase 3 brings an
-    /// arms-down pose — none of the five Classic busts has one.
-    private static let zoom: CGFloat = 1.75
+    private var wearsHat: Bool { configs.first?.hatID != nil }
 
     var body: some View {
-        Circle()
-            .fill(Theme.Colors.accent.opacity(0.12))
-            .frame(width: diameter, height: diameter)
-            .overlay {
-                Image("rat-mascot-thumbsup")
-                    .resizable()
-                    // **Both** dimensions, deliberately. With only a width,
-                    // the height proposal falls through from the circle, and
-                    // `scaledToFit` then fits a portrait image to *that* —
-                    // the picture comes out the circle's height and a third
-                    // of the intended width, which is a very small rat.
-                    .frame(
-                        width: diameter * Self.zoom,
-                        height: diameter * Self.zoom * Self.artAspect
-                    )
-                    .offset(y: diameter * 0.25 * Self.zoom)
-            }
-            .clipShape(Circle())
-            .overlay(Circle().stroke(Theme.Colors.separator, lineWidth: 1))
-            .accessibilityLabel(Text("עכבר עו״ש"))
+        AvatarPortrait(diameter: diameter, framing: wearsHat ? .headroom : .head) {
+            UserAvatar(crop: .bust, pose: .thumbsup)
+        }
+        .background(Theme.Colors.accent.opacity(0.12))
+        .clipShape(Circle())
+        .overlay(Circle().stroke(Theme.Colors.separator, lineWidth: 1))
+        // Zoom out of the round picture, not its square frame. The source
+        // only accepts a `RoundedRectangle` clip, so it gets one with a
+        // radius of exactly half the side — a circle. The radius has to be
+        // exact: an oversized one isn't clamped here the way a plain shape's
+        // is, and it clipped the whole picture away.
+        .matchedTransitionSource(id: WardrobeEntryPoint.profilePicture, in: wardrobeTransition) { source in
+            source.clipShape(RoundedRectangle(cornerRadius: diameter / 2))
+        }
     }
 }
 
 #Preview {
+    @Previewable @Namespace var wardrobeTransition
     NavigationStack {
         ZStack {
             Theme.Colors.background.ignoresSafeArea()
-            ProfileView()
+            ProfileView(wardrobeTransition: wardrobeTransition)
         }
     }
-    .modelContainer(for: [UserProfile.self, UserProgress.self], inMemory: true)
+    .modelContainer(for: [UserProfile.self, UserProgress.self, MascotConfig.self], inMemory: true)
 }

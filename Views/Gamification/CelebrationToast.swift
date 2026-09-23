@@ -12,12 +12,15 @@ import SwiftUI
 ///
 /// Short and calm by design — GAMIFICATION.md asks for celebrations that don't
 /// interrupt. It never blocks the UI underneath except on its own small
-/// footprint. A tap on a level-up dismisses it early; a tap on an achievement
-/// calls `onOpen`, which takes the user to the shelf that patch now sits on.
+/// footprint. A tap on an achievement takes the user to the shelf that patch
+/// now sits on; a tap on a level-up that unlocked a wardrobe item opens the
+/// wardrobe; any other level-up just dismisses early.
 struct CelebrationToast: View {
     let celebration: Celebration
     /// Where a tap on an achievement leads — the profile tab's shelf.
-    let onOpen: () -> Void
+    let onOpenAchievements: () -> Void
+    /// Where a tap on a level-up that unlocked an item leads.
+    let onOpenWardrobe: () -> Void
     /// Called once the toast has finished animating out. The parent pops the
     /// queue here — not when it appears — so an interrupted animation can't
     /// leave a celebration unannounced.
@@ -72,7 +75,7 @@ struct CelebrationToast: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(spokenText))
         .accessibilityAddTraits(.isButton)
-        .accessibilityHint(Text(opensShelf ? "הקש למעבר להישגים" : "הקש לסגירה"))
+        .accessibilityHint(Text(tapHint))
         .task(id: celebration) {
             // A new celebration reuses this view when the previous one pops,
             // so reset the per-run state before playing it.
@@ -87,23 +90,28 @@ struct CelebrationToast: View {
     private var leadingArt: some View {
         switch celebration {
         case .levelUp:
-            mascot("rat-mascot-thumbsup")
+            mascot(.thumbsup)
         case .achievement(let id):
             if let achievement = Achievement.withID(id) {
                 AchievementBadge(achievement: achievement, isUnlocked: true, diameter: 44)
             } else {
-                mascot("rat-mascot-present")
+                mascot(.present)
             }
         case .achievementBatch:
-            mascot("rat-mascot-present")
+            mascot(.present)
         }
     }
 
-    private func mascot(_ name: String) -> some View {
-        Image(name)
-            .resizable()
-            .scaledToFit()
+    /// The user's own rat, dressed as they dressed it.
+    private func mascot(_ pose: AvatarPose) -> some View {
+        UserAvatar(crop: .bust, pose: pose)
             .accessibilityHidden(true)
+    }
+
+    /// The item a level-up just unlocked, if any — the toast leads with it.
+    private var unlockedItem: WardrobeItem? {
+        guard case .levelUp(let level) = celebration else { return nil }
+        return WardrobeItem.unlocked(exactlyAt: level).first
     }
 
     @ViewBuilder
@@ -122,7 +130,11 @@ struct CelebrationToast: View {
     private var subtitle: some View {
         switch celebration {
         case .levelUp:
-            Text("ממשיכים ככה")
+            if let item = unlockedItem {
+                Text("פריט חדש במלתחה: \(item.name)")
+            } else {
+                Text("ממשיכים ככה")
+            }
         case .achievement(let id):
             Text(verbatim: Achievement.withID(id)?.rewardLine ?? "")
         case .achievementBatch:
@@ -134,6 +146,9 @@ struct CelebrationToast: View {
     private var spokenText: String {
         switch celebration {
         case .levelUp(let level):
+            if let item = unlockedItem {
+                return String(localized: "עלית לרמה \(level). פריט חדש במלתחה: \(item.name)")
+            }
             return String(localized: "עלית לרמה \(level)")
         case .achievement(let id):
             let achievement = Achievement.withID(id)
@@ -143,9 +158,11 @@ struct CelebrationToast: View {
         }
     }
 
-    private var opensShelf: Bool {
-        if case .levelUp = celebration { return false }
-        return true
+    private var tapHint: String {
+        switch celebration {
+        case .achievement, .achievementBatch: return String(localized: "הקש למעבר להישגים")
+        case .levelUp: return unlockedItem != nil ? String(localized: "הקש לפתיחת המלתחה") : String(localized: "הקש לסגירה")
+        }
     }
 
     /// Gold patches get their own phrase; bronze, silver and the batch toast
@@ -193,7 +210,12 @@ struct CelebrationToast: View {
     }
 
     private func handleTap() {
-        if opensShelf { onOpen() }
+        switch celebration {
+        case .achievement, .achievementBatch:
+            onOpenAchievements()
+        case .levelUp:
+            if unlockedItem != nil { onOpenWardrobe() }
+        }
         dismiss()
     }
 
@@ -214,20 +236,20 @@ struct CelebrationToast: View {
 #Preview("Level up") {
     ZStack(alignment: .top) {
         Theme.Colors.background.ignoresSafeArea()
-        CelebrationToast(celebration: .levelUp(4), onOpen: {}, onDismiss: {})
+        CelebrationToast(celebration: .levelUp(4), onOpenAchievements: {}, onOpenWardrobe: {}, onDismiss: {})
     }
 }
 
 #Preview("Achievement") {
     ZStack(alignment: .top) {
         Theme.Colors.background.ignoresSafeArea()
-        CelebrationToast(celebration: .achievement(id: "log-100"), onOpen: {}, onDismiss: {})
+        CelebrationToast(celebration: .achievement(id: "log-100"), onOpenAchievements: {}, onOpenWardrobe: {}, onDismiss: {})
     }
 }
 
 #Preview("Batch") {
     ZStack(alignment: .top) {
         Theme.Colors.background.ignoresSafeArea()
-        CelebrationToast(celebration: .achievementBatch(count: 10), onOpen: {}, onDismiss: {})
+        CelebrationToast(celebration: .achievementBatch(count: 10), onOpenAchievements: {}, onOpenWardrobe: {}, onDismiss: {})
     }
 }

@@ -1,0 +1,15 @@
+{
+  "images" : [
+    {
+      "filename" : "item-hat-cap-gold-bust.svg",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  },
+  "properties" : {
+    "preserves-vector-representation" : true
+  }
+}
