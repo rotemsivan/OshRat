@@ -6,8 +6,7 @@ The detailed build plan for **phase 2** of `GAMIFICATION.md`. Drafted
 **Status (2026-09-23): §0–§7, §9 and §10 are implemented** — patches unlock,
 pay XP, and sit on `AchievementsShelf` on the profile tab (a `LazyVGrid` of
 adaptive columns per group, each patch opening a popover with its hint).
-Still open: `LevelProgressCard`'s top-trailing pill showing the most recent
-patch instead of the streak. Open decisions were resolved as recommended: retroactive
+The level card's top-trailing pill shows the most recent patch. Open decisions were resolved as recommended: retroactive
 patches *and* XP with a queued level-up toast (§5a), the 600 early XP kept
 as-is (§3), and the goal patches shipped as locked slots
 (`Achievement.isReachable == false`) until the Goals UI exists. Goal XP

@@ -114,10 +114,9 @@ struct ProfileView: View {
 
     /// How long they've been at it, and how consistent they've been lately.
     ///
-    /// This row is the streak's **permanent home**. It also shows on
-    /// `LevelProgressCard` further down, but only as a stand-in: that slot
-    /// goes to the most recent achievement in GAMIFICATION.md phase 2. So the
-    /// overlap is temporary by design — don't resolve it by deleting this tile.
+    /// This row is the streak's **permanent home**. `LevelProgressCard`
+    /// further down shows the streak only until the first achievement is
+    /// earned; after that its slot shows the latest achievement.
     private var statsCard: some View {
         HStack(alignment: .top, spacing: Theme.Spacing.md) {
             statTile(

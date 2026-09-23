@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// The dashboard's progress card: what level the user is on, how far into it
-/// they are, and how many days in a row they've kept the ledger up to date.
+/// The profile's progress card: what level the user is on, how far into it
+/// they are, and the most recent achievement they've earned (or, before the
+/// first one, how many days in a row they've kept the ledger up to date).
 ///
 /// Reads a `UserProgress` row and nothing else — all the arithmetic already
 /// happened in `XPRules`. When there's no row yet (a user who has onboarded
@@ -19,7 +20,11 @@ struct LevelProgressCard: View {
             HStack(spacing: Theme.Spacing.sm) {
                 levelBadge
                 Spacer(minLength: Theme.Spacing.sm)
-                streakPill
+                if let latestAchievement {
+                    achievementPill(latestAchievement)
+                } else {
+                    streakPill
+                }
             }
 
             ProgressView(value: levelProgress.fraction)
@@ -60,15 +65,28 @@ struct LevelProgressCard: View {
             .minimumScaleFactor(0.7)
     }
 
-    /// Days in a row. At zero it's an invitation rather than a scolding —
-    /// GAMIFICATION.md is explicit that a gap is never punished or nagged
-    /// about, so there's no "0 days" and no broken-flame icon.
+    /// The most recently earned achievement: its patch in the tier's metal and
+    /// its title. This is what the slot was reserved for (GAMIFICATION.md
+    /// phase 2); the patch is the same `AchievementBadge` as on the shelf just
+    /// below, so it reads as "the newest one of those".
+    private func achievementPill(_ achievement: Achievement) -> some View {
+        HStack(spacing: Theme.Spacing.xs) {
+            AchievementBadge(achievement: achievement, isUnlocked: true, diameter: 24)
+            Text(achievement.title)
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
+    }
+
+    /// Days in a row — shown in the achievement slot only until the first
+    /// achievement exists, so a brand-new card isn't missing a corner. The
+    /// streak's permanent home is the stats row on the profile tab.
     ///
-    /// **This slot is spoken for.** Phase 2 gives it to the most recently
-    /// earned achievement; the streak is standing in until there is one, and
-    /// its permanent home is the stats row on the profile tab. So the two
-    /// streaks on that screen today are a temporary overlap, not a duplicate
-    /// to design around — don't "fix" it by deleting the profile's tile.
+    /// At zero it's an invitation rather than a scolding — GAMIFICATION.md is
+    /// explicit that a gap is never punished or nagged about, so there's no
+    /// "0 days" and no broken-flame icon.
     private var streakPill: some View {
         HStack(spacing: Theme.Spacing.xs) {
             Image(systemName: "flame.fill")
@@ -109,6 +127,12 @@ struct LevelProgressCard: View {
         progress?.levelProgress ?? XPRules.progress(forTotalXP: 0)
     }
 
+    /// The last id in `unlockedAchievements` that this build's catalogue
+    /// knows — the ledger is kept in the order achievements were earned.
+    private var latestAchievement: Achievement? {
+        progress?.unlockedAchievements.reversed().lazy.compactMap(Achievement.withID).first
+    }
+
     private var currentStreak: Int { progress?.currentStreak ?? 0 }
 
     private var hasStreak: Bool { currentStreak > 0 }
@@ -131,7 +155,11 @@ struct LevelProgressCard: View {
 
     private var accessibilitySummary: String {
         var parts = [String(localized: "רמה \(levelProgress.level)"), nextLevelCaption]
-        if hasStreak { parts.append(streakText) }
+        if let latestAchievement {
+            parts.append(String(localized: "הישג אחרון: \(latestAchievement.title)"))
+        } else if hasStreak {
+            parts.append(streakText)
+        }
         return parts.joined(separator: ", ")
     }
 }
