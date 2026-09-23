@@ -16,6 +16,7 @@ struct HomeBottomBar: View {
         case transactions
         case analytics
         case calendar
+        case profile
     }
 
     @Binding var selection: Tab
@@ -28,6 +29,11 @@ struct HomeBottomBar: View {
     /// a small breathing gap around the button instead of clipping it.
     static let notchRadius: CGFloat = 36
     private static let cornerRadius: CGFloat = 30
+
+    /// Side of the rat icon's box. A shade under the SF Symbols beside it:
+    /// the rat is a solid silhouette against their open line work, and equal
+    /// sizes would read as a heavier icon rather than a matching one.
+    fileprivate static let ratIconSize: CGFloat = 20
 
     /// Diameter of the floating "+" that hovers above the bar, and how far
     /// its bottom edge sits above the screen edge. `HomeView` positions the
@@ -76,16 +82,40 @@ struct HomeBottomBar: View {
                     )
                 )
 
-            // Side icons sit inside the bar, flanking the notch.
-            // The middle slot is intentionally empty — the home
+            // Side icons sit inside the bar, flanking the notch — two per
+            // flank, so the notch stays visually centred between equal
+            // groups. The middle slot is intentionally empty; the home
             // button is overlaid on top, raised into the notch.
             HStack(spacing: 0) {
-                HomeBarButton(
-                    tab: .transactions,
-                    symbol: "arrow.up.arrow.down",
-                    accessibilityLabel: "תנועות",
-                    selection: $selection
-                )
+                // Under RTL an HStack lays out from the *right*, so this
+                // group is the visual right-hand flank and the rat is the
+                // outermost icon on the screen's right edge.
+                HStack(spacing: 0) {
+                    HomeBarButton(
+                        tab: .profile,
+                        accessibilityLabel: "הפרופיל שלי",
+                        selection: $selection
+                    ) {
+                        // Not an SF Symbol: there isn't one. The catalog has
+                        // `computermouse`, `hare` and `pawprint` and no rat or
+                        // mouse *animal* at all, so the app's own mark is
+                        // drawn here. A bare `Shape` fills with the foreground
+                        // style, so it picks up the button's accent-when-
+                        // selected tint exactly as the symbols beside it do.
+                        RatHeadShape()
+                            .frame(width: Self.ratIconSize, height: Self.ratIconSize)
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    HomeBarButton(
+                        tab: .transactions,
+                        accessibilityLabel: "תנועות",
+                        selection: $selection
+                    ) {
+                        BarSymbol("arrow.up.arrow.down")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
                 .frame(maxWidth: .infinity)
 
                 // Reserve the notch's horizontal footprint so side
@@ -100,24 +130,28 @@ struct HomeBottomBar: View {
                 HStack(spacing: 0) {
                     HomeBarButton(
                         tab: .analytics,
-                        symbol: "chart.line.uptrend.xyaxis",
                         accessibilityLabel: "תובנות",
                         selection: $selection
-                    )
+                    ) {
+                        BarSymbol("chart.line.uptrend.xyaxis")
+                    }
                     .frame(maxWidth: .infinity)
 
                     HomeBarButton(
                         tab: .calendar,
-                        symbol: "calendar",
                         accessibilityLabel: "יומן התקציב",
                         selection: $selection
-                    )
+                    ) {
+                        BarSymbol("calendar")
+                    }
                     .frame(maxWidth: .infinity)
                 }
                 .frame(maxWidth: .infinity)
             }
             .frame(height: Self.barHeight)
-            .padding(.horizontal, Theme.Spacing.lg)
+            // Four icons per bar instead of three, so the gutter tightens to
+            // keep the outermost ones off the bar's rounded corners.
+            .padding(.horizontal, Theme.Spacing.md)
 
             // The home button itself, raised so its centre sits on
             // the bar's top edge (half above, half embedded).
@@ -165,24 +199,140 @@ private struct HomeCenterButton: View {
 
 /// One tappable side item inside the bar. Highlights itself with the
 /// brand accent when its tab is the active selection.
-private struct HomeBarButton: View {
+///
+/// Generic over its icon rather than taking a symbol name, because one of
+/// the four isn't a symbol — see the rat in `HomeBottomBar`. The tint is
+/// applied to the *container*, so an `Image(systemName:)` and a bare `Shape`
+/// (which fills with the foreground style by default) colour identically and
+/// neither call site has to remember to do it.
+private struct HomeBarButton<Icon: View>: View {
     let tab: HomeBottomBar.Tab
-    let symbol: String
     let accessibilityLabel: LocalizedStringKey
     @Binding var selection: HomeBottomBar.Tab
+    @ViewBuilder let icon: () -> Icon
 
     var body: some View {
         Button {
             selection = tab
         } label: {
-            Image(systemName: symbol)
-                .font(Theme.Typography.sectionTitle)
+            icon()
                 .frame(width: 48, height: 48)
                 .foregroundStyle(selection == tab ? Theme.Colors.accent : Theme.Colors.textSecondary)
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(accessibilityLabel))
+    }
+}
+
+/// An SF Symbol at the bar's icon size. A named view so the three symbol
+/// tabs can't drift apart from each other typographically.
+private struct BarSymbol: View {
+    let name: String
+
+    init(_ name: String) { self.name = name }
+
+    var body: some View {
+        Image(systemName: name)
+            .font(Theme.Typography.sectionTitle)
+    }
+}
+
+// MARK: - Rat head
+
+/// The app's own tab icon: a front-facing rat head — round skull, two big
+/// ears, a tapering snout.
+///
+/// Hand-drawn because SF Symbols has no rat or mouse *animal* glyph (only
+/// `computermouse`, plus `hare`, `pawprint` and `tortoise`), and none of
+/// those say "עכבר עו״ש". Drawn **symmetrically** on purpose: a symmetric
+/// path is immune to the RTL question of whether a custom `Shape`'s
+/// coordinate space is mirrored, so the icon looks identical either way.
+///
+/// **Filled, not stroked.** Two earlier attempts drew it as line art to match
+/// the SF Symbols beside it, and both failed at 21pt: the ear lobes merged
+/// into the skull's outline, and the inner-ear detail that was supposed to
+/// separate them read as a pair of eyes. A silhouette has no such problem —
+/// two circles clear of a tapered head is the most legible mouse there is,
+/// and the bar already carries a filled mark in `house.fill`.
+///
+/// The geometry is authored against a 100×100 box and scaled uniformly into
+/// whatever frame it's given, so the proportions survive Dynamic Type and a
+/// larger rendering (a wardrobe screen, say) needs no second set of numbers.
+struct RatHeadShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let side = min(rect.width, rect.height)
+        let scale = side / 100
+        let originX = rect.midX - side / 2
+        let originY = rect.midY - side / 2
+
+        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: originX + x * scale, y: originY + y * scale)
+        }
+
+        var path = Path()
+
+        // Ears: two plain circles, set high and wide enough that they clear
+        // the skull entirely at their own centre line. That gap is what makes
+        // the thing a mouse — overlap them into the crown and it goes back to
+        // reading as one bumpy dome.
+        for centreX in [26.0, 74.0] as [CGFloat] {
+            addCircleClockwise(&path, centre: pt(centreX, 25), radius: 19 * scale)
+        }
+
+        // Skull: broad across the brow, drawn out into a long wedge of a
+        // snout. Its top sits well below the ears, so they join it low down
+        // where it's wide.
+        //
+        // The snout is doing real work. Two circles on a round head is the
+        // Mickey silhouette, near enough to be somebody else's mark; a rat is
+        // the one with the long pointed muzzle, and lengthening it both says
+        // "rat" and puts clear water between the two.
+        path.move(to: pt(16, 56))
+        path.addCurve(to: pt(50, 37), control1: pt(16, 44), control2: pt(31, 37))
+        path.addCurve(to: pt(84, 56), control1: pt(69, 37), control2: pt(84, 44))
+        path.addCurve(to: pt(50, 99), control1: pt(84, 76), control2: pt(63, 99))
+        path.addCurve(to: pt(16, 56), control1: pt(37, 99), control2: pt(16, 76))
+        path.closeSubpath()
+
+        return path
+    }
+
+    /// One circle traced left → top → right → bottom, i.e. clockwise on
+    /// screen, matching the direction the skull above is wound.
+    ///
+    /// `Path.addEllipse` would be shorter but winds the other way, and `fill`
+    /// uses the nonzero rule: subpaths that disagree about direction cancel
+    /// where they overlap, which would punch an ear-shaped hole through the
+    /// head instead of merging with it.
+    private func addCircleClockwise(_ path: inout Path, centre: CGPoint, radius: CGFloat) {
+        // Standard cubic approximation of a quarter circle.
+        let handle = radius * 0.5522847
+        let x = centre.x
+        let y = centre.y
+
+        path.move(to: CGPoint(x: x - radius, y: y))
+        path.addCurve(
+            to: CGPoint(x: x, y: y - radius),
+            control1: CGPoint(x: x - radius, y: y - handle),
+            control2: CGPoint(x: x - handle, y: y - radius)
+        )
+        path.addCurve(
+            to: CGPoint(x: x + radius, y: y),
+            control1: CGPoint(x: x + handle, y: y - radius),
+            control2: CGPoint(x: x + radius, y: y - handle)
+        )
+        path.addCurve(
+            to: CGPoint(x: x, y: y + radius),
+            control1: CGPoint(x: x + radius, y: y + handle),
+            control2: CGPoint(x: x + handle, y: y + radius)
+        )
+        path.addCurve(
+            to: CGPoint(x: x - radius, y: y),
+            control1: CGPoint(x: x - handle, y: y + radius),
+            control2: CGPoint(x: x - radius, y: y + handle)
+        )
+        path.closeSubpath()
     }
 }
 

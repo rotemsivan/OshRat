@@ -63,6 +63,12 @@ struct LevelProgressCard: View {
     /// Days in a row. At zero it's an invitation rather than a scolding —
     /// GAMIFICATION.md is explicit that a gap is never punished or nagged
     /// about, so there's no "0 days" and no broken-flame icon.
+    ///
+    /// **This slot is spoken for.** Phase 2 gives it to the most recently
+    /// earned achievement; the streak is standing in until there is one, and
+    /// its permanent home is the stats row on the profile tab. So the two
+    /// streaks on that screen today are a temporary overlap, not a duplicate
+    /// to design around — don't "fix" it by deleting the profile's tile.
     private var streakPill: some View {
         HStack(spacing: Theme.Spacing.xs) {
             Image(systemName: "flame.fill")

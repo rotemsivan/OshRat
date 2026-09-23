@@ -129,6 +129,10 @@ struct HomeView: View {
                     NavigationStack {
                         BudgetCalendarView()
                     }
+                case .profile:
+                    NavigationStack {
+                        ProfileView()
+                    }
                 }
             }
             .transition(.opacity)
@@ -314,13 +318,24 @@ struct HomeView: View {
                     deletedAccountCount: deletedAccounts.count,
                     onShowRecentlyDeleted: { isShowingRecentlyDeleted = true }
                 )
-
-                // Sits under the assets card rather than above it: the
-                // greeting mascot is pinned to the top of the assets card by
-                // a negative inset, and net worth stays the first number on
-                // the screen. Still above the fold now that the assets card
-                // caps itself at three rows.
-                LevelProgressCard(progress: progressRows.first)
+                // The XP badge rests *on* the card's top edge — flush against
+                // it, not cutting into it — at the opposite corner to the
+                // greeting mascot sitting on the other end of that same edge.
+                // `.topTrailing` is the visual top-*left* under RTL.
+                //
+                // Redefining the badge's `.top` guide as its own `.bottom` is
+                // what parks it there: the overlay lines that guide up with
+                // the card's top, so the badge's base lands exactly on the
+                // card's edge and the whole badge sits above it. Doing it this
+                // way rather than with a fixed negative `.offset` means the
+                // Dynamic-Type height never has to be guessed at from here —
+                // and the seam stays put at every text size, which an offset
+                // tuned to one size would not.
+                .overlay(alignment: .topTrailing) {
+                    XPLevelBadge(progress: progressRows.first)
+                        .alignmentGuide(.top) { $0[.bottom] }
+                        .padding(.trailing, Theme.Spacing.md)
+                }
 
                 // Swipeable previous/next-period pager. Negative padding
                 // cancels the VStack's gutter so the scroll view spans the

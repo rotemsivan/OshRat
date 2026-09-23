@@ -118,6 +118,8 @@
 		5EGAM00300000000000000B1 /* ProgressService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EGAM00300000000000000F1 /* ProgressService.swift */; };
 		5EGAM00400000000000000B1 /* LevelProgressCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EGAM00400000000000000F1 /* LevelProgressCard.swift */; };
 		5EGAM00500000000000000B1 /* LevelUpToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EGAM00500000000000000F1 /* LevelUpToast.swift */; };
+		5EGAM00600000000000000B1 /* XPLevelBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EGAM00600000000000000F1 /* XPLevelBadge.swift */; };
+		5EPRF00100000000000000B1 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPRF00100000000000000F1 /* ProfileView.swift */; };
 		5EGAMUP0100000000000C1 /* UserProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EGAM00200000000000000F1 /* UserProgress.swift */; };
 		5EGAMUP0100000000000C2 /* UserProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EGAM00200000000000000F1 /* UserProgress.swift */; };
 		5EPICK0100000000000000B1 /* PickerRowLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPICK0100000000000000F1 /* PickerRowLabel.swift */; };
@@ -244,6 +246,8 @@
 		5EGAM00300000000000000F1 /* ProgressService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressService.swift; sourceTree = "<group>"; };
 		5EGAM00400000000000000F1 /* LevelProgressCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelProgressCard.swift; sourceTree = "<group>"; };
 		5EGAM00500000000000000F1 /* LevelUpToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelUpToast.swift; sourceTree = "<group>"; };
+		5EGAM00600000000000000F1 /* XPLevelBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPLevelBadge.swift; sourceTree = "<group>"; };
+		5EPRF00100000000000000F1 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		5EPICK0100000000000000F1 /* PickerRowLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerRowLabel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -352,6 +356,7 @@
 				5EBD610100000000000000A1 /* Budget */,
 				5E17150100000000000000D3 /* RecentlyDeleted */,
 				5EGAM00000000000000000A1 /* Gamification */,
+				5EPRF00000000000000000A1 /* Profile */,
 				5EADM00000000000000000A1 /* Admin */,
 			);
 			path = Views;
@@ -532,8 +537,17 @@
 			children = (
 				5EGAM00400000000000000F1 /* LevelProgressCard.swift */,
 				5EGAM00500000000000000F1 /* LevelUpToast.swift */,
+				5EGAM00600000000000000F1 /* XPLevelBadge.swift */,
 			);
 			path = Gamification;
+			sourceTree = "<group>";
+		};
+		5EPRF00000000000000000A1 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				5EPRF00100000000000000F1 /* ProfileView.swift */,
+			);
+			path = Profile;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -792,6 +806,8 @@
 				5EGAM00300000000000000B1 /* ProgressService.swift in Sources */,
 				5EGAM00400000000000000B1 /* LevelProgressCard.swift in Sources */,
 				5EGAM00500000000000000B1 /* LevelUpToast.swift in Sources */,
+				5EGAM00600000000000000B1 /* XPLevelBadge.swift in Sources */,
+				5EPRF00100000000000000B1 /* ProfileView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

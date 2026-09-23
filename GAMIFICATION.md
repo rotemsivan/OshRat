@@ -148,7 +148,12 @@ shows earned patches/medals.
    and streak bonuses at 7/30/100. Daily cap 30, shared across the farmable actions. Level
    curve: 100 XP to level 2, each level 50 more than the last. See CLAUDE.md's *Gamification*
    section for how the pieces fit; the rest of this file is still the plan of record.
-2. **Achievements** — the catalog + patches/medals + an achievements screen.
+2. **Achievements** — the catalog + patches/medals + an achievements screen. Two slots are
+   already reserved and waiting: the **achievements shelf** on the profile tab (built, drawn as
+   empty dashed slots) and `LevelProgressCard`'s **top-trailing pill**, which becomes the *most
+   recently earned* achievement. The streak currently sits in that pill as a stand-in — its
+   permanent home is the profile's stats row, so phase 2 replaces the pill rather than moving
+   the streak anywhere.
 3. **Mascot customization** — layered mascot rendering + wardrobe screen + a first item set
    (this is where the mascot is re-cut into layers).
 4. **Polish** — more items, haptics/animation, optional Home-Screen widget (streak/level).
