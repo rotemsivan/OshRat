@@ -281,6 +281,7 @@ enum DemoDataService {
         progress.longestStreak = plan.streak + 4
         progress.lastActivityDate = now
         progress.pendingLevelUpLevel = nil
+        progress.pendingCelebrations = []
 
         try? context.save()
     }

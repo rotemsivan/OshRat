@@ -750,6 +750,10 @@ struct NewTransactionSheet: View {
         // "open a transaction and save it again" a way to farm points.
         if editingTransaction == nil {
             ProgressService.recordTransactionLogged(in: modelContext)
+            // The small two-note chime and tap, landing with the confirm
+            // glow below. New rows only, by the same rule as the XP: an edit
+            // is housekeeping, not a moment.
+            CelebrationFeedback.shared.play(.transactionLogged)
         }
 
         onSaved?(saved)

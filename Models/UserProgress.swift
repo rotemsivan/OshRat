@@ -49,14 +49,18 @@ final class UserProgress {
     /// itself a moment later — the celebration has to outlive the screen that
     /// triggered it. A side effect is that a level-up earned just before the
     /// app was killed is still waiting on the next launch.
+    ///
+    /// **Legacy**: superseded by `pendingCelebrations`, which also carries
+    /// achievements. Kept so a level-up pending at upgrade time is moved into
+    /// the queue (`ProgressService.nextCelebration`) instead of lost.
     var pendingLevelUpLevel: Int?
 
-    /// Level-ups waiting their turn behind `pendingLevelUpLevel`, oldest
-    /// first. A retroactive achievement pass can cross several levels in one
-    /// go; showing only the latest would collapse "you reached 3, 4 and 5"
-    /// into a single toast, so each one queues and the dashboard plays them
-    /// in order (ACHIEVEMENTS.md §5, option a).
-    var queuedLevelUpLevels: [Int] = []
+    /// Celebrations waiting to be shown, oldest first — level-ups and
+    /// unlocked achievements in the order they happened, as `Celebration`
+    /// raw values. The dashboard plays the head and pops it once it has
+    /// animated out, so the queue outlives the sheet that earned it and
+    /// survives the app being killed.
+    var pendingCelebrations: [String] = []
 
     // MARK: Achievements
 
@@ -100,6 +104,11 @@ final class UserProgress {
     /// if a future build removes a case that's still stored here).
     var lastAwardReason: XPReason? {
         lastAwardReasonRaw.flatMap(XPReason.init(rawValue:))
+    }
+
+    /// The celebration to show now, skipping any entry this build can't read.
+    var nextCelebration: Celebration? {
+        pendingCelebrations.lazy.compactMap(Celebration.init(rawValue:)).first
     }
 
     /// Whether a one-time award has already been paid.

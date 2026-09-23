@@ -150,14 +150,14 @@ shows earned patches/medals.
    section for how the pieces fit; the rest of this file is still the plan of record.
 2. **Achievements** — the catalog + patches/medals + an achievements screen. **The engine is
    built** (catalogue, evaluator, retroactive unlocks, the curve rebalance — see the status
-   note at the top of `ACHIEVEMENTS.md`); the shelf that draws the patches is not. **Planned in
+   note at the top of `ACHIEVEMENTS.md`), and so is the shelf that draws the patches. **Planned in
    detail in `ACHIEVEMENTS.md`**, which is the document to implement from: a 24-entry
    catalogue, an anti-farming doctrine, and a rebalance of the level curve in §1 that
    supersedes the numbers currently in `XPRules`. It also names two model fields
    (`Transaction.createdAt`, `BudgetItem.lastEditedAt`) that must land *first*, because most
    of the guards are unenforceable without them. Two slots are
-   already reserved and waiting: the **achievements shelf** on the profile tab (built, drawn as
-   empty dashed slots) and `LevelProgressCard`'s **top-trailing pill**, which becomes the *most
+   already reserved and waiting: the **achievements shelf** on the profile tab (now filled —
+   `AchievementsShelf`) and `LevelProgressCard`'s **top-trailing pill**, which becomes the *most
    recently earned* achievement. The streak currently sits in that pill as a stand-in — its
    permanent home is the profile's stats row, so phase 2 replaces the pill rather than moving
    the streak anywhere.

@@ -50,6 +50,14 @@ enum Theme {
         static let income        = Color(light: Color(hex: "2FA36B"), dark: Color(hex: "46C088"))
         static let expense       = Color(light: Color(hex: "E0654B"), dark: Color(hex: "F0775C"))
         static let wants         = Color(light: Color(hex: "F58220"), dark: Color(hex: "F89F47"))
+
+        /// Achievement tiers — the metal each patch is struck in. Deep enough
+        /// in light mode that the glyph drawn in them clears 3:1 against their
+        /// own pale tint on a white card; lifted in dark mode for the same
+        /// reason against the near-black surface.
+        static let tierBronze    = Color(light: Color(hex: "A0622D"), dark: Color(hex: "D08A4E"))
+        static let tierSilver    = Color(light: Color(hex: "6F7B86"), dark: Color(hex: "B4BEC7"))
+        static let tierGold      = Color(light: Color(hex: "9A7412"), dark: Color(hex: "E3B84A"))
     }
 
     // MARK: Spacing (use these instead of magic numbers)

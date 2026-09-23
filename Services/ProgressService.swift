@@ -31,6 +31,7 @@ enum ProgressService {
         descriptor.fetchLimit = 1
 
         if let existing = try? context.fetch(descriptor).first {
+            migrateLegacyLevelUp(on: existing)
             return existing
         }
 
@@ -131,18 +132,39 @@ enum ProgressService {
         progress(in: context).budgetLastTouchedAt = now
     }
 
-    /// The dashboard has shown the level-up toast; put the flag down so it
-    /// doesn't fire again on the next render — and hand the slot to the next
-    /// queued level-up, if a retroactive pass crossed several at once.
-    static func clearPendingLevelUp(in context: ModelContext) {
+    // MARK: - Celebrations
+
+    /// More than this many achievements unlocked in one pass are announced as
+    /// a single "N new achievements" toast, followed only by the level the
+    /// pass ended on. The first launch after achievements shipped can unlock
+    /// ten at once; a toast each would be most of a minute of interruptions.
+    static let celebrationBatchThreshold = 3
+
+    /// The dashboard has shown the head of the queue; pop it (and any
+    /// unreadable entries in front of it) so the next one can play.
+    static func dismissCelebration(in context: ModelContext) {
         let progress = progress(in: context)
-        guard progress.pendingLevelUpLevel != nil else { return }
-        if progress.queuedLevelUpLevels.isEmpty {
-            progress.pendingLevelUpLevel = nil
-        } else {
-            progress.pendingLevelUpLevel = progress.queuedLevelUpLevels.removeFirst()
+        guard let index = progress.pendingCelebrations.firstIndex(where: { Celebration(rawValue: $0) != nil })
+        else {
+            guard !progress.pendingCelebrations.isEmpty else { return }
+            progress.pendingCelebrations.removeAll()
+            try? context.save()
+            return
         }
+        progress.pendingCelebrations.removeSubrange(...index)
         try? context.save()
+    }
+
+    private static func enqueue(_ celebration: Celebration, on progress: UserProgress) {
+        progress.pendingCelebrations.append(celebration.rawValue)
+    }
+
+    /// A level-up pending in the pre-queue `pendingLevelUpLevel` field goes to
+    /// the front of the queue, once. The caller's next save persists it.
+    private static func migrateLegacyLevelUp(on progress: UserProgress) {
+        guard let level = progress.pendingLevelUpLevel else { return }
+        progress.pendingCelebrations.insert(Celebration.levelUp(level).rawValue, at: 0)
+        progress.pendingLevelUpLevel = nil
     }
 
     // MARK: - Achievements
@@ -182,17 +204,39 @@ enum ProgressService {
 
         let satisfied = AchievementEvaluator.satisfied(snapshot)
         // Catalogue order, so a retroactive batch unlocks in shelf order.
-        for achievement in Achievement.catalogue
-        where achievement.isReachable
-            && satisfied.contains(achievement.id)
-            && !progress.unlockedAchievements.contains(achievement.id) {
+        let newlyUnlocked = Achievement.catalogue.filter {
+            $0.isReachable
+                && satisfied.contains($0.id)
+                && !progress.unlockedAchievements.contains($0.id)
+        }
+        // A big pass is announced once, as a batch, then the level it ended
+        // on — see `celebrationBatchThreshold`. A small one announces each
+        // patch followed by any level-up it caused, in order.
+        let isBatch = newlyUnlocked.count > celebrationBatchThreshold
+        let levelBeforeUnlocks = progress.level
+        for achievement in newlyUnlocked {
             // The array membership *is* the idempotency guard — append first
             // so nothing can pay twice.
             progress.unlockedAchievements.append(achievement.id)
+            if !isBatch {
+                enqueue(.achievement(id: achievement.id), on: progress)
+            }
             if achievement.xpReward > 0 {
-                award(achievement.xpReward, reason: .achievementUnlocked, to: progress, now: now)
+                award(
+                    achievement.xpReward,
+                    reason: .achievementUnlocked,
+                    to: progress,
+                    now: now,
+                    announcesLevelUp: !isBatch
+                )
             }
             changed = true
+        }
+        if isBatch {
+            enqueue(.achievementBatch(count: newlyUnlocked.count), on: progress)
+            if progress.level > levelBeforeUnlocks {
+                enqueue(.levelUp(progress.level), on: progress)
+            }
         }
 
         if changed {
@@ -339,7 +383,8 @@ enum ProgressService {
         reason: XPReason,
         to progress: UserProgress,
         now: Date,
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        announcesLevelUp: Bool = true
     ) {
         var payable = amount
 
@@ -358,16 +403,12 @@ enum ProgressService {
         progress.totalXP += payable
         let levelAfter = progress.level
 
-        if levelAfter > levelBefore {
-            // Queue rather than overwrite: an achievement pass can cross
-            // several levels in one go, and each deserves its own moment
+        if levelAfter > levelBefore, announcesLevelUp {
+            // Queued, not overwritten, so each level-up gets its own moment
             // (ACHIEVEMENTS.md §5, option a). One award that jumps two levels
-            // still announces only where it landed.
-            if progress.pendingLevelUpLevel == nil {
-                progress.pendingLevelUpLevel = levelAfter
-            } else {
-                progress.queuedLevelUpLevels.append(levelAfter)
-            }
+            // still announces only where it landed. A batched achievement pass
+            // turns this off and announces its final level itself.
+            enqueue(.levelUp(levelAfter), on: progress)
         }
 
         progress.lastAwardReasonRaw = reason.rawValue

@@ -7,7 +7,8 @@ import SwiftData
 /// header of picture, name and profession — then *how long have I been at
 /// this* (joined date and streak), *what am I aiming at* (the free-text goal
 /// onboarding collected), and *how am I doing* — the level card that used to
-/// sit on the dashboard, now that the dashboard carries only `XPLevelBadge`.
+/// sit on the dashboard, now that the dashboard carries only `XPLevelBadge`
+/// — and, last, the achievements shelf.
 ///
 /// **Read-only on purpose.** The personal details are captured by onboarding
 /// and belong to the (still unbuilt) Settings screen, which also owns the
@@ -37,7 +38,7 @@ struct ProfileView: View {
 
                 LevelProgressCard(progress: progressRows.first)
 
-                AchievementsGalleryPlaceholder()
+                AchievementsShelf(unlockedIDs: progressRows.first?.unlockedAchievements ?? [])
             }
             .padding(.horizontal, Theme.Spacing.lg)
             // A large navigation title brings its own vertical space, so the
@@ -281,83 +282,6 @@ private struct ProfileAvatar: View {
             .clipShape(Circle())
             .overlay(Circle().stroke(Theme.Colors.separator, lineWidth: 1))
             .accessibilityLabel(Text("עכבר עו״ש"))
-    }
-}
-
-// MARK: - Achievements
-
-/// Phase 2 of GAMIFICATION.md in outline: the shelf the patches will sit on.
-///
-/// Drawn as empty, dashed slots rather than hidden until it's built. The plan
-/// wants unlocks to feel like a collection, and a collection the user can see
-/// the shape of is the point — but each slot is deliberately blank, because
-/// showing named-but-locked achievements before the catalog exists would be
-/// promising specific things the code can't yet award.
-private struct AchievementsGalleryPlaceholder: View {
-    /// Enough to read as a row with more to come, few enough to still fit at
-    /// accessibility text sizes once the slots scale up.
-    private let slotCount = 4
-
-    @ScaledMetric(relativeTo: .body) private var slotSize: CGFloat = 56
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.md) {
-            HStack(spacing: Theme.Spacing.sm) {
-                Label {
-                    Text("הישגים")
-                        .font(Theme.Typography.amount)
-                        .foregroundStyle(Theme.Colors.textPrimary)
-                } icon: {
-                    Image(systemName: "rosette")
-                        .foregroundStyle(Theme.Colors.accent)
-                }
-
-                Spacer(minLength: Theme.Spacing.sm)
-
-                Text("בקרוב")
-                    .font(Theme.Typography.caption)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .padding(.horizontal, Theme.Spacing.sm)
-                    .padding(.vertical, Theme.Spacing.xs)
-                    .background(Theme.Colors.accent.opacity(0.12), in: Capsule())
-            }
-
-            // Wraps instead of scrolling: at the largest text sizes four
-            // 56pt-based slots no longer fit one line, and a row that
-            // silently runs off the card edge is worse than a second row.
-            ViewThatFits(in: .horizontal) {
-                slots
-                VStack(alignment: .leading, spacing: Theme.Spacing.sm) { slots }
-            }
-
-            Text("תגים על יעדים שתשלים — רצפים, חיסכון ועמידה בתקציב.")
-                .font(Theme.Typography.caption)
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .cardStyle()
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("הישגים"))
-        .accessibilityValue(Text("בקרוב"))
-    }
-
-    private var slots: some View {
-        HStack(spacing: Theme.Spacing.sm) {
-            ForEach(0..<slotCount, id: \.self) { _ in
-                Circle()
-                    .strokeBorder(
-                        Theme.Colors.separator,
-                        style: StrokeStyle(lineWidth: 1.5, dash: [4, 4])
-                    )
-                    .frame(width: slotSize, height: slotSize)
-                    .overlay {
-                        Image(systemName: "lock.fill")
-                            .font(Theme.Typography.caption)
-                            .foregroundStyle(Theme.Colors.textSecondary.opacity(0.5))
-                    }
-            }
-        }
     }
 }
 

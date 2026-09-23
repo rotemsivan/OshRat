@@ -166,22 +166,27 @@ struct HomeView: View {
             .padding(.leading, Theme.Spacing.lg)
             .padding(.bottom, HomeBottomBar.floatingButtonBottomPadding)
         }
-        // Level-ups are celebrated at the shell level, not on the dashboard:
-        // the XP that triggered one was almost certainly earned in a sheet on
-        // top of some other tab, and the user should see it wherever they are.
-        // The toast clears the flag itself once it has finished animating out.
+        // Celebrations — level-ups and unlocked achievements — play at the
+        // shell level, not on the dashboard: the XP behind one was almost
+        // certainly earned in a sheet on top of some other tab, and the user
+        // should see it wherever they are. The toast pops the queue itself
+        // once it has finished animating out, and the next one follows.
         //
         // It waits out any sheet or alert presented from here: an overlay on
         // this view sits *under* them, so a toast mounted then would play its
-        // whole run unseen and clear the flag — which is how a deposit's
+        // whole run unseen and pop the queue — which is how a deposit's
         // maturity prompt used to eat a batch of retroactive level-ups.
-        // Unmounting mid-run is safe: the toast leaves the flag set when its
-        // task is cancelled, so the celebration replays once the way is clear.
+        // Unmounting mid-run is safe: the toast leaves the queue alone when
+        // its task is cancelled, so the celebration replays once the way is
+        // clear.
         .overlay(alignment: .top) {
-            if !isPresentingModal, let level = progressRows.first?.pendingLevelUpLevel {
-                LevelUpToast(level: level) {
-                    ProgressService.clearPendingLevelUp(in: modelContext)
-                }
+            if !isPresentingModal, let celebration = progressRows.first?.nextCelebration {
+                CelebrationToast(
+                    celebration: celebration,
+                    // An achievement's toast leads to the shelf it now sits on.
+                    onOpen: { selectedTab = .profile },
+                    onDismiss: { ProgressService.dismissCelebration(in: modelContext) }
+                )
             }
         }
         .sheet(isPresented: $isAddingTransaction) {

@@ -55,6 +55,12 @@ struct Achievement: Identifiable, Hashable {
     let title: String
     let group: AchievementGroup
     let tier: AchievementTier
+    /// SF Symbol drawn on the patch.
+    let symbolName: String
+    /// How to earn it, in one line — the shelf's "unlock hint". States the
+    /// anti-farming spread where there is one, so an honest user who logged
+    /// 100 rows in a week knows why the patch is still waiting.
+    let hint: String
     /// False for the streak patches: `XPRules.streakMilestones` already pays
     /// for exactly those events, and paying twice for one act would be a bug.
     /// The patch is the reward.
@@ -67,6 +73,16 @@ struct Achievement: Identifiable, Hashable {
 
     /// What unlocking this pays.
     var xpReward: Int { paysXP ? tier.xp : 0 }
+
+    /// "ארד · +100 XP", shown under the title in the shelf's popover and the
+    /// unlock toast. The XP is isolated left-to-right so the sign stays on the
+    /// number's left, the same trick `LevelProgressCard` uses. Streak patches
+    /// pay nothing — the streak bonus already paid — so they show the tier
+    /// alone rather than a "+0".
+    var rewardLine: String {
+        guard xpReward > 0 else { return tier.hebrewLabel }
+        return "\(tier.hebrewLabel) · \u{2066}+\(xpReward) XP\u{2069}"
+    }
 }
 
 extension Achievement {
@@ -75,38 +91,110 @@ extension Achievement {
     /// the source of the criteria behind each id.
     static let catalogue: [Achievement] = [
         // התמדה — consistency
-        Achievement(id: "streak-7", title: "שבוע רצוף", group: .consistency, tier: .bronze, paysXP: false),
-        Achievement(id: "streak-30", title: "חודש רצוף", group: .consistency, tier: .silver, paysXP: false),
-        Achievement(id: "streak-100", title: "מאה ימים", group: .consistency, tier: .gold, paysXP: false),
-        Achievement(id: "log-100", title: "מאה תנועות", group: .consistency, tier: .bronze),
-        Achievement(id: "log-500", title: "חמש מאות תנועות", group: .consistency, tier: .silver),
-        Achievement(id: "log-1000", title: "אלף תנועות", group: .consistency, tier: .gold),
+        Achievement(
+            id: "streak-7", title: "שבוע רצוף", group: .consistency, tier: .bronze,
+            symbolName: "flame.fill", hint: "7 ימים רצופים של רישום תנועות", paysXP: false
+        ),
+        Achievement(
+            id: "streak-30", title: "חודש רצוף", group: .consistency, tier: .silver,
+            symbolName: "flame.fill", hint: "30 ימים רצופים של רישום תנועות", paysXP: false
+        ),
+        Achievement(
+            id: "streak-100", title: "מאה ימים", group: .consistency, tier: .gold,
+            symbolName: "flame.fill", hint: "100 ימים רצופים של רישום תנועות", paysXP: false
+        ),
+        Achievement(
+            id: "log-100", title: "מאה תנועות", group: .consistency, tier: .bronze,
+            symbolName: "list.bullet.rectangle.fill", hint: "100 תנועות, שנרשמו לאורך 30 ימים לפחות"
+        ),
+        Achievement(
+            id: "log-500", title: "חמש מאות תנועות", group: .consistency, tier: .silver,
+            symbolName: "list.bullet.rectangle.fill", hint: "500 תנועות, שנרשמו לאורך 90 ימים לפחות"
+        ),
+        Achievement(
+            id: "log-1000", title: "אלף תנועות", group: .consistency, tier: .gold,
+            symbolName: "list.bullet.rectangle.fill", hint: "1,000 תנועות, שנרשמו לאורך 180 ימים לפחות"
+        ),
 
         // בקרה — budget discipline
-        Achievement(id: "under-budget-1", title: "חודש בתוך התקציב", group: .discipline, tier: .bronze),
-        Achievement(id: "under-budget-3", title: "שלושה חודשים ברצף", group: .discipline, tier: .silver),
-        Achievement(id: "under-budget-12", title: "שנה של משמעת", group: .discipline, tier: .gold),
-        Achievement(id: "wants-under-30", title: "רצונות מתחת ל-30%", group: .discipline, tier: .bronze),
+        Achievement(
+            id: "under-budget-1", title: "חודש בתוך התקציב", group: .discipline, tier: .bronze,
+            symbolName: "checkmark.shield.fill", hint: "חודש שלם בתוך התקציב, בלי לשנות את התקציב במהלכו"
+        ),
+        Achievement(
+            id: "under-budget-3", title: "שלושה חודשים ברצף", group: .discipline, tier: .silver,
+            symbolName: "checkmark.shield.fill", hint: "שלושה חודשים רצופים בתוך התקציב"
+        ),
+        Achievement(
+            id: "under-budget-12", title: "שנה של משמעת", group: .discipline, tier: .gold,
+            symbolName: "checkmark.shield.fill", hint: "שנים-עשר חודשים רצופים בתוך התקציב"
+        ),
+        Achievement(
+            id: "wants-under-30", title: "רצונות מתחת ל-30%", group: .discipline, tier: .bronze,
+            symbolName: "bag.fill", hint: "חודש שבו הרצונות היו פחות מ-30% מההוצאות"
+        ),
 
         // צמיחה — growth
-        Achievement(id: "surplus-3", title: "שלושה חודשים בעודף", group: .growth, tier: .bronze),
-        Achievement(id: "surplus-6", title: "חצי שנה בעודף", group: .growth, tier: .silver),
-        Achievement(id: "surplus-12", title: "שנה בעודף", group: .growth, tier: .gold),
+        Achievement(
+            id: "surplus-3", title: "שלושה חודשים בעודף", group: .growth, tier: .bronze,
+            symbolName: "chart.line.uptrend.xyaxis", hint: "שלושה חודשים רצופים שבהם ההכנסות עלו על ההוצאות"
+        ),
+        Achievement(
+            id: "surplus-6", title: "חצי שנה בעודף", group: .growth, tier: .silver,
+            symbolName: "chart.line.uptrend.xyaxis", hint: "שישה חודשים רצופים שבהם ההכנסות עלו על ההוצאות"
+        ),
+        Achievement(
+            id: "surplus-12", title: "שנה בעודף", group: .growth, tier: .gold,
+            symbolName: "chart.line.uptrend.xyaxis", hint: "שנה שלמה שבה כל חודש הסתיים בעודף"
+        ),
 
         // חיסכון — saving
-        Achievement(id: "first-deposit", title: "הפיקדון הראשון", group: .saving, tier: .bronze),
-        Achievement(id: "deposit-matured", title: "פיקדון עד הסוף", group: .saving, tier: .silver),
-        Achievement(id: "ladder-10", title: "סולם של עשר", group: .saving, tier: .silver),
-        Achievement(id: "first-goal", title: "היעד הראשון", group: .saving, tier: .bronze, isReachable: false),
-        Achievement(id: "goal-done", title: "יעד הושג", group: .saving, tier: .silver, isReachable: false),
+        Achievement(
+            id: "first-deposit", title: "הפיקדון הראשון", group: .saving, tier: .bronze,
+            symbolName: "banknote.fill", hint: "פיקדון עם ריבית, מועד פדיון וכסף בפנים"
+        ),
+        Achievement(
+            id: "deposit-matured", title: "פיקדון עד הסוף", group: .saving, tier: .silver,
+            symbolName: "hourglass.bottomhalf.filled", hint: "פיקדון שהגיע למועד הפדיון ונפדה"
+        ),
+        Achievement(
+            id: "ladder-10", title: "סולם של עשר", group: .saving, tier: .silver,
+            symbolName: "square.stack.3d.up.fill", hint: "10 הפקדות לפיקדון מתחדש, לאורך 5 חודשים לפחות"
+        ),
+        Achievement(
+            id: "first-goal", title: "היעד הראשון", group: .saving, tier: .bronze,
+            symbolName: "target", hint: "הגדרת יעד חיסכון ראשון", isReachable: false
+        ),
+        Achievement(
+            id: "goal-done", title: "יעד הושג", group: .saving, tier: .silver,
+            symbolName: "flag.checkered", hint: "השגת יעד, לפחות 30 יום אחרי שהוגדר", isReachable: false
+        ),
 
         // סדר — hygiene
-        Achievement(id: "categorised-50", title: "הכול מסודר", group: .hygiene, tier: .bronze),
-        Achievement(id: "first-attachment", title: "קבלה ראשונה", group: .hygiene, tier: .bronze),
-        Achievement(id: "attachments-25", title: "תיק מסמכים", group: .hygiene, tier: .silver),
-        Achievement(id: "balance-check-10", title: "יתרות מעודכנות", group: .hygiene, tier: .bronze),
-        Achievement(id: "first-transfer", title: "העברה ראשונה", group: .hygiene, tier: .bronze),
-        Achievement(id: "multi-currency", title: "שני מטבעות", group: .hygiene, tier: .bronze),
+        Achievement(
+            id: "categorised-50", title: "הכול מסודר", group: .hygiene, tier: .bronze,
+            symbolName: "tag.fill", hint: "50 תנועות עם קטגוריה, לאורך 20 ימים לפחות"
+        ),
+        Achievement(
+            id: "first-attachment", title: "קבלה ראשונה", group: .hygiene, tier: .bronze,
+            symbolName: "paperclip", hint: "צירוף קבלה או מסמך לתנועה"
+        ),
+        Achievement(
+            id: "attachments-25", title: "תיק מסמכים", group: .hygiene, tier: .silver,
+            symbolName: "folder.fill", hint: "מסמכים מצורפים ל-25 תנועות שונות, לאורך 10 ימים לפחות"
+        ),
+        Achievement(
+            id: "balance-check-10", title: "יתרות מעודכנות", group: .hygiene, tier: .bronze,
+            symbolName: "scalemass.fill", hint: "10 עדכוני יתרה — לכל היותר אחד לחשבון ביום"
+        ),
+        Achievement(
+            id: "first-transfer", title: "העברה ראשונה", group: .hygiene, tier: .bronze,
+            symbolName: "arrow.left.arrow.right", hint: "העברה ראשונה בין חשבונות"
+        ),
+        Achievement(
+            id: "multi-currency", title: "שני מטבעות", group: .hygiene, tier: .bronze,
+            symbolName: "globe", hint: "תנועות בחשבונות בשני מטבעות שונים"
+        ),
     ]
 
     /// Catalogue lookup by id. `nil` for an id a future build removed but
