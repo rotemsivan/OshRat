@@ -325,22 +325,22 @@ struct HomeView: View {
                     deletedAccountCount: deletedAccounts.count,
                     onShowRecentlyDeleted: { isShowingRecentlyDeleted = true }
                 )
-                // The XP badge rests *on* the card's top edge — flush against
-                // it, not cutting into it — at the opposite corner to the
-                // greeting mascot sitting on the other end of that same edge.
-                // `.topTrailing` is the visual top-*left* under RTL.
+                // The XP badge hovers just above the card's top edge, at the
+                // opposite corner to the greeting mascot sitting on the other
+                // end of that same edge. `.topTrailing` is the visual
+                // top-*left* under RTL.
                 //
-                // Redefining the badge's `.top` guide as its own `.bottom` is
-                // what parks it there: the overlay lines that guide up with
-                // the card's top, so the badge's base lands exactly on the
-                // card's edge and the whole badge sits above it. Doing it this
-                // way rather than with a fixed negative `.offset` means the
-                // Dynamic-Type height never has to be guessed at from here —
-                // and the seam stays put at every text size, which an offset
-                // tuned to one size would not.
+                // Redefining the badge's `.top` guide as a point *below* its
+                // own `.bottom` is what parks it there: the overlay lines that
+                // guide up with the card's top, so the badge's base lands a
+                // fixed gap above the card's edge. Doing it this way rather
+                // than with a fixed negative `.offset` means the Dynamic-Type
+                // height never has to be guessed at from here — the gap stays
+                // put at every text size, which an offset tuned to one size
+                // would not.
                 .overlay(alignment: .topTrailing) {
                     XPLevelBadge(progress: progressRows.first)
-                        .alignmentGuide(.top) { $0[.bottom] }
+                        .alignmentGuide(.top) { $0[.bottom] + Theme.Spacing.md }
                         .padding(.trailing, Theme.Spacing.md)
                 }
 
