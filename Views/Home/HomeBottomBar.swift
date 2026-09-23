@@ -33,7 +33,7 @@ struct HomeBottomBar: View {
     /// Side of the rat icon's box. A shade under the SF Symbols beside it:
     /// the rat is a solid silhouette against their open line work, and equal
     /// sizes would read as a heavier icon rather than a matching one.
-    fileprivate static let ratIconSize: CGFloat = 20
+    fileprivate static let ratIconSize: CGFloat = 25
 
     /// Diameter of the floating "+" that hovers above the bar, and how far
     /// its bottom edge sits above the screen edge. `HomeView` positions the
@@ -240,21 +240,33 @@ private struct BarSymbol: View {
 
 // MARK: - Rat head
 
-/// The app's own tab icon: a front-facing rat head — round skull, two big
-/// ears, a tapering snout.
+/// The app's own tab icon: a rat seen from the side, crouching, nose to the
+/// visual left, with its tail sweeping up over its back.
 ///
 /// Hand-drawn because SF Symbols has no rat or mouse *animal* glyph (only
 /// `computermouse`, plus `hare`, `pawprint` and `tortoise`), and none of
-/// those say "עכבר עו״ש". Drawn **symmetrically** on purpose: a symmetric
-/// path is immune to the RTL question of whether a custom `Shape`'s
-/// coordinate space is mirrored, so the icon looks identical either way.
+/// those say "עכבר עו״ש".
+///
+/// **A custom `Shape`'s coordinate space is mirrored under RTL** — confirmed
+/// on device, not assumed: drawn nose-left it rendered facing right, off the
+/// edge of the screen. The coordinates below are therefore pre-mirrored so it
+/// faces left, into the bar and along the reading direction.
 ///
 /// **Filled, not stroked.** Two earlier attempts drew it as line art to match
 /// the SF Symbols beside it, and both failed at 21pt: the ear lobes merged
 /// into the skull's outline, and the inner-ear detail that was supposed to
-/// separate them read as a pair of eyes. A silhouette has no such problem —
-/// two circles clear of a tapered head is the most legible mouse there is,
+/// separate them read as a pair of eyes. A silhouette has no such problem,
 /// and the bar already carries a filled mark in `house.fill`.
+///
+/// **Not a head at all, deliberately.** Any front-facing rodent head is two
+/// lobes above a face, which is the Mickey silhouette — near enough to be
+/// someone else's mark. Tilting the ears into ovals, dropping them to the
+/// temples and lengthening the muzzle were all tried and all still read as
+/// it; the lobes are the tell, not the face under them. A whole animal in
+/// profile cannot make that shape, and the tail settles the species. The
+/// candidates were drawn as SVG and rasterised side by side at icon size
+/// first — a front-facing pass read as a cat, tall ears read as a rabbit, and
+/// wide low ears read as a koala.
 ///
 /// The geometry is authored against a 100×100 box and scaled uniformly into
 /// whatever frame it's given, so the proportions survive Dynamic Type and a
@@ -272,65 +284,96 @@ struct RatHeadShape: Shape {
 
         var path = Path()
 
-        // Ears: two plain circles, set high and wide enough that they clear
-        // the skull entirely at their own centre line. That gap is what makes
-        // the thing a mouse — overlap them into the crown and it goes back to
-        // reading as one bumpy dome.
-        for centreX in [26.0, 74.0] as [CGFloat] {
-            addCircleClockwise(&path, centre: pt(centreX, 25), radius: 19 * scale)
-        }
-
-        // Skull: broad across the brow, drawn out into a long wedge of a
-        // snout. Its top sits well below the ears, so they join it low down
-        // where it's wide.
+        // Body: a crouching rat seen from the side, nose at the visual left.
         //
-        // The snout is doing real work. Two circles on a round head is the
-        // Mickey silhouette, near enough to be somebody else's mark; a rat is
-        // the one with the long pointed muzzle, and lengthening it both says
-        // "rat" and puts clear water between the two.
-        path.move(to: pt(16, 56))
-        path.addCurve(to: pt(50, 37), control1: pt(16, 44), control2: pt(31, 37))
-        path.addCurve(to: pt(84, 56), control1: pt(69, 37), control2: pt(84, 44))
-        path.addCurve(to: pt(50, 99), control1: pt(84, 76), control2: pt(63, 99))
-        path.addCurve(to: pt(16, 56), control1: pt(37, 99), control2: pt(16, 76))
+        // Every subpath here is wound **clockwise**, checked by signed area
+        // rather than by eye — `fill` uses the nonzero rule, so a subpath that
+        // disagreed would cancel the overlap into a hole. The coordinates were
+        // authored nose-left and then mirrored, which flips winding, so each
+        // path is also traversed in reverse to put it back. That is why the
+        // curves below read tail-first rather than nose-first.
+        path.move(to: pt(99, 64))
+        path.addCurve(to: pt(93, 69), control1: pt(100, 66), control2: pt(98, 67))
+        path.addCurve(to: pt(53, 74), control1: pt(85, 73), control2: pt(67, 76))
+        path.addCurve(to: pt(32, 60), control1: pt(41, 73), control2: pt(33, 68))
+        path.addCurve(to: pt(45, 38), control1: pt(32, 52), control2: pt(36, 42))
+        path.addCurve(to: pt(79, 44), control1: pt(54, 33), control2: pt(68, 36))
+        path.addCurve(to: pt(99, 64), control1: pt(89, 47), control2: pt(97, 54))
         path.closeSubpath()
+
+        // The tail, sweeping up and back over the rump. It is the one feature
+        // that settles the animal outright, and it has to stay **thick** — at
+        // 25pt a naturalistic thin tail aliases into a stray wisp, which a
+        // side-by-side render at icon size made obvious.
+        path.move(to: pt(38, 49))
+        path.addCurve(to: pt(38, 55), control1: pt(38, 51), control2: pt(38, 52))
+        path.addCurve(to: pt(17, 36), control1: pt(35, 42), control2: pt(26, 33))
+        path.addCurve(to: pt(29, 76), control1: pt(8, 39), control2: pt(16, 58))
+        path.addCurve(to: pt(11, 31), control1: pt(8, 63), control2: pt(0, 40))
+        path.addCurve(to: pt(38, 49), control1: pt(20, 24), control2: pt(34, 33))
+        path.closeSubpath()
+
+        // One ear, sunk into the back of the skull so the two read as one
+        // silhouette. A circle needs no mirroring, and the helper emits it
+        // clockwise to match the two paths above.
+        addEllipseClockwise(&path, centre: pt(71, 40),
+                            radiusX: 9 * scale, radiusY: 10 * scale,
+                            rotation: .degrees(0))
 
         return path
     }
 
-    /// One circle traced left → top → right → bottom, i.e. clockwise on
-    /// screen, matching the direction the skull above is wound.
+    /// One ellipse, optionally tilted, traced left → top → right → bottom in
+    /// its own rotated frame — i.e. clockwise on screen, matching the
+    /// direction the skull above is wound.
     ///
-    /// `Path.addEllipse` would be shorter but winds the other way, and `fill`
-    /// uses the nonzero rule: subpaths that disagree about direction cancel
-    /// where they overlap, which would punch an ear-shaped hole through the
-    /// head instead of merging with it.
-    private func addCircleClockwise(_ path: inout Path, centre: CGPoint, radius: CGFloat) {
-        // Standard cubic approximation of a quarter circle.
-        let handle = radius * 0.5522847
-        let x = centre.x
-        let y = centre.y
+    /// `Path.addEllipse` would be shorter but winds the other way and cannot
+    /// tilt, and `fill` uses the nonzero rule: subpaths that disagree about
+    /// direction cancel where they overlap, which would punch an ear-shaped
+    /// hole through the head instead of merging with it. Rotation preserves
+    /// orientation, so the tilt doesn't disturb that.
+    private func addEllipseClockwise(
+        _ path: inout Path,
+        centre: CGPoint,
+        radiusX: CGFloat,
+        radiusY: CGFloat,
+        rotation: Angle
+    ) {
+        // Standard cubic approximation of a quarter arc, per axis.
+        let handleX = radiusX * 0.5522847
+        let handleY = radiusY * 0.5522847
+        let cosine = cos(rotation.radians)
+        let sine = sin(rotation.radians)
 
-        path.move(to: CGPoint(x: x - radius, y: y))
+        /// Ellipse-local coordinates → the shape's space: rotate about the
+        /// centre, then translate onto it.
+        func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(
+                x: centre.x + x * cosine - y * sine,
+                y: centre.y + x * sine + y * cosine
+            )
+        }
+
+        path.move(to: point(-radiusX, 0))
         path.addCurve(
-            to: CGPoint(x: x, y: y - radius),
-            control1: CGPoint(x: x - radius, y: y - handle),
-            control2: CGPoint(x: x - handle, y: y - radius)
+            to: point(0, -radiusY),
+            control1: point(-radiusX, -handleY),
+            control2: point(-handleX, -radiusY)
         )
         path.addCurve(
-            to: CGPoint(x: x + radius, y: y),
-            control1: CGPoint(x: x + handle, y: y - radius),
-            control2: CGPoint(x: x + radius, y: y - handle)
+            to: point(radiusX, 0),
+            control1: point(handleX, -radiusY),
+            control2: point(radiusX, -handleY)
         )
         path.addCurve(
-            to: CGPoint(x: x, y: y + radius),
-            control1: CGPoint(x: x + radius, y: y + handle),
-            control2: CGPoint(x: x + handle, y: y + radius)
+            to: point(0, radiusY),
+            control1: point(radiusX, handleY),
+            control2: point(handleX, radiusY)
         )
         path.addCurve(
-            to: CGPoint(x: x - radius, y: y),
-            control1: CGPoint(x: x - handle, y: y + radius),
-            control2: CGPoint(x: x - radius, y: y + handle)
+            to: point(-radiusX, 0),
+            control1: point(-handleX, radiusY),
+            control2: point(-radiusX, handleY)
         )
         path.closeSubpath()
     }
