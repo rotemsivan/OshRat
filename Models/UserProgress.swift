@@ -51,6 +51,31 @@ final class UserProgress {
     /// app was killed is still waiting on the next launch.
     var pendingLevelUpLevel: Int?
 
+    /// Level-ups waiting their turn behind `pendingLevelUpLevel`, oldest
+    /// first. A retroactive achievement pass can cross several levels in one
+    /// go; showing only the latest would collapse "you reached 3, 4 and 5"
+    /// into a single toast, so each one queues and the dashboard plays them
+    /// in order (ACHIEVEMENTS.md §5, option a).
+    var queuedLevelUpLevels: [Int] = []
+
+    // MARK: Achievements
+
+    /// Ids of unlocked achievements, in the order they were earned — the
+    /// patch ledger. Membership *is* the idempotency guard: an id in here
+    /// never pays again. The catalogue itself lives in code (`Achievement`).
+    var unlockedAchievements: [String] = []
+
+    /// Set once, on the first achievement evaluation. Budget achievements
+    /// never judge a month that starts before it: the "budget untouched
+    /// during the month" rule can't be verified for history, and inventing
+    /// credit would be dishonest.
+    var achievementsEpoch: Date?
+
+    /// When a budget line was last *deleted*. A deleted row can't carry
+    /// `BudgetItem.lastEditedAt`, but removing a line changes a month's plan
+    /// just as much as editing one does.
+    var budgetLastTouchedAt: Date?
+
     /// The most recent award, so the card can always say what the last points
     /// were for. Stored as the raw value; read it back through `lastAwardReason`.
     var lastAwardReasonRaw: String?

@@ -75,6 +75,15 @@
 		5EAA170100000000000000B1 /* AnalyticsReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EAA170100000000000000F1 /* AnalyticsReport.swift */; };
 		5EAA170100000000000000B2 /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EAA170100000000000000F2 /* AnalyticsView.swift */; };
 		5EAA170100000000000000B3 /* AnalyticsStations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EAA170100000000000000F3 /* AnalyticsStations.swift */; };
+		5EACHV0100000000000000B1 /* Achievement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EACHV0100000000000000F1 /* Achievement.swift */; };
+		5EACHV0100000000000000C1 /* Achievement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EACHV0100000000000000F1 /* Achievement.swift */; };
+		5EACHV0100000000000000C2 /* Achievement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EACHV0100000000000000F1 /* Achievement.swift */; };
+		5EACHV0200000000000000B1 /* AchievementEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EACHV0200000000000000F1 /* AchievementEvaluator.swift */; };
+		5EACHV0200000000000000C1 /* AchievementEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EACHV0200000000000000F1 /* AchievementEvaluator.swift */; };
+		5EACHV0200000000000000C2 /* AchievementEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EACHV0200000000000000F1 /* AchievementEvaluator.swift */; };
+		5EADM00100000000000000B1 /* DemoDataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EADM00100000000000000F1 /* DemoDataService.swift */; };
+		5EADM00200000000000000B1 /* DemoScenarioBlueprints.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EADM00200000000000000F1 /* DemoScenarioBlueprints.swift */; };
+		5EADM00300000000000000B1 /* AdminPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EADM00300000000000000F1 /* AdminPanelView.swift */; };
 		5EBD610100000000000000B1 /* BudgetScheduleSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBD610100000000000000F1 /* BudgetScheduleSection.swift */; };
 		5EBD610100000000000000B2 /* BudgetCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBD610100000000000000F2 /* BudgetCalendarView.swift */; };
 		5ECC1F6E2FDDC729006BAC51 /* TransactionsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECC1F6D2FDDC729006BAC51 /* TransactionsListView.swift */; };
@@ -95,9 +104,6 @@
 		5EDEP00300000000000000B1 /* DepositMaturitySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00300000000000000F1 /* DepositMaturitySheet.swift */; };
 		5EDEP00400000000000000B1 /* DepositInfoSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00400000000000000F1 /* DepositInfoSheet.swift */; };
 		5EDEP00500000000000000B1 /* DepositLadderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00500000000000000F1 /* DepositLadderService.swift */; };
-		5EADM00100000000000000B1 /* DemoDataService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EADM00100000000000000F1 /* DemoDataService.swift */; };
-		5EADM00200000000000000B1 /* DemoScenarioBlueprints.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EADM00200000000000000F1 /* DemoScenarioBlueprints.swift */; };
-		5EADM00300000000000000B1 /* AdminPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EADM00300000000000000F1 /* AdminPanelView.swift */; };
 		5EDEP00600000000000000B1 /* DepositTranche.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00600000000000000F1 /* DepositTranche.swift */; };
 		5EDEP00600000000000000C1 /* DepositTranche.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00600000000000000F1 /* DepositTranche.swift */; };
 		5EDEP00600000000000000C2 /* DepositTranche.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00600000000000000F1 /* DepositTranche.swift */; };
@@ -119,10 +125,10 @@
 		5EGAM00400000000000000B1 /* LevelProgressCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EGAM00400000000000000F1 /* LevelProgressCard.swift */; };
 		5EGAM00500000000000000B1 /* LevelUpToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EGAM00500000000000000F1 /* LevelUpToast.swift */; };
 		5EGAM00600000000000000B1 /* XPLevelBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EGAM00600000000000000F1 /* XPLevelBadge.swift */; };
-		5EPRF00100000000000000B1 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPRF00100000000000000F1 /* ProfileView.swift */; };
 		5EGAMUP0100000000000C1 /* UserProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EGAM00200000000000000F1 /* UserProgress.swift */; };
 		5EGAMUP0100000000000C2 /* UserProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EGAM00200000000000000F1 /* UserProgress.swift */; };
 		5EPICK0100000000000000B1 /* PickerRowLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPICK0100000000000000F1 /* PickerRowLabel.swift */; };
+		5EPRF00100000000000000B1 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPRF00100000000000000F1 /* ProfileView.swift */; };
 		5ETRSH0100000000000000C1 /* TrashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F2 /* TrashService.swift */; };
 		5ETRSH0100000000000000C2 /* TrashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F2 /* TrashService.swift */; };
 /* End PBXBuildFile section */
@@ -216,6 +222,11 @@
 		5EAA170100000000000000F1 /* AnalyticsReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsReport.swift; sourceTree = "<group>"; };
 		5EAA170100000000000000F2 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
 		5EAA170100000000000000F3 /* AnalyticsStations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsStations.swift; sourceTree = "<group>"; };
+		5EACHV0100000000000000F1 /* Achievement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Achievement.swift; sourceTree = "<group>"; };
+		5EACHV0200000000000000F1 /* AchievementEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementEvaluator.swift; sourceTree = "<group>"; };
+		5EADM00100000000000000F1 /* DemoDataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoDataService.swift; sourceTree = "<group>"; };
+		5EADM00200000000000000F1 /* DemoScenarioBlueprints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoScenarioBlueprints.swift; sourceTree = "<group>"; };
+		5EADM00300000000000000F1 /* AdminPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminPanelView.swift; sourceTree = "<group>"; };
 		5EBD610100000000000000F1 /* BudgetScheduleSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetScheduleSection.swift; sourceTree = "<group>"; };
 		5EBD610100000000000000F2 /* BudgetCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetCalendarView.swift; sourceTree = "<group>"; };
 		5ECC1F6D2FDDC729006BAC51 /* TransactionsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionsListView.swift; sourceTree = "<group>"; };
@@ -232,9 +243,6 @@
 		5EDEP00300000000000000F1 /* DepositMaturitySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositMaturitySheet.swift; sourceTree = "<group>"; };
 		5EDEP00400000000000000F1 /* DepositInfoSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositInfoSheet.swift; sourceTree = "<group>"; };
 		5EDEP00500000000000000F1 /* DepositLadderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositLadderService.swift; sourceTree = "<group>"; };
-		5EADM00100000000000000F1 /* DemoDataService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoDataService.swift; sourceTree = "<group>"; };
-		5EADM00200000000000000F1 /* DemoScenarioBlueprints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoScenarioBlueprints.swift; sourceTree = "<group>"; };
-		5EADM00300000000000000F1 /* AdminPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminPanelView.swift; sourceTree = "<group>"; };
 		5EDEP00600000000000000F1 /* DepositTranche.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositTranche.swift; sourceTree = "<group>"; };
 		5EDEP00700000000000000F1 /* DepositLadder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositLadder.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F1 /* TransactionAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionAttachment.swift; sourceTree = "<group>"; };
@@ -247,8 +255,8 @@
 		5EGAM00400000000000000F1 /* LevelProgressCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelProgressCard.swift; sourceTree = "<group>"; };
 		5EGAM00500000000000000F1 /* LevelUpToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelUpToast.swift; sourceTree = "<group>"; };
 		5EGAM00600000000000000F1 /* XPLevelBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPLevelBadge.swift; sourceTree = "<group>"; };
-		5EPRF00100000000000000F1 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		5EPICK0100000000000000F1 /* PickerRowLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerRowLabel.swift; sourceTree = "<group>"; };
+		5EPRF00100000000000000F1 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -425,6 +433,8 @@
 				5EFACE0100000000000000F1 /* TransactionAttachment.swift */,
 				5E31E54A2FD16B6D00FF83C8 /* UserProfile.swift */,
 				5EGAM00100000000000000F1 /* XPRules.swift */,
+				5EACHV0100000000000000F1 /* Achievement.swift */,
+				5EACHV0200000000000000F1 /* AchievementEvaluator.swift */,
 				5EGAM00200000000000000F1 /* UserProgress.swift */,
 				5ED3E0E72FD1BB4D003083F0 /* Holding.swift */,
 				5E8EB3A42FD2F8E70037E1F3 /* FXRateSnapshot.swift */,
@@ -482,6 +492,14 @@
 			path = Analytics;
 			sourceTree = "<group>";
 		};
+		5EADM00000000000000000A1 /* Admin */ = {
+			isa = PBXGroup;
+			children = (
+				5EADM00300000000000000F1 /* AdminPanelView.swift */,
+			);
+			path = Admin;
+			sourceTree = "<group>";
+		};
 		5EB0F14F2FD57DFB0022B03B /* Fonts */ = {
 			isa = PBXGroup;
 			children = (
@@ -522,14 +540,6 @@
 				5EDEP00400000000000000F1 /* DepositInfoSheet.swift */,
 			);
 			path = Home;
-			sourceTree = "<group>";
-		};
-		5EADM00000000000000000A1 /* Admin */ = {
-			isa = PBXGroup;
-			children = (
-				5EADM00300000000000000F1 /* AdminPanelView.swift */,
-			);
-			path = Admin;
 			sourceTree = "<group>";
 		};
 		5EGAM00000000000000000A1 /* Gamification */ = {
@@ -802,6 +812,8 @@
 				5EADM00200000000000000B1 /* DemoScenarioBlueprints.swift in Sources */,
 				5EADM00300000000000000B1 /* AdminPanelView.swift in Sources */,
 				5EGAM00100000000000000B1 /* XPRules.swift in Sources */,
+				5EACHV0100000000000000B1 /* Achievement.swift in Sources */,
+				5EACHV0200000000000000B1 /* AchievementEvaluator.swift in Sources */,
 				5EGAM00200000000000000B1 /* UserProgress.swift in Sources */,
 				5EGAM00300000000000000B1 /* ProgressService.swift in Sources */,
 				5EGAM00400000000000000B1 /* LevelProgressCard.swift in Sources */,
@@ -830,6 +842,8 @@
 				5EDEP00600000000000000C1 /* DepositTranche.swift in Sources */,
 				5EDEP00700000000000000C1 /* DepositLadder.swift in Sources */,
 				5EGAM00100000000000000C1 /* XPRules.swift in Sources */,
+				5EACHV0100000000000000C1 /* Achievement.swift in Sources */,
+				5EACHV0200000000000000C1 /* AchievementEvaluator.swift in Sources */,
 				5EFILT0100000000000000C1 /* TransactionFilters.swift in Sources */,
 				5ETRSH0100000000000000C1 /* TrashService.swift in Sources */,
 				5EGAMUP0100000000000C1 /* UserProgress.swift in Sources */,
@@ -857,6 +871,8 @@
 				5EDEP00600000000000000C2 /* DepositTranche.swift in Sources */,
 				5EDEP00700000000000000C2 /* DepositLadder.swift in Sources */,
 				5EGAM00100000000000000C2 /* XPRules.swift in Sources */,
+				5EACHV0100000000000000C2 /* Achievement.swift in Sources */,
+				5EACHV0200000000000000C2 /* AchievementEvaluator.swift in Sources */,
 				5ETRSH0100000000000000C2 /* TrashService.swift in Sources */,
 				5EGAMUP0100000000000C2 /* UserProgress.swift in Sources */,
 				5E17150100000000000000C2 /* CurrencyConverter.swift in Sources */,

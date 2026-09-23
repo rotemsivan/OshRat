@@ -242,6 +242,13 @@ struct HomeView: View {
         .task {
             TrashService.purgeExpired(in: modelContext)
         }
+        // The achievements pass. The write points run it too, but only this
+        // catches what happens with no write at all — a month closing — and
+        // it gives a long-standing user their retroactive patches on the
+        // first launch after achievements shipped.
+        .task {
+            ProgressService.evaluateAchievements(in: modelContext)
+        }
         // Heal rows that predate the "deposits can't be favourite" rule. The
         // write paths all enforce it now, so this only ever fires once, for a
         // savings account starred before the rule existed — after which the
@@ -580,6 +587,9 @@ struct HomeView: View {
             )
             try? modelContext.save()
         }
+        // A payout is the one money write with no XP entry point of its own,
+        // and it's what `deposit-matured` waits for.
+        ProgressService.evaluateAchievements(in: modelContext)
     }
 
     /// Accounts a deposit can pay into: live **עו״ש** accounts only.

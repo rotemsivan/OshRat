@@ -146,9 +146,16 @@ shows earned patches/medals.
    `Services/ProgressService.swift`, `Views/Gamification/`. Sources wired up: logging a
    transaction (5, capped), correcting a balance (3, capped), the setup milestones (30 each)
    and streak bonuses at 7/30/100. Daily cap 30, shared across the farmable actions. Level
-   curve: 100 XP to level 2, each level 50 more than the last. See CLAUDE.md's *Gamification*
+   curve: rebalanced by `ACHIEVEMENTS.md` §1 — 80 XP to level 2, +30 a level, flat at 500 from level 15. See CLAUDE.md's *Gamification*
    section for how the pieces fit; the rest of this file is still the plan of record.
-2. **Achievements** — the catalog + patches/medals + an achievements screen. Two slots are
+2. **Achievements** — the catalog + patches/medals + an achievements screen. **The engine is
+   built** (catalogue, evaluator, retroactive unlocks, the curve rebalance — see the status
+   note at the top of `ACHIEVEMENTS.md`); the shelf that draws the patches is not. **Planned in
+   detail in `ACHIEVEMENTS.md`**, which is the document to implement from: a 24-entry
+   catalogue, an anti-farming doctrine, and a rebalance of the level curve in §1 that
+   supersedes the numbers currently in `XPRules`. It also names two model fields
+   (`Transaction.createdAt`, `BudgetItem.lastEditedAt`) that must land *first*, because most
+   of the guards are unenforceable without them. Two slots are
    already reserved and waiting: the **achievements shelf** on the profile tab (built, drawn as
    empty dashed slots) and `LevelProgressCard`'s **top-trailing pill**, which becomes the *most
    recently earned* achievement. The streak currently sits in that pill as a stand-in — its

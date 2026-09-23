@@ -19,6 +19,14 @@ enum XPReason: String, Codable, CaseIterable {
     case firstTransaction
     /// A 7 / 30 / 100-day logging streak was reached.
     case streakMilestone
+    /// Money was put toward a savings goal. Needs the Goals UI — not wired yet.
+    case goalContribution
+    /// A savings goal was reached. Needs the Goals UI — not wired yet.
+    case goalCompleted
+    /// A closed month finished under a budget that was settled before it began.
+    case budgetMonthMet
+    /// An achievement was unlocked. Pays the achievement's tier XP.
+    case achievementUnlocked
 
     /// Shown on the dashboard's progress card. A plain `String` (not a
     /// `LocalizedStringKey`) to match `AccountType.hebrewLabel` — the app is
@@ -32,6 +40,10 @@ enum XPReason: String, Codable, CaseIterable {
         case .firstBudgetItem:   return "התקציב הראשון"
         case .firstTransaction:  return "התנועה הראשונה"
         case .streakMilestone:   return "רצף יומי"
+        case .goalContribution:  return "הפקדה ליעד"
+        case .goalCompleted:     return "יעד הושג"
+        case .budgetMonthMet:    return "חודש בתוך התקציב"
+        case .achievementUnlocked: return "הישג חדש"
         }
     }
 
@@ -42,10 +54,11 @@ enum XPReason: String, Codable, CaseIterable {
     /// a reward the user genuinely earned.
     var isDailyCapped: Bool {
         switch self {
-        case .transactionLogged, .balanceUpdated:
+        case .transactionLogged, .balanceUpdated, .goalContribution:
             return true
         case .profileCompleted, .firstAccount, .firstBudgetItem,
-             .firstTransaction, .streakMilestone:
+             .firstTransaction, .streakMilestone, .goalCompleted,
+             .budgetMonthMet, .achievementUnlocked:
             return false
         }
     }
@@ -74,8 +87,31 @@ enum XPRules {
 
     /// Any of the one-time setup milestones. Deliberately worth six logged
     /// transactions each: the plan wants early wins front-loaded, so finishing
-    /// onboarding alone puts a new user most of the way to level 2.
+    /// onboarding alone (90 XP) clears level 2 outright, so the wizard ends
+    /// with a level-up toast on the first dashboard appearance.
     static let setupMilestoneXP = 30
+
+    /// Putting money toward a goal. Farmable, so it shares the daily cap.
+    /// Paid only once the Goals UI exists (ACHIEVEMENTS.md §8.6).
+    static let goalContributionXP = 5
+
+    /// Reaching a goal. One-time per goal, keyed by `goalCompletedKey`.
+    static let goalCompletedXP = 100
+
+    /// A closed month that stayed under a pre-committed budget. One-time per
+    /// month, keyed by `budgetMonthKey`.
+    static let budgetMonthMetXP = 60
+
+    /// Ledger key for a budget month, so each month pays at most once.
+    static func budgetMonthKey(year: Int, month: Int) -> String {
+        "budget-\(year)-\(String(format: "%02d", month))"
+    }
+
+    /// Ledger key for a completed goal. `goalID` is a stable description of
+    /// the goal's persistent identity.
+    static func goalCompletedKey(goalID: String) -> String {
+        "goal-\(goalID)"
+    }
 
     /// The most XP the repeatable actions can produce in a single day.
     ///
@@ -148,9 +184,16 @@ enum XPRules {
 
     /// XP to get from level 1 to level 2. Every later level adds
     /// `levelCostStep` on top, so the curve rises gently and predictably
-    /// instead of exploding the way a doubling curve would.
-    static let baseLevelCost = 100
-    static let levelCostStep = 50
+    /// instead of exploding the way a doubling curve would — until it hits
+    /// `levelCostCeiling`, where it goes flat.
+    ///
+    /// The plateau is the point (ACHIEVEMENTS.md §1): a straight ramp put
+    /// level 99 about 23 years of daily logging away, so nearly every user
+    /// lived in levels 2–6. With the ceiling, levels 1–14 ramp and every
+    /// level from 15 on costs the same, so progress keeps moving.
+    static let baseLevelCost = 80
+    static let levelCostStep = 30
+    static let levelCostCeiling = 500
 
     /// Where the curve stops. Mostly a safety rail — it bounds the loop in
     /// `level(forTotalXP:)` — but it also gives the card something honest to
@@ -160,7 +203,16 @@ enum XPRules {
     /// XP needed to climb from `level` to the next one. Zero at the ceiling.
     static func xpToAdvance(from level: Int) -> Int {
         guard level >= 1, level < maxLevel else { return 0 }
-        return baseLevelCost + levelCostStep * (level - 1)
+        return min(baseLevelCost + levelCostStep * (level - 1), levelCostCeiling)
+    }
+
+    /// How many levels sit on the rising part of the curve before the
+    /// ceiling takes over (14 with today's constants). Derived rather than
+    /// hard-coded so retuning any one constant stays a one-line change.
+    static var rampLength: Int {
+        // Ceiling division: the first level whose arithmetic cost would
+        // reach the ceiling is where the flat part begins.
+        max(0, (levelCostCeiling - baseLevelCost + levelCostStep - 1) / levelCostStep)
     }
 
     /// Cumulative XP required to *reach* `level`. Level 1 costs nothing —
@@ -168,9 +220,13 @@ enum XPRules {
     static func totalXP(toReach level: Int) -> Int {
         guard level > 1 else { return 0 }
         let steps = min(level, maxLevel) - 1
-        // Sum of an arithmetic series: `steps` terms starting at baseLevelCost
-        // and rising by levelCostStep each time.
-        return steps * baseLevelCost + levelCostStep * steps * (steps - 1) / 2
+        let rampSteps = min(steps, rampLength)
+        let flatSteps = max(0, steps - rampLength)
+        // The ramp is an arithmetic series (`rampSteps` terms starting at
+        // baseLevelCost, rising by levelCostStep); the plateau is flat.
+        return rampSteps * baseLevelCost
+            + levelCostStep * rampSteps * (rampSteps - 1) / 2
+            + flatSteps * levelCostCeiling
     }
 
     /// The level a given lifetime total lands in.

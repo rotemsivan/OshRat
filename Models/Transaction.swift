@@ -99,6 +99,21 @@ final class Transaction {
     /// CloudKit-compatible.
     var deletedAt: Date?
 
+    /// When the row was actually written, as distinct from `date`, which is
+    /// when the money moved and which the user picks freely.
+    ///
+    /// Every achievement anti-farming guard keys on this (ACHIEVEMENTS.md
+    /// §0.1). A guard built on `date` is worthless: a user can enter 100 rows
+    /// in one sitting and date them across a year. `createdAt` isn't settable
+    /// from the UI, so spreading entry over real days takes real days.
+    ///
+    /// Optional with no default so `nil` marks rows that predate the field —
+    /// they count toward totals but contribute no distinct entry day. `init`
+    /// stamps it, which is how every insert path (the sheet, transfers, the
+    /// manual-balance marker, deposit payouts) gets it without each one
+    /// having to remember.
+    var createdAt: Date?
+
     init(
         amount: Decimal = 0,
         kind: TransactionKind = .expense,
@@ -111,8 +126,10 @@ final class Transaction {
         account: Account? = nil,
         destinationAccount: Account? = nil,
         destinationAmount: Decimal? = nil,
-        destinationBalanceAfter: Decimal? = nil
+        destinationBalanceAfter: Decimal? = nil,
+        createdAt: Date = .now
     ) {
+        self.createdAt = createdAt
         self.amount = amount
         self.kind = kind
         self.date = date

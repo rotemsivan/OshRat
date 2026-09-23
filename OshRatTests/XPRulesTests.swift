@@ -27,30 +27,68 @@ struct XPRulesTests {
 
     @Test func levelOneCostsNothing() {
         #expect(XPRules.level(forTotalXP: 0) == 1)
-        #expect(XPRules.level(forTotalXP: 99) == 1)
+        #expect(XPRules.level(forTotalXP: 79) == 1)
         #expect(XPRules.totalXP(toReach: 1) == 0)
     }
 
-    /// 100 / 250 / 450 / 700 — each level costs 50 more than the one before.
+    /// 80 / 190 / 330 / 500 — on the ramp, each level costs 30 more than
+    /// the one before.
     @Test func levelBoundariesRiseByAFixedStep() {
-        #expect(XPRules.totalXP(toReach: 2) == 100)
-        #expect(XPRules.totalXP(toReach: 3) == 250)
-        #expect(XPRules.totalXP(toReach: 4) == 450)
-        #expect(XPRules.totalXP(toReach: 5) == 700)
+        #expect(XPRules.totalXP(toReach: 2) == 80)
+        #expect(XPRules.totalXP(toReach: 3) == 190)
+        #expect(XPRules.totalXP(toReach: 4) == 330)
+        #expect(XPRules.totalXP(toReach: 5) == 500)
+        #expect(XPRules.totalXP(toReach: 10) == 1_800)
     }
 
     @Test func levelIsTheHighestBoundaryReached() {
-        #expect(XPRules.level(forTotalXP: 100) == 2)
-        #expect(XPRules.level(forTotalXP: 249) == 2)
-        #expect(XPRules.level(forTotalXP: 250) == 3)
-        #expect(XPRules.level(forTotalXP: 449) == 3)
-        #expect(XPRules.level(forTotalXP: 450) == 4)
+        #expect(XPRules.level(forTotalXP: 80) == 2)
+        #expect(XPRules.level(forTotalXP: 189) == 2)
+        #expect(XPRules.level(forTotalXP: 190) == 3)
+        #expect(XPRules.level(forTotalXP: 329) == 3)
+        #expect(XPRules.level(forTotalXP: 330) == 4)
+    }
+
+    /// Onboarding pays three 30-XP milestones; the wizard should end with a
+    /// level-up rather than just short of one.
+    @Test func onboardingClearsLevelTwo() {
+        #expect(XPRules.level(forTotalXP: 3 * XPRules.setupMilestoneXP) == 2)
+    }
+
+    // MARK: - The plateau
+
+    /// Levels 1–14 ramp; 15 onwards all cost the ceiling.
+    @Test func theRampMeetsThePlateauAtLevelFifteen() {
+        #expect(XPRules.rampLength == 14)
+        #expect(XPRules.xpToAdvance(from: 13) == 440)
+        #expect(XPRules.xpToAdvance(from: 14) == 470)
+        #expect(XPRules.xpToAdvance(from: 15) == 500)
+        #expect(XPRules.xpToAdvance(from: 16) == 500)
+        #expect(XPRules.xpToAdvance(from: 60) == 500)
+        #expect(XPRules.xpToAdvance(from: XPRules.maxLevel) == 0)
+    }
+
+    @Test func plateauTotalsMatchThePacingTable() {
+        #expect(XPRules.totalXP(toReach: 15) == 3_850)
+        #expect(XPRules.totalXP(toReach: 20) == 6_350)
+        #expect(XPRules.totalXP(toReach: 50) == 21_350)
+        #expect(XPRules.totalXP(toReach: 99) == 45_850)
+    }
+
+    /// The piecewise closed form has to agree with simply adding up every
+    /// level's cost — cheap, and it catches any slip in the algebra.
+    @Test func closedFormAgreesWithANaiveSum() {
+        var running = 0
+        for level in 1...XPRules.maxLevel {
+            #expect(XPRules.totalXP(toReach: level) == running)
+            running += XPRules.xpToAdvance(from: level)
+        }
     }
 
     /// `level(forTotalXP:)` and `totalXP(toReach:)` have to be exact inverses,
     /// or the progress bar would sit at a fraction the level doesn't match.
     @Test func levelAndTotalAgreeAtEveryBoundary() {
-        for level in 1...40 {
+        for level in 1...XPRules.maxLevel {
             let boundary = XPRules.totalXP(toReach: level)
             #expect(XPRules.level(forTotalXP: boundary) == level)
             if level > 1 {
@@ -69,18 +107,18 @@ struct XPRulesTests {
     // MARK: - Progress within a level
 
     @Test func progressReportsPositionInsideTheCurrentLevel() {
-        // 120 XP: level 2 (which starts at 100), 20 into a level costing 150.
+        // 120 XP: level 2 (which starts at 80), 40 into a level costing 110.
         let progress = XPRules.progress(forTotalXP: 120)
         #expect(progress.level == 2)
-        #expect(progress.xpIntoLevel == 20)
-        #expect(progress.xpForNextLevel == 150)
-        #expect(progress.xpRemaining == 130)
+        #expect(progress.xpIntoLevel == 40)
+        #expect(progress.xpForNextLevel == 110)
+        #expect(progress.xpRemaining == 70)
         #expect(progress.isMaxLevel == false)
-        #expect(abs(progress.fraction - (20.0 / 150.0)) < 0.0001)
+        #expect(abs(progress.fraction - (40.0 / 110.0)) < 0.0001)
     }
 
     @Test func freshlyLevelledUpStartsAnEmptyBar() {
-        let progress = XPRules.progress(forTotalXP: 250)
+        let progress = XPRules.progress(forTotalXP: 190)
         #expect(progress.level == 3)
         #expect(progress.xpIntoLevel == 0)
         #expect(progress.fraction == 0)
@@ -120,10 +158,19 @@ struct XPRulesTests {
     @Test func onlyRepeatableActionsAreCapped() {
         #expect(XPReason.transactionLogged.isDailyCapped)
         #expect(XPReason.balanceUpdated.isDailyCapped)
+        #expect(XPReason.goalContribution.isDailyCapped)
         // One-time and streak awards can't be farmed by definition, so capping
         // them would only swallow a reward that was genuinely earned.
         #expect(XPReason.firstAccount.isDailyCapped == false)
         #expect(XPReason.streakMilestone.isDailyCapped == false)
+        #expect(XPReason.goalCompleted.isDailyCapped == false)
+        #expect(XPReason.budgetMonthMet.isDailyCapped == false)
+        #expect(XPReason.achievementUnlocked.isDailyCapped == false)
+    }
+
+    @Test func budgetMonthKeysArePaddedAndDistinct() {
+        #expect(XPRules.budgetMonthKey(year: 2026, month: 9) == "budget-2026-09")
+        #expect(XPRules.budgetMonthKey(year: 2026, month: 10) == "budget-2026-10")
     }
 
     // MARK: - Streaks
@@ -229,6 +276,10 @@ struct XPRulesTests {
         #expect(XPReason.firstBudgetItem.rawValue == "firstBudgetItem")
         #expect(XPReason.firstTransaction.rawValue == "firstTransaction")
         #expect(XPReason.streakMilestone.rawValue == "streakMilestone")
+        #expect(XPReason.goalContribution.rawValue == "goalContribution")
+        #expect(XPReason.goalCompleted.rawValue == "goalCompleted")
+        #expect(XPReason.budgetMonthMet.rawValue == "budgetMonthMet")
+        #expect(XPReason.achievementUnlocked.rawValue == "achievementUnlocked")
     }
 
     @Test func everyReasonHasALabelToShowTheUser() {

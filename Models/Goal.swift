@@ -12,6 +12,14 @@ final class Goal {
     var currencyCode: String = "ILS"
     var isCompleted: Bool = false
 
+    /// When the goal was created and when it was marked complete. The
+    /// `goal-done` achievement requires 30 days between the two, which blocks
+    /// create-and-complete farming. Optional so rows that predate them
+    /// migrate cleanly; the Goals UI (not built yet) must set `completedAt`
+    /// alongside `isCompleted`.
+    var createdAt: Date?
+    var completedAt: Date?
+
     init(
         title: String = "",
         targetAmount: Decimal = 0,
@@ -28,6 +36,7 @@ final class Goal {
         self.note = note
         self.currencyCode = currencyCode
         self.isCompleted = isCompleted
+        self.createdAt = .now
     }
 
     /// Progress from 0 to 1, handy for a progress bar. Guards against divide-by-zero.

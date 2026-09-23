@@ -710,12 +710,15 @@ extension IncomeSourceDraft {
     /// carry a category. The schedule carries the full cadence (income
     /// editors only expose monthly / yearly / one-off cadences).
     func apply(to item: BudgetItem) {
+        let before = item.editableFields
         item.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         item.plannedAmount = plannedAmount
         item.kind = .income
         item.currencyCode = currencyCode
         item.category = nil
         schedule.apply(to: item)
+        // Only a real change counts as an edit — see `BudgetItem.lastEditedAt`.
+        item.stampEdit(ifChangedFrom: before)
     }
 }
 
@@ -774,11 +777,14 @@ extension PlannedExpenseDraft {
     /// Kind is forced to `.expense` so an income row that somehow
     /// reaches this editor is corrected, not double-classified.
     func apply(to item: BudgetItem) {
+        let before = item.editableFields
         item.name = note.trimmingCharacters(in: .whitespacesAndNewlines)
         item.plannedAmount = plannedAmount
         item.kind = .expense
         item.currencyCode = currencyCode
         item.category = category
         schedule.apply(to: item)
+        // Only a real change counts as an edit — see `BudgetItem.lastEditedAt`.
+        item.stampEdit(ifChangedFrom: before)
     }
 }

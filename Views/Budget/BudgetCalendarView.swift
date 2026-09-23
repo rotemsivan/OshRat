@@ -199,6 +199,9 @@ struct BudgetCalendarView: View {
     private func delete(_ item: BudgetItem) {
         withAnimation {
             modelContext.delete(item)
+            // A deleted line changes the month's plan; the budget
+            // achievements need to know even though the row is gone.
+            ProgressService.recordBudgetLineDeleted(in: modelContext)
             try? modelContext.save()
         }
     }

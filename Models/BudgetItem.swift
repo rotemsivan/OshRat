@@ -78,6 +78,17 @@ final class BudgetItem {
 
     var category: Category?
 
+    /// When this line was last created or changed. The budget achievements
+    /// require a month's budget to have been settled *before* the month
+    /// began — otherwise "stay under budget" is won by raising the budget on
+    /// the 28th (ACHIEVEMENTS.md §0.2).
+    ///
+    /// `nil` marks a line that predates the field, which reads as "untouched
+    /// since long ago". Stamped by `init` and by `stampEdit(ifChangedFrom:)`;
+    /// deleting a line can't stamp a row that no longer exists, so that goes
+    /// through `UserProgress.budgetLastTouchedAt` instead.
+    var lastEditedAt: Date?
+
     init(
         name: String = "",
         plannedAmount: Decimal = 0,
@@ -110,6 +121,53 @@ final class BudgetItem {
         self.scheduleEndMonth = scheduleEndMonth
         self.scheduleEndYear = scheduleEndYear
         self.category = category
+        self.lastEditedAt = .now
+    }
+
+    // MARK: - Edit tracking
+
+    /// Every stored field the editors can change, captured as a value so a
+    /// save can tell a real edit from "opened the line and tapped save".
+    /// Stamping unconditionally would cost an honest user the month's budget
+    /// achievements for merely looking.
+    struct EditableFields: Equatable {
+        let name: String
+        let plannedAmount: Decimal
+        let kind: TransactionKind
+        let currencyCode: String
+        let recurrenceUnitRaw: String?
+        let recurrenceCount: Int
+        let scheduleKindRaw: String
+        let scheduleDay: Int?
+        let scheduleMonth: Int?
+        let scheduleYear: Int?
+        let scheduleEndMonth: Int?
+        let scheduleEndYear: Int?
+        let categoryID: PersistentIdentifier?
+    }
+
+    var editableFields: EditableFields {
+        EditableFields(
+            name: name,
+            plannedAmount: plannedAmount,
+            kind: kind,
+            currencyCode: currencyCode,
+            recurrenceUnitRaw: recurrenceUnitRaw,
+            recurrenceCount: recurrenceCount,
+            scheduleKindRaw: scheduleKindRaw,
+            scheduleDay: scheduleDay,
+            scheduleMonth: scheduleMonth,
+            scheduleYear: scheduleYear,
+            scheduleEndMonth: scheduleEndMonth,
+            scheduleEndYear: scheduleEndYear,
+            categoryID: category?.persistentModelID
+        )
+    }
+
+    /// Move `lastEditedAt` to `now` if anything differs from `before`.
+    func stampEdit(ifChangedFrom before: EditableFields, now: Date = .now) {
+        guard editableFields != before else { return }
+        lastEditedAt = now
     }
 
     // MARK: - Computed

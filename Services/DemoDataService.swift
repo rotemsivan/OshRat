@@ -620,12 +620,14 @@ enum DemoDataService {
                     account: account,
                     destinationAccount: destination,
                     destinationAmount: row.amount,
-                    destinationBalanceAfter: destination.balance
+                    destinationBalanceAfter: destination.balance,
+                    createdAt: row.date
                 )
                 context.insert(transfer)
                 // Same call the transfer sheet makes, so a demo deposit ladder
-                // is built exactly the way a real one is.
-                DepositLadderService.registerFunding(for: transfer, in: context)
+                // is built exactly the way a real one is. The rung's entry
+                // time is back-dated with the row, like everything else here.
+                DepositLadderService.registerFunding(for: transfer, in: context)?.createdAt = row.date
                 continue
             }
 
@@ -638,7 +640,11 @@ enum DemoDataService {
                 currencyCode: account.currencyCode,
                 balanceAfter: account.balance,
                 category: row.categoryName.flatMap { categories[$0] },
-                account: account
+                account: account,
+                // A demo life is logged as it happens: each row "entered" on
+                // the day it's dated, so the achievements' entry-spread guards
+                // see the history a real user would have built.
+                createdAt: row.date
             )
             context.insert(transaction)
         }
