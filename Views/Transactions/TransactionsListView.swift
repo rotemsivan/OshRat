@@ -324,6 +324,9 @@ private struct TransactionLedger: View {
     /// The transaction whose editor sheet is open, or `nil`. Reuses the
     /// "new transaction" sheet in edit mode.
     @State private var editingTransaction: Transaction?
+    /// The transaction whose copy is being added, or `nil` — the "new
+    /// transaction" sheet opened pre-filled from it (`init(copying:)`).
+    @State private var copyingTransaction: Transaction?
     /// The row currently expanded into its insights/attachments card, or
     /// `nil` when every row is collapsed. At most one is open at a time, so
     /// a single optional id (rather than a set) is the right model.
@@ -363,6 +366,9 @@ private struct TransactionLedger: View {
             // owns the SwiftData update (and the balance adjustment) so
             // the list just hands it the row.
             NewTransactionSheet(transaction: tx)
+        }
+        .sheet(item: $copyingTransaction) { tx in
+            NewTransactionSheet(copying: tx)
         }
     }
 
@@ -720,6 +726,24 @@ private struct TransactionLedger: View {
                                     .accessibilityLabel(Text("עריכה"))
                                 }
                               }
+                            }
+                            // The leading edge (visual right, reached by
+                            // swiping left): copy, opposite delete/edit. A
+                            // full swipe opens the sheet straight away — "the
+                            // same again" is the whole point. Hidden while
+                            // selecting like the trailing actions, and on
+                            // manual balance edits, which are bookkeeping, not
+                            // something anyone logs twice.
+                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                if !isSelecting && !tx.isManualBalanceEdit {
+                                    Button {
+                                        copyingTransaction = tx
+                                    } label: {
+                                        Image(systemName: "doc.on.doc")
+                                    }
+                                    .tint(Theme.Colors.accent)
+                                    .accessibilityLabel(Text("העתקה"))
+                                }
                             }
                     }
                 } header: {

@@ -64,6 +64,11 @@ struct NewTransactionSheet: View {
     /// occurrence so the calendar can grey it out.
     private let budgetLink: BudgetLink?
 
+    /// Whether this new row started as a copy of an existing one (the
+    /// transactions list's copy swipe). Only the title and the currency
+    /// handling care — see `init(copying:)`.
+    private let isCopy: Bool
+
     /// Optional ping for the parent ("a transaction was saved"). The
     /// sheet handles the SwiftData insert/update internally — this is
     /// just so callers can react (e.g. haptic, confetti) without
@@ -109,7 +114,23 @@ struct NewTransactionSheet: View {
     ///     `State(initialValue:)` so the sheet opens pre-filled.
     ///   - onSaved: optional callback fired after the save lands.
     init(transaction: Transaction? = nil, onSaved: ((Transaction) -> Void)? = nil) {
-        self.init(transaction: transaction, budgetLink: nil, onSaved: onSaved)
+        self.init(transaction: transaction, budgetLink: nil, copying: nil, onSaved: onSaved)
+    }
+
+    /// A new row pre-filled from an existing one — the "copy transaction"
+    /// swipe, for the coffee or the fuel bought again. Kind, accounts,
+    /// category, title, note, amount and currency carry over; transfers copy
+    /// as transfers.
+    ///
+    /// Deliberately **not** carried over:
+    /// - the **date** — a copy is a new transaction, so it's today;
+    /// - **attachments** — a receipt belongs to the purchase it records;
+    /// - the **budget-occurrence link** — the original already settles that
+    ///   occurrence, and a second link would count it twice.
+    /// A soft-deleted account isn't copied either (it can't be picked), so
+    /// `primeDefaults` fills that side in as it would for a blank sheet.
+    init(copying source: Transaction, onSaved: ((Transaction) -> Void)? = nil) {
+        self.init(transaction: nil, budgetLink: nil, copying: source, onSaved: onSaved)
     }
 
     /// A new row logging one scheduled occurrence of a budget line: kind,
@@ -121,14 +142,32 @@ struct NewTransactionSheet: View {
         self.init(
             transaction: nil,
             budgetLink: BudgetLink(item: item, occurrenceDay: occurrenceDay),
+            copying: nil,
             onSaved: onSaved
         )
     }
 
-    private init(transaction: Transaction?, budgetLink: BudgetLink?, onSaved: ((Transaction) -> Void)?) {
+    private init(
+        transaction: Transaction?,
+        budgetLink: BudgetLink?,
+        copying copySource: Transaction?,
+        onSaved: ((Transaction) -> Void)?
+    ) {
         self.editingTransaction = transaction
         self.budgetLink = budgetLink
+        self.isCopy = copySource != nil
         self.onSaved = onSaved
+
+        if let copySource {
+            _kind = State(initialValue: copySource.isTransfer ? .transfer : SheetKind(copySource.kind))
+            _sourceAccount = State(initialValue: copySource.account.flatMap { $0.deletedAt == nil ? $0 : nil })
+            _destinationAccount = State(initialValue: copySource.destinationAccount.flatMap { $0.deletedAt == nil ? $0 : nil })
+            _category = State(initialValue: copySource.category)
+            _title = State(initialValue: copySource.title)
+            _details = State(initialValue: copySource.note)
+            _amount = State(initialValue: copySource.amount)
+            _amountCurrencyCode = State(initialValue: copySource.currencyCode)
+        }
 
         if let item = budgetLink?.item {
             _kind = State(initialValue: SheetKind(item.kind))
@@ -230,7 +269,7 @@ struct NewTransactionSheet: View {
                 .padding(.bottom, Theme.Spacing.md)
             }
             .font(Theme.Typography.body)
-            .navigationTitle(editingTransaction == nil ? Text("תנועה חדשה") : Text("עריכת תנועה"))
+            .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -288,7 +327,8 @@ struct NewTransactionSheet: View {
             // the first account `primeDefaults` picks mustn't re-label it —
             // "$1,000 salary" silently becoming "₪1,000" is exactly the
             // surprise the snap below exists to prevent.
-            if old == nil, budgetLink != nil { return }
+            // The same holds for a copy whose account had to be re-picked.
+            if old == nil, budgetLink != nil || isCopy { return }
             // When the user switches accounts, snap the amount currency
             // to the new account's currency. Avoids the silent surprise
             // of typing 50 in "USD" while the new account is ILS.
@@ -677,6 +717,11 @@ struct NewTransactionSheet: View {
             && !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var navigationTitle: Text {
+        if editingTransaction != nil { return Text("עריכת תנועה") }
+        return isCopy ? Text("העתקת תנועה") : Text("תנועה חדשה")
+    }
+
     /// An example name that fits what's being logged, so the hint never
     /// suggests groceries for a salary or a transfer.
     private var titlePlaceholder: String {
@@ -757,6 +802,17 @@ struct NewTransactionSheet: View {
                 ?? matching.first
                 ?? pool.first(where: { $0.isFavorite })
                 ?? pool.first
+        }
+        if isCopy {
+            // A copied transfer whose destination has since been deleted gets
+            // one picked the way switching to "העברה" picks it.
+            if kind == .transfer, destinationAccount == nil {
+                destinationAccount = transferAccounts.first {
+                    $0.persistentModelID != sourceAccount?.persistentModelID
+                }
+            }
+            // The amount arrived in the copy's own currency; keep it.
+            return
         }
         if let link = budgetLink {
             // The amount and currency were seeded from the line in `init`;
