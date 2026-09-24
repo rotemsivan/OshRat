@@ -437,13 +437,14 @@ struct HomeView: View {
             }
             .padding(.horizontal, Theme.Spacing.lg)
             .padding(.top, Theme.Spacing.md)
-            // Only the bar's own clearance here, not the floating "+"'s. The
-            // dashboard's last element is a card, not a control — nothing at
-            // its bottom edge needs tapping — so letting the "+" hover over
-            // that edge costs nothing and saves a chunk of dead space at the
-            // end of the scroll. Screens that end in a *button* use
-            // `floatingButtonClearance` instead.
-            .padding(.bottom, HomeBottomBar.barClearance)
+            // Just a breath, not a clearance. Unlike the other tabs, the
+            // dashboard isn't inside a `NavigationStack`, so the bar's
+            // `safeAreaInset` above *does* reach this scroll view and already
+            // lifts the content clear of the bar. Adding `barClearance` on top
+            // counted the bar twice — measured, ~166pt of empty page under the
+            // budget card. Its last element is a card, not a control, so the
+            // floating "+" may hover beside it.
+            .padding(.bottom, Theme.Spacing.md)
         }
         .scrollIndicators(.hidden)
         // Raise the overrun alert the moment the month goes over budget, and

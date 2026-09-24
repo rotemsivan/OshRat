@@ -4,29 +4,30 @@ import SwiftData
 /// Full log of every transaction the user has entered, grouped by day
 /// (newest first) and filterable along four axes:
 ///
-///   * **Free-text** — searches title, note, and category name.
-///   * **Type** — all / הכנסה / הוצאה.
+///   * **Free-text** — title, note, category, account names and amount,
+///     matched forgivingly (final letters, niqqud, spelling variants, typos,
+///     a keyboard left on English — see `HebrewSearch`).
+///   * **Type** — all / הכנסה / הוצאה / העברה.
 ///   * **Category** — any of the seeded or user-added categories.
 ///   * **Date range** — last 7d / 30d / 90d / all-time, plus a custom
 ///     range picker when the user wants something specific.
 ///
-/// All filtering happens client-side over the `@Query` result. The
-/// dataset is tiny by design (this is a hand-entered ledger, not a bank
-/// feed) so re-filtering on every keystroke is fine.
+/// Split in two for speed on a long ledger. This view owns the query, the
+/// search field and the one filtering pass per render; `TransactionLedger`
+/// below owns everything that changes while the user browses — the open
+/// insights card, the jump highlight, multi-select, how many rows are
+/// mounted — so tapping a row re-renders the list, not the whole pipeline.
 struct TransactionsListView: View {
-    @Environment(\.modelContext) private var modelContext
-    /// The expand/collapse animation and the row chevron's spin are dropped
-    /// when the user has Reduce Motion on.
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     // Live rows only — soft-deleted transactions live in "Recently
     // Deleted" (see `TrashService`) until restored or purged.
-    @Query(filter: #Predicate<Transaction> { $0.deletedAt == nil }, sort: \Transaction.date, order: .reverse)
-    private var transactions: [Transaction]
+    @Query(TransactionsListView.liveTransactions) private var transactions: [Transaction]
     /// Soft-deleted transactions, surfaced as a count so the toolbar can
     /// offer a "Recently Deleted" entry only when there's something to recover.
     @Query(filter: #Predicate<Transaction> { $0.deletedAt != nil })
     private var deletedTransactions: [Transaction]
+    /// Which transactions carry a file, fetched as one small query — see
+    /// `attachmentOwners`.
+    @Query(TransactionsListView.attachmentOwners) private var attachments: [TransactionAttachment]
     @Query(sort: \Category.name) private var categories: [Category]
     /// Newest snapshot first — `fxSnapshots.first` is the freshest cached
     /// rate set, used to reverse a deleted transaction's balance effect
@@ -37,45 +38,72 @@ struct TransactionsListView: View {
     /// a trip to another tab — see `TransactionFilters`.
     @Bindable var filters: TransactionFilters
 
+    /// The search text the list is actually filtered by: `filters.search`,
+    /// a beat behind while the user is typing. Filtering and re-laying-out
+    /// a long list on every keystroke is what made typing stutter; the field
+    /// itself stays instant. Clearing applies immediately.
+    @State private var appliedSearch: String
+
     @State private var isShowingFilters: Bool = false
-
-    /// Rows the user has picked in selection mode. Identifiers rather than
-    /// models: the set outlives individual rows (filters can change under it)
-    /// and an id is the one thing that stays valid regardless.
-    @State private var selection: Set<PersistentIdentifier> = []
-    /// Whether the list is in multi-select mode. Entered by long-pressing a
-    /// row, left via "ביטול" — deliberately not iOS's `EditMode`, which would
-    /// take over the row tap the insights card already uses and replace the
-    /// custom rows with system chrome.
-    @State private var isSelecting: Bool = false
-    /// Guards the bulk delete. A single swipe-delete goes through unasked (one
-    /// row, recoverable, obvious), but "delete 14 things at once" is worth a
-    /// beat of confirmation.
-    @State private var isConfirmingBulkDelete: Bool = false
-
-    /// The transaction whose editor sheet is open, or `nil`. Reuses the
-    /// "new transaction" sheet in edit mode.
-    @State private var editingTransaction: Transaction?
-    /// The row currently expanded into its insights/attachments card, or
-    /// `nil` when every row is collapsed. At most one is open at a time, so
-    /// a single optional id (rather than a set) is the right model.
-    @State private var expandedID: PersistentIdentifier?
     /// Drives the "Recently Deleted" sheet, opened from the toolbar when
     /// there are soft-deleted transactions to recover.
     @State private var isShowingRecentlyDeleted: Bool = false
-    /// Row briefly tinted after a "similar transaction" jump, so the eye
-    /// lands on the right line once the scroll settles. Cleared ~1.5s later.
-    @State private var highlightedID: PersistentIdentifier?
+
+    init(filters: TransactionFilters) {
+        self.filters = filters
+        // Seeded from the filters so a search that survived a tab switch is
+        // applied on the first frame, not after the debounce.
+        _appliedSearch = State(initialValue: filters.search)
+    }
+
+    /// Live rows, newest first, with the to-one links every row displays
+    /// fetched up front. Without the prefetch each row's category and account
+    /// fault in one at a time as it scrolls into view.
+    private static var liveTransactions: FetchDescriptor<Transaction> {
+        var descriptor = FetchDescriptor<Transaction>(
+            predicate: #Predicate { $0.deletedAt == nil },
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        descriptor.relationshipKeyPathsForPrefetching = [\.category, \.account, \.destinationAccount]
+        return descriptor
+    }
+
+    /// Attachments, fetching only their owner link. A row used to ask its own
+    /// `attachments` for the paperclip, which fires a to-many fault — pulling
+    /// the attachment rows, blobs included when they're small enough to be
+    /// stored inline — for every row as it scrolled past.
+    private static var attachmentOwners: FetchDescriptor<TransactionAttachment> {
+        var descriptor = FetchDescriptor<TransactionAttachment>()
+        descriptor.propertiesToFetch = [\.transaction]
+        return descriptor
+    }
 
     var body: some View {
+        // Computed once per render and handed down; it used to be a computed
+        // property read from three places, so each render filtered the whole
+        // ledger several times over.
+        let results = filters.results(for: transactions, search: appliedSearch)
+
         ZStack {
             Theme.Colors.background.ignoresSafeArea()
             VStack(spacing: 0) {
                 searchBar
-                if isSelecting {
-                    selectionBar
+                if results.isApproximate {
+                    approximateNote
                 }
-                content
+                if results.rows.isEmpty {
+                    emptyState
+                } else {
+                    TransactionLedger(
+                        rows: results.rows,
+                        allTransactions: transactions,
+                        attachedIDs: attachedIDs,
+                        resetKey: queryKey,
+                        filters: filters,
+                        fxSnapshot: fxSnapshots.first,
+                        onRevealAll: revealAll
+                    )
+                }
             }
         }
         .navigationTitle(Text("תנועות"))
@@ -116,6 +144,208 @@ struct TransactionsListView: View {
             FiltersSheet(filters: filters, categories: categories)
                 .presentationDetents([.medium, .large])
         }
+        .sheet(isPresented: $isShowingRecentlyDeleted) {
+            RecentlyDeletedView()
+        }
+        // The debounce. `task(id:)` cancels the pending sleep on every
+        // keystroke, so only a pause in typing applies the search.
+        .task(id: filters.search) {
+            let text = filters.search
+            if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                appliedSearch = text
+                return
+            }
+            do {
+                try await Task.sleep(for: .milliseconds(180))
+            } catch {
+                return
+            }
+            appliedSearch = text
+        }
+    }
+
+    // MARK: - Derived
+
+    /// Transactions that have at least one attachment.
+    private var attachedIDs: Set<PersistentIdentifier> {
+        Set(attachments.compactMap { $0.transaction?.persistentModelID })
+    }
+
+    /// Identity of the current query; the ledger goes back to its first page
+    /// whenever it changes.
+    private var queryKey: LedgerQueryKey {
+        LedgerQueryKey(
+            search: appliedSearch,
+            type: filters.type,
+            categoryID: filters.categoryID,
+            range: filters.range,
+            customStart: filters.customStart,
+            customEnd: filters.customEnd
+        )
+    }
+
+    /// Clear every filter and the search, applied at once rather than after
+    /// the debounce — the ledger calls this to reveal a row the filters hide
+    /// and scrolls to it on the next tick.
+    private func revealAll() {
+        filters.clearAll()
+        appliedSearch = ""
+    }
+
+    // MARK: - Chrome
+
+    /// Always-visible search row pinned above the day-grouped list.
+    /// Replaces the previous `.searchable` toolbar entry — that one
+    /// collapses under the nav title until the user pulls down, which
+    /// hid the affordance on long lists.
+    private var searchBar: some View {
+        HStack(spacing: Theme.Spacing.md) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 18))
+                .foregroundStyle(Theme.Colors.textSecondary)
+            HebrewTextField("חיפוש בתנועות", text: $filters.search)
+            if !filters.search.isEmpty {
+                Button {
+                    filters.search = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("ניקוי חיפוש"))
+            }
+        }
+        .padding(.horizontal, Theme.Spacing.sm)
+        .frame(height: 32)
+        .background(Theme.Colors.surface)
+        .clipShape(Capsule())
+        .overlay(
+            Capsule()
+                .stroke(Theme.Colors.separator, lineWidth: 1)
+        )
+        .padding(.horizontal, Theme.Spacing.lg)
+        // Tighter than the usual `.md` gutter: the large navigation title
+        // already supplies the separation above, so a full-size pad here just
+        // pushed the first transaction further down the screen.
+        .padding(.vertical, Theme.Spacing.sm)
+    }
+
+    /// Shown when nothing matched as typed and the list fell back to near
+    /// matches, so a typo-tolerant result never passes for an exact one.
+    private var approximateNote: some View {
+        Label("לא נמצאה התאמה מדויקת — מוצגות תוצאות דומות", systemImage: "text.magnifyingglass")
+            .font(Theme.Typography.caption)
+            .foregroundStyle(Theme.Colors.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Theme.Spacing.lg)
+            .padding(.bottom, Theme.Spacing.sm)
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: Theme.Spacing.md) {
+            Image(systemName: "tray")
+                .font(.system(size: 36))
+                .foregroundStyle(Theme.Colors.textSecondary)
+            Text(transactions.isEmpty ? "עדיין לא נרשמו תנועות." : "אין תנועות שתואמות לפילטרים.")
+                .font(Theme.Typography.body)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .multilineTextAlignment(.center)
+            if filters.hasActiveFilters && !transactions.isEmpty {
+                Button("איפוס פילטרים") {
+                    filters.clear()
+                }
+                .buttonStyle(.bordered)
+                .tint(Theme.Colors.accent)
+            }
+        }
+        .padding(Theme.Spacing.xl)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// Everything that decides which rows the ledger shows. A change sends the
+/// ledger back to its first page.
+private struct LedgerQueryKey: Hashable {
+    let search: String
+    let type: TypeFilter
+    let categoryID: PersistentIdentifier?
+    let range: DateRangeFilter
+    let customStart: Date
+    let customEnd: Date
+}
+
+// MARK: - Ledger
+
+/// The day-grouped list itself, with the state that changes while browsing it.
+///
+/// Mounts rows a page at a time. A `List` is lazy about building row views,
+/// but not about its data: every update re-diffs every row identity in every
+/// section, so a two-year ledger made each expand, highlight or selection tap
+/// walk thousands of rows. The first `pageSize` rows are mounted, and a footer
+/// that scrolls into view mounts the next page.
+private struct TransactionLedger: View {
+    let rows: [Transaction]
+    /// The whole live ledger — what the insights card compares against, and
+    /// where a jump target hidden by the filters is looked up.
+    let allTransactions: [Transaction]
+    let attachedIDs: Set<PersistentIdentifier>
+    let resetKey: LedgerQueryKey
+    let filters: TransactionFilters
+    let fxSnapshot: FXRateSnapshot?
+    /// Clears the filters and search so a hidden row can be shown.
+    let onRevealAll: () -> Void
+
+    @Environment(\.modelContext) private var modelContext
+    /// The expand/collapse animation and the row chevron's spin are dropped
+    /// when the user has Reduce Motion on.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private static let pageSize = 120
+
+    /// How many rows are mounted. Grows as the footer appears; back to one
+    /// page when the query changes.
+    @State private var rowLimit = TransactionLedger.pageSize
+
+    /// Rows the user has picked in selection mode. Identifiers rather than
+    /// models: the set outlives individual rows (filters can change under it)
+    /// and an id is the one thing that stays valid regardless.
+    @State private var selection: Set<PersistentIdentifier> = []
+    /// Whether the list is in multi-select mode. Entered by long-pressing a
+    /// row, left via "ביטול" — deliberately not iOS's `EditMode`, which would
+    /// take over the row tap the insights card already uses and replace the
+    /// custom rows with system chrome.
+    @State private var isSelecting: Bool = false
+    /// Guards the bulk delete. A single swipe-delete goes through unasked (one
+    /// row, recoverable, obvious), but "delete 14 things at once" is worth a
+    /// beat of confirmation.
+    @State private var isConfirmingBulkDelete: Bool = false
+
+    /// The transaction whose editor sheet is open, or `nil`. Reuses the
+    /// "new transaction" sheet in edit mode.
+    @State private var editingTransaction: Transaction?
+    /// The row currently expanded into its insights/attachments card, or
+    /// `nil` when every row is collapsed. At most one is open at a time, so
+    /// a single optional id (rather than a set) is the right model.
+    @State private var expandedID: PersistentIdentifier?
+    /// Row briefly tinted after a "similar transaction" jump, so the eye
+    /// lands on the right line once the scroll settles. Cleared ~1.5s later.
+    @State private var highlightedID: PersistentIdentifier?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if isSelecting {
+                selectionBar
+            }
+            // The reader exists solely for the similar-transaction jumps —
+            // `jump(to:proxy:)` scrolls the List to the tapped row.
+            ScrollViewReader { proxy in
+                list(groups: Self.groupedByDay(rows.prefix(rowLimit)), proxy: proxy)
+            }
+        }
+        .onChange(of: resetKey) {
+            rowLimit = Self.pageSize
+        }
         .confirmationDialog(
             Text("מחיקת התנועות שנבחרו"),
             isPresented: $isConfirmingBulkDelete,
@@ -134,9 +364,6 @@ struct TransactionsListView: View {
             // the list just hands it the row.
             NewTransactionSheet(transaction: tx)
         }
-        .sheet(isPresented: $isShowingRecentlyDeleted) {
-            RecentlyDeletedView()
-        }
     }
 
     // MARK: - Selection
@@ -144,9 +371,10 @@ struct TransactionsListView: View {
     /// The bar that replaces nothing and pushes nothing around: it appears
     /// between the search field and the list only while selecting.
     ///
-    /// "בחר הכל" selects everything *currently visible* rather than every row
-    /// in the store — with a filter or a search active, "all" can only sanely
-    /// mean the list the user is looking at.
+    /// "בחר הכל" selects everything the filters leave — every matching row,
+    /// mounted or not — rather than every row in the store: with a filter or a
+    /// search active, "all" can only sanely mean the list the user is looking
+    /// at.
     private var selectionBar: some View {
         HStack(spacing: Theme.Spacing.md) {
             Button("ביטול") { endSelecting() }
@@ -195,14 +423,8 @@ struct TransactionsListView: View {
         String(localized: "מחיקת \(selection.count) תנועות")
     }
 
-    /// Ids of the rows the current filters leave on screen — the universe
-    /// "select all" operates over.
-    private var visibleIDs: [PersistentIdentifier] {
-        filtered.map(\.persistentModelID)
-    }
-
     private var allVisibleSelected: Bool {
-        !visibleIDs.isEmpty && visibleIDs.allSatisfy(selection.contains)
+        !rows.isEmpty && rows.allSatisfy { selection.contains($0.persistentModelID) }
     }
 
     /// Long-press entry point. Collapses any open insights card first: while
@@ -235,7 +457,7 @@ struct TransactionsListView: View {
 
     private func toggleSelectAll() {
         withAnimation(.easeInOut(duration: 0.2)) {
-            selection = allVisibleSelected ? [] : Set(visibleIDs)
+            selection = allVisibleSelected ? [] : Set(rows.map(\.persistentModelID))
         }
     }
 
@@ -245,12 +467,12 @@ struct TransactionsListView: View {
     /// of individual deletes — the rows animate out together, and the account
     /// balances settle once instead of once per row.
     private func deleteSelected() {
-        let doomed = filtered.filter { selection.contains($0.persistentModelID) }
+        let doomed = rows.filter { selection.contains($0.persistentModelID) }
         guard !doomed.isEmpty else { return }
 
         withAnimation {
             for tx in doomed {
-                TrashService.softDelete(tx, fx: fxSnapshots.first)
+                TrashService.softDelete(tx, fx: fxSnapshot)
             }
             try? modelContext.save()
             isSelecting = false
@@ -269,7 +491,7 @@ struct TransactionsListView: View {
     /// the app treats them as point-in-time and tolerates that drift.
     private func deleteTransaction(_ tx: Transaction) {
         withAnimation {
-            TrashService.softDelete(tx, fx: fxSnapshots.first)
+            TrashService.softDelete(tx, fx: fxSnapshot)
             try? modelContext.save()
         }
     }
@@ -300,108 +522,31 @@ struct TransactionsListView: View {
         }
     }
 
-    // MARK: - Body
-
-    /// Always-visible search row pinned above the day-grouped list.
-    /// Replaces the previous `.searchable` toolbar entry — that one
-    /// collapses under the nav title until the user pulls down, which
-    /// hid the affordance on long lists.
-    private var searchBar: some View {
-        HStack(spacing: Theme.Spacing.md) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 18))
-                .foregroundStyle(Theme.Colors.textSecondary)
-            HebrewTextField("חיפוש בתנועות", text: $filters.search)
-            if !filters.search.isEmpty {
-                Button {
-                    filters.search = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Theme.Colors.textSecondary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text("ניקוי חיפוש"))
-            }
-        }
-        .padding(.horizontal, Theme.Spacing.sm)
-        .frame(height: 32)
-        .background(Theme.Colors.surface)
-        .clipShape(Capsule())
-        .overlay(
-            Capsule()
-                .stroke(Theme.Colors.separator, lineWidth: 1)
-        )
-        .padding(.horizontal, Theme.Spacing.lg)
-        // Tighter than the usual `.md` gutter: the large navigation title
-        // already supplies the separation above, so a full-size pad here just
-        // pushed the first transaction further down the screen.
-        .padding(.vertical, Theme.Spacing.sm)
-    }
-
-    /// A one-tap "clear filters" chip, shown only while type / category /
-    /// date filters are active (search has its own clear button). Lets the
-    /// user drop back to the full list without reopening the filter sheet.
-    /// Lives as the first row of the list (above the day headers).
-    private var filterChip: some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.2)) { filters.clear() }
-        } label: {
-            HStack(spacing: Theme.Spacing.xs) {
-                Image(systemName: "xmark.circle.fill")
-                Text("איפוס פילטרים")
-            }
-            .font(Theme.Typography.caption)
-            .foregroundStyle(Theme.Colors.accent)
-            .padding(.horizontal, Theme.Spacing.sm)
-            .background(Theme.Colors.accent.opacity(0.12), in: Capsule())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text("איפוס כל הפילטרים"))
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        if filtered.isEmpty {
-            emptyState
-        } else {
-            list
-        }
-    }
-
-    private var emptyState: some View {
-        VStack(spacing: Theme.Spacing.md) {
-            Image(systemName: "tray")
-                .font(.system(size: 36))
-                .foregroundStyle(Theme.Colors.textSecondary)
-            Text(transactions.isEmpty ? "עדיין לא נרשמו תנועות." : "אין תנועות שתואמות לפילטרים.")
-                .font(Theme.Typography.body)
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .multilineTextAlignment(.center)
-            if filters.hasActiveFilters && !transactions.isEmpty {
-                Button("איפוס פילטרים") {
-                    filters.clear()
-                }
-                .buttonStyle(.bordered)
-                .tint(Theme.Colors.accent)
-            }
-        }
-        .padding(Theme.Spacing.xl)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
+    // MARK: - Jump
 
     /// Jump from a "similar transaction" line in an expanded card to the
     /// original row: make sure it's visible (active filters or a search
-    /// could exclude it), then scroll to it, expand it, and flash a
-    /// highlight so the landing spot is unmissable.
+    /// could exclude it) and mounted (it may sit past the current page), then
+    /// scroll to it, expand it, and flash a highlight so the landing spot is
+    /// unmissable.
     private func jump(to target: Transaction, proxy: ScrollViewProxy) {
         let id = target.persistentModelID
-        if !filtered.contains(where: { $0.persistentModelID == id }) {
-            filters.clearAll()
+        // Where the row will sit once visible. `rows` is a date-ordered subset
+        // of `allTransactions`, so a row the filters hide has an index in the
+        // full ledger at least as large as it would have in the list — once
+        // the filters are cleared, the two are the same list.
+        let index: Int
+        if let visibleIndex = rows.firstIndex(where: { $0.persistentModelID == id }) {
+            index = visibleIndex
+        } else {
+            onRevealAll()
+            index = allTransactions.firstIndex { $0.persistentModelID == id } ?? 0
         }
+        rowLimit = max(rowLimit, index + Self.pageSize)
+
         // Defer one runloop tick so the List has re-rendered with the
         // target row before we scroll — matters when filters were just
-        // cleared and the row didn't exist a moment ago.
+        // cleared or the page grew, and the row didn't exist a moment ago.
         DispatchQueue.main.async {
             if reduceMotion {
                 expandedID = id
@@ -431,15 +576,30 @@ struct TransactionsListView: View {
             : Theme.Colors.surface
     }
 
-    private var list: some View {
-        // The reader exists solely for the similar-transaction jumps —
-        // `jump(to:proxy:)` scrolls the List to the tapped row.
-        ScrollViewReader { proxy in
-            listContent(proxy: proxy)
+    // MARK: - List
+
+    /// A one-tap "clear filters" chip, shown only while type / category /
+    /// date filters are active (search has its own clear button). Lets the
+    /// user drop back to the full list without reopening the filter sheet.
+    /// Lives as the first row of the list (above the day headers).
+    private var filterChip: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) { filters.clear() }
+        } label: {
+            HStack(spacing: Theme.Spacing.xs) {
+                Image(systemName: "xmark.circle.fill")
+                Text("איפוס פילטרים")
+            }
+            .font(Theme.Typography.caption)
+            .foregroundStyle(Theme.Colors.accent)
+            .padding(.horizontal, Theme.Spacing.sm)
+            .background(Theme.Colors.accent.opacity(0.12), in: Capsule())
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("איפוס כל הפילטרים"))
     }
 
-    private func listContent(proxy: ScrollViewProxy) -> some View {
+    private func list(groups: [DayGroup], proxy: ScrollViewProxy) -> some View {
         List {
             // Quick "clear filters" chip, pinned above the day headers. It's
             // its own headerless section so a tight per-section spacing
@@ -458,12 +618,13 @@ struct TransactionsListView: View {
                 .listSectionSpacing(Theme.Spacing.xs)
             }
 
-            ForEach(groupedByDay, id: \.day) { group in
+            ForEach(groups, id: \.day) { group in
                 Section {
                     ForEach(group.items) { tx in
                         VStack(spacing: 0) {
                             TransactionRow(
                                 transaction: tx,
+                                hasAttachments: attachedIDs.contains(tx.persistentModelID),
                                 isExpanded: isExpandable(tx) && expandedID == tx.persistentModelID,
                                 showsDisclosure: isExpandable(tx) && !isSelecting,
                                 isSelecting: isSelecting,
@@ -496,7 +657,7 @@ struct TransactionsListView: View {
                             if isExpandable(tx), expandedID == tx.persistentModelID {
                                 ExpandedTransactionCard(
                                     transaction: tx,
-                                    allTransactions: transactions,
+                                    allTransactions: allTransactions,
                                     onSelectSimilar: { similar in
                                         jump(to: similar, proxy: proxy)
                                     }
@@ -562,7 +723,7 @@ struct TransactionsListView: View {
                             }
                     }
                 } header: {
-                    Text(dayHeader(group.day))
+                    Text(Self.dayHeader(group.day))
                         .font(Theme.Typography.caption)
                         .foregroundStyle(Theme.Colors.textSecondary)
                         // Align the day label with the row content's
@@ -571,6 +732,22 @@ struct TransactionsListView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                 }
+            }
+
+            // The next page. Re-identified by the limit so that, if it's
+            // still on screen after a page lands (short rows, a tall
+            // screen), it counts as a new row and asks for another.
+            if rows.count > rowLimit {
+                Section {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Theme.Spacing.md)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Theme.Colors.surface)
+                        .onAppear { rowLimit += Self.pageSize }
+                        .accessibilityLabel(Text("טוען תנועות נוספות"))
+                }
+                .id(rowLimit)
             }
         }
         .listStyle(.plain)
@@ -594,33 +771,27 @@ struct TransactionsListView: View {
         .background(Theme.Colors.surface)
     }
 
-    // MARK: - Filtering
-
-    /// The visible rows. All the predicate logic lives in `TransactionFilters`
-    /// so it can be tested without a view.
-    private var filtered: [Transaction] {
-        filters.apply(to: transactions)
-    }
-
     // MARK: - Grouping
 
-    /// Bucket the filtered list into day-keyed groups, newest day first.
-    /// Calendar.startOfDay collapses time-of-day so two transactions on
-    /// the same calendar day always share a group, regardless of the
-    /// minute they were entered.
-    private var groupedByDay: [DayGroup] {
+    /// Bucket already date-sorted rows into day groups, newest day first, in
+    /// one linear pass — the rows arrive sorted from the query, so there's no
+    /// dictionary to build and nothing to re-sort. `startOfDay` collapses the
+    /// time of day, so two rows on the same calendar day share a group.
+    private static func groupedByDay(_ rows: ArraySlice<Transaction>) -> [DayGroup] {
         let calendar = Calendar.current
-        var buckets: [Date: [Transaction]] = [:]
-        for tx in filtered {
+        var groups: [DayGroup] = []
+        for tx in rows {
             let day = calendar.startOfDay(for: tx.date)
-            buckets[day, default: []].append(tx)
+            if groups.last?.day == day {
+                groups[groups.count - 1].items.append(tx)
+            } else {
+                groups.append(DayGroup(day: day, items: [tx]))
+            }
         }
-        return buckets
-            .map { DayGroup(day: $0.key, items: $0.value) }
-            .sorted { $0.day > $1.day }
+        return groups
     }
-    
-    private func dayHeader(_ day: Date) -> String {
+
+    private static func dayHeader(_ day: Date) -> String {
         let calendar = Calendar.current
         if calendar.isDateInToday(day)     { return "היום" }
         if calendar.isDateInYesterday(day) { return "אתמול" }
@@ -636,7 +807,7 @@ struct TransactionsListView: View {
 
 private struct DayGroup {
     let day: Date
-    let items: [Transaction]
+    var items: [Transaction]
 }
 
 // MARK: - Row
@@ -645,6 +816,10 @@ private struct DayGroup {
 /// + account underneath, amount on the trailing side coloured by kind.
 private struct TransactionRow: View {
     let transaction: Transaction
+    /// Whether the row carries a file — passed in from one list-wide query
+    /// rather than read off `transaction.attachments`, which would fault the
+    /// attachments in for every row as it scrolled past.
+    var hasAttachments: Bool = false
     /// Whether this row's inline insights card is open — drives the
     /// disclosure chevron's direction.
     var isExpanded: Bool = false
@@ -680,7 +855,7 @@ private struct TransactionRow: View {
                         .lineLimit(1)
                     // A small paperclip flags rows that carry a receipt /
                     // invoice, so the user can spot them without expanding.
-                    if transaction.hasAttachments {
+                    if hasAttachments {
                         Image(systemName: "paperclip")
                             .font(.system(size: 11))
                             .foregroundStyle(Theme.Colors.textSecondary)
@@ -1262,13 +1437,36 @@ private struct FiltersSheet: View {
                     Text("סוג תנועה")
                 }
 
+                // The app's shared category control (`CategoryMenuContent` in a
+                // `Menu`, opened from a `PickerRowLabel`) rather than a plain
+                // `Picker`, so the filter lists categories exactly as the
+                // transaction sheet and the budget do — grouped, alphabetical,
+                // with glyphs. It offers only the kinds the type filter
+                // allows: an income filter has no use for expense categories.
                 Section {
-                    Picker("קטגוריה", selection: $filters.categoryID) {
-                        Text("הכל").tag(PersistentIdentifier?.none)
-                        ForEach(categories.semanticallyUnique) { category in
-                            Text(category.name).tag(Optional(category.persistentModelID))
+                    Menu {
+                        Button {
+                            filters.categoryID = nil
+                        } label: {
+                            Label("כל הקטגוריות", systemImage: "circle.dashed")
                         }
+
+                        CategoryMenuContent(categories: categories, kinds: offeredKinds) { category in
+                            filters.categoryID = category.persistentModelID
+                        }
+                    } label: {
+                        PickerRowLabel(
+                            text: selectedCategory?.name ?? String(localized: "כל הקטגוריות"),
+                            systemImage: selectedCategory?.symbolName
+                        )
                     }
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(
+                        top: Theme.Spacing.xs,
+                        leading: 0,
+                        bottom: Theme.Spacing.xs,
+                        trailing: 0
+                    ))
                 } header: {
                     Text("קטגוריה")
                 }
@@ -1316,8 +1514,31 @@ private struct FiltersSheet: View {
                     Button("סיום") { dismiss() }
                 }
             }
+            // Switching to income drops an expense category (and vice versa):
+            // the pair could only ever match nothing, and the menu no longer
+            // lists the category to switch back from.
+            .onChange(of: filters.type) {
+                if let selectedCategory, !offeredKinds.contains(selectedCategory.kind) {
+                    filters.categoryID = nil
+                }
+            }
         }
         .tint(Theme.Colors.accent)
+    }
+
+    private var selectedCategory: Category? {
+        guard let id = filters.categoryID else { return nil }
+        return categories.first { $0.persistentModelID == id }
+    }
+
+    /// Category kinds that can match under the current type filter. Transfers
+    /// carry no category, so that filter keeps both on offer.
+    private var offeredKinds: Set<TransactionKind> {
+        switch filters.type {
+        case .income:  [.income]
+        case .expense: [.expense]
+        case .all, .transfer: [.income, .expense]
+        }
     }
 }
 

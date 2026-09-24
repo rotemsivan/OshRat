@@ -6,7 +6,8 @@ import SwiftUI
 ///
 /// Extracted from `NewTransactionSheet` so every "choose one of these" control
 /// looks the same wherever it appears: the transaction sheet's account and
-/// category pickers, and the budget editors' category picker.
+/// category pickers, the budget editors' category picker and the transactions
+/// filter's. Category menus fill it with `CategoryMenuContent`.
 ///
 /// Implementation note (kept from the original): `Menu { … } label: { … }`
 /// doesn't reliably forward the `\.layoutDirection` environment into the label

@@ -18,13 +18,19 @@ import SwiftData
 @Observable
 final class TransactionFilters {
 
-    /// Free-text across title, note and category name.
+    /// Free-text across title, note, category, account names and amount —
+    /// matched forgivingly, see `HebrewSearch`.
     var search: String = ""
     var type: TypeFilter = .all
     var categoryID: PersistentIdentifier?
     var range: DateRangeFilter = .all
     var customStart: Date = .now.addingTimeInterval(-30 * 86400)
     var customEnd: Date = .now
+
+    /// Each row's normalized search text, kept across searches (and tab
+    /// switches). Not observed: it's a cache, and filling it during a render
+    /// must not schedule another one.
+    @ObservationIgnored private let searchIndex = TransactionSearchIndex()
 
     /// Whether any of the *sheet's* filters are on.
     ///
@@ -54,33 +60,57 @@ final class TransactionFilters {
     // MARK: - Filtering
 
     /// The filtered, still date-sorted subset of `transactions`.
-    ///
-    /// Client-side over the whole `@Query` result: the dataset is tiny by
-    /// design (a hand-entered ledger, not a bank feed), so re-filtering on
-    /// every keystroke is cheaper than maintaining a dynamic predicate.
     func apply(to transactions: [Transaction], now: Date = .now) -> [Transaction] {
-        let needle = search
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
+        results(for: transactions, now: now).rows
+    }
+
+    /// The rows the filters and search leave, in one pass over the ledger.
+    ///
+    /// Search is tiered. Rows matching as typed, or with a spelling variant,
+    /// win outright; only when there are none does it fall back to rows that
+    /// match by forgiving a typo — and `isApproximate` says so, so the list
+    /// can tell the user it's showing near matches. Showing typo matches
+    /// *alongside* real ones would bury "ירקן" under every word one letter
+    /// away from it.
+    ///
+    /// - Parameter search: the text to search for, when the caller is holding
+    ///   a debounced copy of `search`; `nil` uses `search` itself.
+    func results(for transactions: [Transaction], search: String? = nil, now: Date = .now) -> TransactionSearchResults {
+        let query = TransactionSearchQuery(search ?? self.search)
         let window = interval(now: now)
 
-        return transactions.filter { tx in
+        var strict: [Transaction] = []
+        var approximate: [Transaction] = []
+        for tx in transactions {
             // Type (transfer-aware: income/expense exclude transfers, and the
             // transfer filter shows only them).
-            guard type.matches(tx) else { return false }
+            guard type.matches(tx) else { continue }
             // Category
-            if let categoryID, tx.category?.persistentModelID != categoryID { return false }
+            if let categoryID, tx.category?.persistentModelID != categoryID { continue }
             // Date range
-            if let window, !window.contains(tx.date) { return false }
+            if let window, !window.contains(tx.date) { continue }
             // Free-text
-            if !needle.isEmpty {
-                let haystack = [tx.title, tx.note, tx.category?.name ?? ""]
-                    .joined(separator: " ")
-                    .lowercased()
-                if !haystack.contains(needle) { return false }
+            guard let query else {
+                strict.append(tx)
+                continue
             }
-            return true
+            switch searchIndex.tier(of: tx, for: query) {
+            case .exact?, .spelling?: strict.append(tx)
+            case .typo?:              approximate.append(tx)
+            case nil:                 break
+            }
         }
+
+        // Deleted rows and re-keyed inserts leave orphans behind; sweep them
+        // once they clearly outnumber the live rows rather than every pass.
+        if query != nil, searchIndex.count > transactions.count * 2 + 64 {
+            searchIndex.prune(keeping: Set(transactions.map(\.persistentModelID)))
+        }
+
+        if query == nil || !strict.isEmpty {
+            return TransactionSearchResults(rows: strict, isApproximate: false)
+        }
+        return TransactionSearchResults(rows: approximate, isApproximate: !approximate.isEmpty)
     }
 
     /// The date window implied by the current range filter. `nil` means "don't
@@ -107,6 +137,13 @@ final class TransactionFilters {
             return DateInterval(start: lo, end: end-1)
         }
     }
+}
+
+/// What the list shows: the rows, and whether they're only near matches.
+struct TransactionSearchResults {
+    let rows: [Transaction]
+    /// No row matched the search as typed; these match by forgiving a typo.
+    let isApproximate: Bool
 }
 
 // MARK: - Filter options

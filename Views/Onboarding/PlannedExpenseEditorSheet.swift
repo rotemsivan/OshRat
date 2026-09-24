@@ -10,9 +10,9 @@ import SwiftData
 /// stored as "every X weeks" — the dashboard converts to a monthly
 /// equivalent so totals roll up cleanly.
 struct PlannedExpenseEditorSheet: View {
-    /// Available expense categories, passed in from the parent rather
-    /// than queried here. Avoids running a second `@Query` inside a
-    /// presented sheet, and lets the parent decide the sort order.
+    /// Available categories, passed in from the parent rather than queried
+    /// here, which avoids a second `@Query` inside a presented sheet.
+    /// `CategoryMenuContent` keeps only the expense ones and orders them.
     let categories: [Category]
 
     @State private var draft: PlannedExpenseDraft
@@ -77,19 +77,14 @@ struct PlannedExpenseEditorSheet: View {
 
     // MARK: - Sections
 
-    /// Category picker — the same control as the "new transaction" sheet: a
-    /// `Menu` of `Label`s, each carrying its category's own glyph, opened from
-    /// a bordered `PickerRowLabel`.
+    /// Category picker — the app's one category control: a `Menu` built
+    /// from `CategoryMenuContent` (grouped צרכים / רצונות / אחר, alphabetical,
+    /// each with its glyph), opened from a bordered `PickerRowLabel`. The
+    /// transaction sheet and the transactions filter use the very same pair,
+    /// so choosing a category looks and orders the same everywhere.
     ///
-    /// It replaces a `Picker`, which inside a `Form` rendered as a plain
-    /// pushed list of bare names — a different shape, a different tap target
-    /// and no icons, for the very same job. Choosing a category should feel
-    /// identical wherever the app asks for one.
-    ///
-    /// The nature grouping (צרכים / רצונות / אחר) survives the move: a `Menu`
-    /// takes `Section`s too, so the separation the budget depends on is still
-    /// on screen. The row background is cleared so only the field's own card
-    /// shows, matching `BigAmountField` below it.
+    /// The row background is cleared so only the field's own card shows,
+    /// matching `BigAmountField` below it.
     private var categorySection: some View {
         Section {
             Menu {
@@ -99,9 +94,9 @@ struct PlannedExpenseEditorSheet: View {
                     Label("בחרו קטגוריה", systemImage: "circle.dashed")
                 }
 
-                categoryGroup("צרכים", of: .need)
-                categoryGroup("רצונות", of: .want)
-                categoryGroup("אחר", of: .neutral)
+                CategoryMenuContent(categories: categories, kinds: [.expense]) { category in
+                    draft.category = category
+                }
             } label: {
                 PickerRowLabel(
                     text: draft.category?.name ?? "בחרו קטגוריה",
@@ -119,24 +114,6 @@ struct PlannedExpenseEditorSheet: View {
             Text("קטגוריה")
         } footer: {
             Text("הקטגוריה קובעת אם ההוצאה משויכת לצרכים (חובה) או לרצונות (בחירה).")
-        }
-    }
-
-    /// One nature's worth of categories, or nothing at all when the user has
-    /// none of that kind — an empty heading would just be noise.
-    @ViewBuilder
-    private func categoryGroup(_ title: LocalizedStringKey, of nature: CategoryNature) -> some View {
-        let matching = expenseCategories.filter { $0.nature == nature }
-        if !matching.isEmpty {
-            Section(title) {
-                ForEach(matching) { category in
-                    Button {
-                        draft.category = category
-                    } label: {
-                        Label(category.name, systemImage: category.symbolName)
-                    }
-                }
-            }
         }
     }
 
@@ -182,15 +159,6 @@ struct PlannedExpenseEditorSheet: View {
         case .year:
             return "הסכום שייכנס פעם בשנה, בחודש שנבחר."
         }
-    }
-
-    // MARK: - Helpers
-
-    /// Expense-only subset of the categories the parent passed in.
-    /// Collapsed by `(name, kind, nature)` so the picker never shows
-    /// the same category twice even if the store still has duplicates.
-    private var expenseCategories: [Category] {
-        categories.filter { $0.kind == .expense }.semanticallyUnique
     }
 }
 

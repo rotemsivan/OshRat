@@ -434,19 +434,22 @@ struct NewTransactionSheet: View {
         accounts
     }
 
+    /// The app's shared category menu (see `CategoryMenuContent`): an
+    /// expense lists its categories grouped into צרכים / רצונות / אחר like
+    /// the budget does, an income its income categories — same order and
+    /// glyphs as every other category picker. The row shows the chosen
+    /// category's glyph too, as the budget editor's does.
     private var categorySection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             sectionLabel("קטגוריה")
             Menu {
-                ForEach(filteredCategories) { c in
-                    Button {
-                        category = c
-                    } label: {
-                        Label(c.name, systemImage: c.symbolName)
+                if let transactionKind = kind.transactionKind {
+                    CategoryMenuContent(categories: categories, kinds: [transactionKind]) { picked in
+                        category = picked
                     }
                 }
             } label: {
-                pickerRow(text: category?.name ?? "בחרו קטגוריה")
+                PickerRowLabel(text: category?.name ?? "בחרו קטגוריה", systemImage: category?.symbolName)
             }
         }
     }
@@ -454,7 +457,7 @@ struct NewTransactionSheet: View {
     private var titleSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             sectionLabel("שם התנועה")
-            HebrewTextField("למשל: קניות בסופר", text: $title)
+            HebrewTextField(titlePlaceholder, text: $title)
                 .padding(Theme.Spacing.md)
                 .background(Theme.Colors.surface)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
@@ -672,6 +675,16 @@ struct NewTransactionSheet: View {
         return category != nil
             && amount > 0
             && !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// An example name that fits what's being logged, so the hint never
+    /// suggests groceries for a salary or a transfer.
+    private var titlePlaceholder: String {
+        switch kind {
+        case .income:   return "למשל: משכורת ספטמבר"
+        case .expense:  return "למשל: קניות בסופר"
+        case .transfer: return "למשל: העברה לחיסכון"
+        }
     }
 
     private var confirmLabel: String {
