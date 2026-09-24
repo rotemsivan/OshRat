@@ -123,7 +123,7 @@ struct OnboardingFlowView: View {
             Button {
                 primaryAction()
             } label: {
-                Text(viewModel.isOnLastStep ? "סיום" : "המשך")
+                Text(primaryButtonTitle)
                     .font(Theme.Typography.sectionTitle)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, Theme.Spacing.xs)
@@ -135,6 +135,13 @@ struct OnboardingFlowView: View {
         .padding(.horizontal, Theme.Spacing.md)
         .padding(.vertical, Theme.Spacing.sm)
         .background(Theme.Colors.surface)
+    }
+
+    /// "דילוג וסיום" on an empty budget step, so leaving it blank reads as
+    /// the deliberate, allowed choice it is rather than a form left unfinished.
+    private var primaryButtonTitle: LocalizedStringKey {
+        guard viewModel.isOnLastStep else { return "המשך" }
+        return viewModel.step == .budget && viewModel.isBudgetEmpty ? "דילוג וסיום" : "סיום"
     }
 
     private func primaryAction() {

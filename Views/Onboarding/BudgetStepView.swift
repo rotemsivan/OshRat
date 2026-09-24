@@ -3,9 +3,13 @@ import SwiftData
 
 /// Step 3 of the setup wizard: the user's monthly budget.
 ///
-/// Two sections stacked vertically in a single List:
-///   * **Income sources** — 1+ named lines (salary, side gig…). At
-///     least one is required to continue.
+/// **Optional throughout** — the step can be finished empty, and the primary
+/// button then reads "דילוג וסיום". Not everyone has a fixed income to plan,
+/// and the app's core is tracking spending; the budget can be set up later
+/// from the dashboard's budget card.
+///
+/// An intro line, then two sections stacked vertically in a single List:
+///   * **Income sources** — named lines (salary, side gig…), optional.
 ///   * **Planned expenses** — optional, grouped visually by needs vs
 ///     wants via the design-system colours
 ///     (`Theme.Colors.expense` for needs, `Theme.Colors.wants` for
@@ -23,6 +27,13 @@ struct BudgetStepView: View {
 
     var body: some View {
         List {
+            Section {
+                Text("התקציב לא חובה — אפשר לדלג ולהגדיר אותו בכל עת מכרטיס התקציב בדשבורד.")
+                    .font(Theme.Typography.bodySmall)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
+            }
             incomeSection
             expensesSection
         }
@@ -73,7 +84,7 @@ struct BudgetStepView: View {
                     .foregroundStyle(Theme.Colors.accent)
             }
             if viewModel.incomeDrafts.isEmpty {
-                Text("הוסיפו לפחות מקור הכנסה אחד כדי שנוכל לחשב לכם תקציב חודשי.")
+                Text("משכורת, עבודה צדדית, קצבה — אם אין לכם הכנסה קבועה, אפשר להשאיר ריק.")
                     .font(Theme.Typography.body)
                     .foregroundStyle(Theme.Colors.textSecondary)
             } else {
@@ -107,7 +118,7 @@ struct BudgetStepView: View {
             }
             
             if viewModel.plannedExpenseDrafts.isEmpty {
-                Text("לא חובה להגדיר עכשיו. אפשר להוסיף הוצאות מתוכננות בכל עת — נתחיל בדוגמה אחת כדי להבין.")
+                Text("שכירות, חשבונות, מנויים — מה שידוע מראש. אפשר להוסיף בכל עת.")
                     .font(Theme.Typography.body)
                     .foregroundStyle(Theme.Colors.textSecondary)
             } else {

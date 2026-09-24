@@ -105,7 +105,9 @@ struct BudgetVsActualCard: View {
     // MARK: - States
 
     private var emptyState: some View {
-        Text("עדיין לא הוגדר תקציב.")
+        // The wizard lets the budget be skipped, so this is where it's set up
+        // later — point at the pencil in the header.
+        Text("עדיין לא הוגדר תקציב. אפשר להוסיף הכנסות והוצאות מתוכננות בעיפרון שלמעלה.")
             .font(Theme.Typography.body)
             .foregroundStyle(Theme.Colors.textSecondary)
             .frame(maxWidth: .infinity, alignment: .leading)

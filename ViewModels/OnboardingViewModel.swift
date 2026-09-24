@@ -52,11 +52,20 @@ final class OnboardingViewModel {
             // at least one account. A zero-balance account is fine.
             return !accountDrafts.isEmpty
         case .budget:
-            // At least one income source is required so the dashboard's
-            // planned-vs-actual has a denominator. Planned expenses are
-            // optional — some users only plan income at first.
-            return !incomeDrafts.isEmpty
+            // Entirely optional, income included. The app is about managing
+            // spending, and plenty of people have no fixed income to plan —
+            // a freelancer, a student, someone between jobs. Everything the
+            // plan feeds copes with its absence: the dashboard's budget card
+            // falls back to actuals only, a row with nothing planned shows no
+            // percentage, and the overrun alert needs a non-zero expense plan.
+            return true
         }
+    }
+
+    /// Whether the budget step has nothing in it — the wizard's last button
+    /// then reads as a skip rather than a finish.
+    var isBudgetEmpty: Bool {
+        incomeDrafts.isEmpty && plannedExpenseDrafts.isEmpty
     }
 
     /// Whether the current step is the last one — controls whether the
