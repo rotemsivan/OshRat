@@ -370,7 +370,12 @@ private struct DepositTrancheRow: View {
         if let maturityDate {
             parts.append(maturityDate.formatted(date: .numeric, time: .omitted))
         }
-        var text = parts.joined(separator: " ← ")
+        // Opens with U+200F (RIGHT-TO-LEFT MARK). Nothing else in this line is
+        // a Hebrew letter — numeric dates, an arrow, a percentage — so without
+        // it the text system has no direction to go on, lays the line out
+        // left-to-right, and the arrow points back from the maturity date to
+        // the start. The mark makes it read start ← maturity, right to left.
+        var text = "\u{200F}" + parts.joined(separator: " ← ")
         if let ratePercent, ratePercent > 0 {
             text += " • \(ratePercent.formatted(.number.precision(.fractionLength(0...2))))%"
         }

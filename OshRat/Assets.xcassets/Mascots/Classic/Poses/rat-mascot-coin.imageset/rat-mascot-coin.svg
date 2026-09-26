@@ -16,7 +16,8 @@
   <circle cx="200" cy="430" r="54" fill="#E8B940"/>
   <circle cx="200" cy="430" r="54" fill="none" stroke="#C9952A" stroke-width="6"/>
   <circle cx="200" cy="430" r="42" fill="none" stroke="#C9952A" stroke-width="3" opacity="0.7"/>
-  <text x="200" y="432" font-family="Arial, Helvetica, sans-serif" font-size="56" font-weight="bold" fill="#9C7320" text-anchor="middle" dominant-baseline="central">&#8362;</text>
+  <!-- ₪ as paths, not <text>: iOS's asset-catalog SVG renderer ignores dominant-baseline, so the glyph sat on its baseline instead of the coin's centre. Box x180-220, y410-450, centred on the coin at (200,430). -->
+  <g fill="none" stroke="#9C7320" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M180 450 V416 Q180 410 186 410 H201 Q207 410 207 416 V438"/><path d="M220 410 V444 Q220 450 214 450 H199 Q193 450 193 444 V422"/></g>
   <g fill="url(#fur)"><ellipse cx="156" cy="432" rx="20" ry="16"/><ellipse cx="148" cy="418" rx="6" ry="11"/><ellipse cx="160" cy="414" rx="6" ry="11"/><ellipse cx="244" cy="432" rx="20" ry="16"/><ellipse cx="252" cy="418" rx="6" ry="11"/><ellipse cx="240" cy="414" rx="6" ry="11"/></g>
   <circle cx="152" cy="108" r="42" fill="url(#fur)"/><circle cx="152" cy="108" r="22" fill="#D99A9A"/>
   <circle cx="248" cy="108" r="42" fill="url(#fur)"/><circle cx="248" cy="108" r="22" fill="#D99A9A"/>

@@ -30,6 +30,11 @@ private let holidayTint = Color(light: Color(hex: "7E57C2"), dark: Color(hex: "B
 struct BudgetCalendarView: View {
     @Environment(\.modelContext) private var modelContext
 
+    /// How much of `UICalendarView`'s empty bottom band (17pt) the plan strip
+    /// may reclaim — a point short of all of it, so the last week's dots can
+    /// never meet the separator.
+    private static let calendarBottomBand: CGFloat = 16
+
     @Query(sort: \BudgetItem.name) private var budgetItems: [BudgetItem]
     /// Live transactions that log a budget occurrence — what greys a row.
     /// Filtered in the store so the calendar doesn't scan the whole ledger.
@@ -167,6 +172,13 @@ struct BudgetCalendarView: View {
                 decorations: decorations
             )
             .frame(maxWidth: .infinity)
+            // `UICalendarView` ends in a blank 17pt band under its grid. It's
+            // fixed: the grid keeps one height and packs five or six weeks into
+            // it, and the band measured 17pt in both shapes and at the largest
+            // text size. Letting the separator ride up into it is what keeps
+            // the plan strip from floating away from the last week. The
+            // calendar isn't *shortened* instead — it would squeeze its rows.
+            .padding(.bottom, -Self.calendarBottomBand)
 
             Rectangle()
                 .fill(Theme.Colors.separator)
