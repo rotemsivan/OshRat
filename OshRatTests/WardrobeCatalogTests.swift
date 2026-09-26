@@ -47,12 +47,45 @@ struct WardrobeCatalogTests {
     }
 
     @Test func levelUpsAnnounceExactlyWhatTheyUnlock() {
-        #expect(WardrobeItem.unlocked(exactlyAt: 7).map(\.id) == ["item-hat-propeller-red"])
-        #expect(WardrobeItem.unlocked(exactlyAt: 6).isEmpty)
+        #expect(WardrobeItem.unlocked(exactlyAt: 7).map(\.id) == [
+            "item-hat-propeller-red", "item-glasses-aviator-gold", "item-glasses-aviator-silver",
+        ])
+        #expect(WardrobeItem.unlocked(exactlyAt: 19).isEmpty)
     }
 
-    @Test func hatsAreAllInTheHatSlot() {
-        #expect(WardrobeItem.items(in: .hat).count == 8)
-        #expect(WardrobeItem.items(in: .outfit).isEmpty)
+    /// Ids name their slot (`item-<slot>-…`), which is also the asset folder
+    /// the art lives in — a hat filed as an outfit would draw on the wrong
+    /// layer.
+    @Test func idsNameTheirSlot() {
+        for item in WardrobeItem.catalogue {
+            #expect(item.id.hasPrefix("item-\(item.slot.rawValue)-"), "\(item.id)")
+        }
+    }
+
+    @Test func slotsHoldTheShippedArt() {
+        #expect(WardrobeItem.items(in: .hat).count == 23)
+        #expect(WardrobeItem.items(in: .glasses).count == 12)
+        #expect(WardrobeItem.items(in: .outfit).count == 32)
+        #expect(WardrobeItem.items(in: .prop).isEmpty)
+        #expect(WardrobeItem.items(in: .background).isEmpty)
+    }
+
+    /// The first eight hats shipped at these levels. Moving one later would
+    /// strip it off a rat already wearing it, so they're pinned.
+    @Test func theOriginalHatsKeepTheirLevels() {
+        let pinned = [
+            "item-hat-cap-red": 2, "item-hat-cap-green": 3, "item-hat-cap-navy": 5,
+            "item-hat-propeller-red": 7, "item-hat-propeller-green": 9,
+            "item-hat-propeller-navy": 12, "item-hat-cap-gold": 15, "item-hat-propeller-gold": 20,
+        ]
+        for (id, level) in pinned {
+            #expect(WardrobeItem.withID(id)?.unlockLevel == level, "\(id)")
+        }
+    }
+
+    /// Every tab the wardrobe shows is a slot, and every slot has a tab.
+    @Test func everySlotHasATab() {
+        #expect(Set(WardrobeSlot.tabOrder) == Set(WardrobeSlot.allCases))
+        #expect(WardrobeSlot.tabOrder.count == WardrobeSlot.allCases.count)
     }
 }

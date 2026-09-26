@@ -73,10 +73,15 @@ struct OshRatApp: App {
             DemoDataService.deploy(scenario, monthsOverride: months, in: context)
         }
 
+        // Comma-separated, so a whole look can be put on at once:
+        // `-demoEquip item-hat-cowboy-brown,item-outfit-denim-blue`.
         if let flagIndex = arguments.firstIndex(of: "-demoEquip"),
-           arguments.index(after: flagIndex) < arguments.endIndex,
-           let item = WardrobeItem.withID(arguments[arguments.index(after: flagIndex)]) {
-            WardrobeService.config(in: context).setEquippedID(item.id, for: item.slot)
+           arguments.index(after: flagIndex) < arguments.endIndex {
+            let ids = arguments[arguments.index(after: flagIndex)].split(separator: ",")
+            let config = WardrobeService.config(in: context)
+            for item in ids.compactMap({ WardrobeItem.withID(String($0)) }) {
+                config.setEquippedID(item.id, for: item.slot)
+            }
             try? context.save()
         }
     }

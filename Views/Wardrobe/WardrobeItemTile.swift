@@ -51,7 +51,7 @@ struct WardrobeItemTile: View {
     // MARK: - Parts
 
     private var portrait: some View {
-        AvatarPortrait(diameter: portraitSize, framing: .headroom) {
+        AvatarPortrait(diameter: portraitSize, framing: slot == .outfit ? .torso : .headroom) {
             AvatarLayers(
                 crop: .bust,
                 pose: .base,

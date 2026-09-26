@@ -15,6 +15,9 @@ import SwiftData
 final class MascotConfig {
     var backgroundID: String?
     var outfitID: String?
+    /// Added after the first three slots shipped. Optional with no default,
+    /// so existing rows migrate to "no glasses" without a migration plan.
+    var glassesID: String?
     var hatID: String?
     var propID: String?
 
@@ -28,6 +31,7 @@ final class MascotConfig {
         switch slot {
         case .background: return backgroundID
         case .outfit:     return outfitID
+        case .glasses:    return glassesID
         case .hat:        return hatID
         case .prop:       return propID
         }
@@ -37,6 +41,7 @@ final class MascotConfig {
         switch slot {
         case .background: backgroundID = id
         case .outfit:     outfitID = id
+        case .glasses:    glassesID = id
         case .hat:        hatID = id
         case .prop:       propID = id
         }

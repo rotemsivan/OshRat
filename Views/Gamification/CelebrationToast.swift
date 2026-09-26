@@ -108,10 +108,22 @@ struct CelebrationToast: View {
             .accessibilityHidden(true)
     }
 
-    /// The item a level-up just unlocked, if any — the toast leads with it.
-    private var unlockedItem: WardrobeItem? {
-        guard case .levelUp(let level) = celebration else { return nil }
-        return WardrobeItem.unlocked(exactlyAt: level).first
+    /// What a level-up just unlocked — often several, since a design's
+    /// colours unlock together. One is named; more are counted, because a
+    /// toast listing five tees would be a paragraph, not a toast.
+    private var unlockedItems: [WardrobeItem] {
+        guard case .levelUp(let level) = celebration else { return [] }
+        return WardrobeItem.unlocked(exactlyAt: level)
+    }
+
+    /// The toast's line about the wardrobe, or nil when the level unlocked
+    /// nothing. Always two or more when counted, so the plural is safe.
+    private var unlockedLine: String? {
+        switch unlockedItems.count {
+        case 0: return nil
+        case 1: return String(localized: "פריט חדש במלתחה: \(unlockedItems[0].name)")
+        default: return String(localized: "\(unlockedItems.count) פריטים חדשים במלתחה")
+        }
     }
 
     @ViewBuilder
@@ -130,8 +142,8 @@ struct CelebrationToast: View {
     private var subtitle: some View {
         switch celebration {
         case .levelUp:
-            if let item = unlockedItem {
-                Text("פריט חדש במלתחה: \(item.name)")
+            if let unlockedLine {
+                Text(verbatim: unlockedLine)
             } else {
                 Text("ממשיכים ככה")
             }
@@ -146,8 +158,8 @@ struct CelebrationToast: View {
     private var spokenText: String {
         switch celebration {
         case .levelUp(let level):
-            if let item = unlockedItem {
-                return String(localized: "עלית לרמה \(level). פריט חדש במלתחה: \(item.name)")
+            if let unlockedLine {
+                return String(localized: "עלית לרמה \(level). \(unlockedLine)")
             }
             return String(localized: "עלית לרמה \(level)")
         case .achievement(let id):
@@ -161,7 +173,7 @@ struct CelebrationToast: View {
     private var tapHint: String {
         switch celebration {
         case .achievement, .achievementBatch: return String(localized: "הקש למעבר להישגים")
-        case .levelUp: return unlockedItem != nil ? String(localized: "הקש לפתיחת המלתחה") : String(localized: "הקש לסגירה")
+        case .levelUp: return !unlockedItems.isEmpty ? String(localized: "הקש לפתיחת המלתחה") : String(localized: "הקש לסגירה")
         }
     }
 
@@ -214,7 +226,7 @@ struct CelebrationToast: View {
         case .achievement, .achievementBatch:
             onOpenAchievements()
         case .levelUp:
-            if unlockedItem != nil { onOpenWardrobe() }
+            if !unlockedItems.isEmpty { onOpenWardrobe() }
         }
         dismiss()
     }

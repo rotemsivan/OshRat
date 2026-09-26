@@ -45,7 +45,8 @@ enum AvatarPose {
 }
 
 /// The avatar drawn from an explicit outfit — back to front: background,
-/// Bare body, outfit, hat, prop.
+/// Bare body, outfit, glasses, hat, prop. Glasses go under the hat so a
+/// brim can overlap the frames, never the other way round.
 ///
 /// Every layer is on the same canvas and scaled to fit the same frame, which
 /// is all it takes for them to register. The wardrobe's tiles use this
@@ -59,12 +60,23 @@ struct AvatarLayers: View {
     var body: some View {
         ZStack {
             layer(for: .background)
-            layer(named: pose.bodyAssetName(for: crop))
+            layer(named: bodyPose.bodyAssetName(for: crop))
             layer(for: .outfit)
+            layer(for: .glasses)
             layer(for: .hat)
             layer(for: .prop)
         }
         .aspectRatio(crop.aspectRatio, contentMode: .fit)
+    }
+
+    /// The pose the body is actually drawn in. An outfit is drawn with both
+    /// sleeves at rest (the art has one cut, fitted to `base`), so over a
+    /// waving body the rat grows a third arm — the bare one still waving
+    /// beside two sleeves. Dressed, it stands; the wave keeps its whole-body
+    /// tilt where one is animated (the greeting), so it still reads as a
+    /// hello. Hats and glasses don't touch the arms and keep every pose.
+    private var bodyPose: AvatarPose {
+        equipped[.outfit].flatMap(WardrobeItem.withID) == nil ? pose : .base
     }
 
     @ViewBuilder

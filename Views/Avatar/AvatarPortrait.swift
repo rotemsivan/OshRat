@@ -10,14 +10,21 @@ import SwiftUI
 /// - `headroom` is for a rat wearing a hat. A propeller hat's top reaches
 ///   y≈56 with blades spanning x≈130–270: at the `head` framing the circle is
 ///   only ~92 wide at that height and cuts the blades. Zoom 1.35 centred at
-///   y 150 leaves ~228 of width there, so the whole hat fits.
+///   y 150 leaves ~228 of width there, so the whole hat fits — so do the
+///   tallest hats since (the top hat reaches y≈27, the crown's points y≈40).
+/// - `torso` is for an outfit tile. Outfits start under the chin (y≈290), so
+///   either head framing shows little more than a collar. Zoom 1 centred at
+///   y 280 is the whole width from the ear tips (y≈80) to y 480 — the rat is
+///   still recognisably itself and the outfit fills the lower half. Meant
+///   for square tiles; a circle would cut the shoulders.
 enum AvatarFraming {
-    case head, headroom
+    case head, headroom, torso
 
     var zoom: CGFloat {
         switch self {
         case .head:     return 1.75
         case .headroom: return 1.35
+        case .torso:    return 1
         }
     }
 
@@ -26,6 +33,7 @@ enum AvatarFraming {
         switch self {
         case .head:     return 160
         case .headroom: return 150
+        case .torso:    return 280
         }
     }
 }

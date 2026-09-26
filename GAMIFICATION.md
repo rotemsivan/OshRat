@@ -160,7 +160,7 @@ shows earned patches/medals.
    `AchievementsShelf`) and `LevelProgressCard`'s **top-trailing pill**, which now shows the *most
    recently earned* achievement (the streak only until the first one — its permanent home is
    the profile's stats row).
-3. **Mascot customization** — layered mascot rendering + wardrobe screen + a first item set. **Built**: `UserAvatar` / `WardrobeView` with eight hats unlocking at levels 2–20 (see CLAUDE.md, *Wardrobe & avatar*); outfits, props and backgrounds await art
+3. **Mascot customization** — layered mascot rendering + wardrobe screen + a first item set. **Built**: `UserAvatar` / `WardrobeView` with 23 hats, 12 glasses and 32 outfits unlocking at levels 2–25 (see CLAUDE.md, *Wardrobe & avatar*); props and backgrounds await art
    (this is where the mascot is re-cut into layers).
 4. **Polish** — more items, haptics/animation, optional Home-Screen widget (streak/level).
 

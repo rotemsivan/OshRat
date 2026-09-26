@@ -251,7 +251,10 @@ struct HomeView: View {
         // down shrinks it back into it. Reduce Motion gets the plain
         // presentation instead of the zoom.
         .fullScreenCover(isPresented: $isShowingWardrobe) {
-            if reduceMotion {
+            // `-demoWardrobe` presents before the greeting rat — the zoom's
+            // source — is in the window, and UIKit asserts building a morph
+            // from a view that isn't there. That flag gets the plain cover.
+            if reduceMotion || Self.opensWardrobeAtLaunch {
                 WardrobeView()
             } else {
                 WardrobeView()
