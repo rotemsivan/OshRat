@@ -135,6 +135,127 @@ struct TransactionFiltersTests {
         #expect(filters.apply(to: [recent, old], now: now).count == 2)
     }
 
+    private static func date(_ year: Int, _ month: Int, _ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
+        Calendar.current.date(from: DateComponents(year: year, month: month, day: day, hour: hour, minute: minute))!
+    }
+
+    /// Rolling windows are whole days, today included: at 15:00, "the last 7
+    /// days" must still take the whole of the oldest day, or that day's group
+    /// in the list would show up half-empty.
+    @Test func rollingWindowsCoverWholeDays() throws {
+        let context = try Self.makeContext()
+        let now = Self.date(2026, 3, 10, 15)
+        let earlyOnTheOldestDay = Transaction(amount: 1, kind: .expense, date: Self.date(2026, 3, 4, 9))
+        let lateTheDayBefore = Transaction(amount: 2, kind: .expense, date: Self.date(2026, 3, 3, 23, 30))
+        let laterToday = Transaction(amount: 3, kind: .expense, date: Self.date(2026, 3, 10, 22))
+        for tx in [earlyOnTheOldestDay, lateTheDayBefore, laterToday] { context.insert(tx) }
+
+        let filters = TransactionFilters()
+        filters.range = .last7
+        let shown = filters.apply(to: [earlyOnTheOldestDay, lateTheDayBefore, laterToday], now: now)
+        #expect(shown.map(\.amount) == [1, 3])
+    }
+
+    @Test func calendarPresetsFollowMonthAndYearBoundaries() throws {
+        let context = try Self.makeContext()
+        let now = Self.date(2026, 3, 10, 12)
+        let lastDayOfFebruary = Transaction(amount: 1, kind: .expense, date: Self.date(2026, 2, 28, 23))
+        let firstOfMarch = Transaction(amount: 2, kind: .expense, date: Self.date(2026, 3, 1, 0, 5))
+        let lastYear = Transaction(amount: 3, kind: .expense, date: Self.date(2025, 12, 31, 20))
+        let all = [firstOfMarch, lastDayOfFebruary, lastYear]
+        for tx in all { context.insert(tx) }
+
+        let filters = TransactionFilters()
+        filters.range = .thisMonth
+        #expect(filters.apply(to: all, now: now).map(\.amount) == [2])
+        filters.range = .lastMonth
+        #expect(filters.apply(to: all, now: now).map(\.amount) == [1])
+        filters.range = .thisYear
+        #expect(filters.apply(to: all, now: now).map(\.amount) == [2, 1])
+    }
+
+    /// Picking "custom" starts from the window already on screen, so it's one
+    /// date to adjust — but never a date the capped pickers can't show.
+    @Test func customRangeStartsFromThePresetAndStopsAtToday() {
+        let calendar = TransactionFilters.calendar
+        let now = Self.date(2026, 3, 10, 12)
+        let filters = TransactionFilters()
+
+        filters.range = .lastMonth
+        filters.beginCustomRange(now: now)
+        #expect(filters.range == .custom)
+        #expect(calendar.isDate(filters.customStart, inSameDayAs: Self.date(2026, 2, 1)))
+        #expect(calendar.isDate(filters.customEnd, inSameDayAs: Self.date(2026, 2, 28)))
+
+        // "This month" runs to the 31st; the custom end stops at today.
+        filters.range = .thisMonth
+        filters.beginCustomRange(now: now)
+        #expect(calendar.isDate(filters.customStart, inSameDayAs: Self.date(2026, 3, 1)))
+        #expect(calendar.isDate(filters.customEnd, inSameDayAs: now))
+    }
+
+    @Test func rangeDescriptionSpellsOutTheWindow() {
+        let filters = TransactionFilters()
+        #expect(filters.rangeDescription() == nil)
+
+        let now = Self.date(2026, 3, 10, 12)
+        filters.range = .lastMonth
+        // Both ends named, same year as now so no year printed.
+        let description = filters.rangeDescription(now: now) ?? ""
+        #expect(description.contains("1"))
+        #expect(description.contains("28"))
+        #expect(description.contains("–"))
+        #expect(!description.contains("2026"))
+
+        // A one-day custom range names the day once.
+        filters.range = .custom
+        filters.customStart = Self.date(2025, 7, 4)
+        filters.customEnd = Self.date(2025, 7, 4)
+        let single = filters.rangeDescription(now: now) ?? ""
+        #expect(!single.contains("–"))
+        #expect(single.contains("2025"))
+    }
+
+    // MARK: - Sort
+
+    @Test func sortReordersWithoutDroppingRows() throws {
+        let context = try Self.makeContext()
+        // Newest first, as the query delivers them.
+        let rows = [
+            Transaction(amount: 50, kind: .expense, date: Self.date(2026, 3, 3)),
+            Transaction(amount: 200, kind: .income, date: Self.date(2026, 3, 2)),
+            Transaction(amount: 50, kind: .expense, date: Self.date(2026, 3, 1)),
+            Transaction(amount: 10, kind: .expense, date: Self.date(2026, 2, 28))
+        ]
+        for tx in rows { context.insert(tx) }
+        let byAmount: (Transaction) -> Decimal = { $0.amount }
+
+        #expect(TransactionSort.newestFirst.apply(to: rows, amount: byAmount).map(\.amount) == [50, 200, 50, 10])
+        #expect(TransactionSort.oldestFirst.apply(to: rows, amount: byAmount).map(\.amount) == [10, 50, 200, 50])
+
+        let largest = TransactionSort.largestFirst.apply(to: rows, amount: byAmount)
+        #expect(largest.map(\.amount) == [200, 50, 50, 10])
+        // The two ₪50 rows tie and keep their date order (newer first).
+        #expect(largest[1].date > largest[2].date)
+
+        #expect(TransactionSort.smallestFirst.apply(to: rows, amount: byAmount).map(\.amount) == [10, 50, 50, 200])
+    }
+
+    /// Sort hides nothing, so it isn't a filter: it doesn't light the filter
+    /// icon, and resetting the filters leaves it alone.
+    @Test func sortIsNotAFilter() {
+        let filters = TransactionFilters()
+        filters.sort = .largestFirst
+        #expect(filters.hasActiveFilters == false)
+
+        filters.type = .expense
+        filters.range = .thisMonth
+        #expect(filters.activeFilterCount == 2)
+        filters.clear()
+        #expect(filters.activeFilterCount == 0)
+        #expect(filters.sort == .largestFirst)
+    }
+
     // MARK: - Search
 
     @Test func searchCoversTitleNoteAndCategoryName() throws {

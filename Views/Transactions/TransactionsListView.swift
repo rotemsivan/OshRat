@@ -33,6 +33,8 @@ struct TransactionsListView: View {
     /// rate set, used to reverse a deleted transaction's balance effect
     /// when its currency differs from its account's.
     @Query(sort: \FXRateSnapshot.fetchedAt, order: .reverse) private var fxSnapshots: [FXRateSnapshot]
+    /// Only for the preferred currency, which an amount sort ranks every row in.
+    @Query private var profiles: [UserProfile]
 
     /// Filter state + the filtering itself, owned by `HomeView` so it survives
     /// a trip to another tab — see `TransactionFilters`.
@@ -83,22 +85,32 @@ struct TransactionsListView: View {
         // property read from three places, so each render filtered the whole
         // ledger several times over.
         let results = filters.results(for: transactions, search: appliedSearch)
+        // Sorted after filtering, so only the rows that survive are ranked —
+        // and the date orders are free (as delivered, or reversed).
+        let rows = filters.sort.apply(to: results.rows, amount: rankingAmount())
 
         ZStack {
             Theme.Colors.background.ignoresSafeArea()
             VStack(spacing: 0) {
                 searchBar
+                // Deliberately not animated in or out: the same change reshapes
+                // the list below, and an animated diff of a full page of rows
+                // is exactly the hitch a long ledger can't afford.
+                if filters.hasActiveFilters {
+                    ActiveFiltersBar(filters: filters, categories: categories)
+                }
                 if results.isApproximate {
                     approximateNote
                 }
-                if results.rows.isEmpty {
+                if rows.isEmpty {
                     emptyState
                 } else {
                     TransactionLedger(
-                        rows: results.rows,
+                        rows: rows,
                         allTransactions: transactions,
                         attachedIDs: attachedIDs,
                         resetKey: queryKey,
+                        groupsByDay: filters.sort.groupsByDay,
                         filters: filters,
                         fxSnapshot: fxSnapshots.first,
                         onRevealAll: revealAll
@@ -114,16 +126,44 @@ struct TransactionsListView: View {
         // stacked on top of it.
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            // One group, so the two share a glass capsule. Under RTL the
+            // filter button stays on the outer edge where it has always been,
+            // with sort beside it.
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                // A `Picker` inside the `Menu` gives the checkmark on the
+                // current order for free. The icon fills while the order isn't
+                // the default, the same "something's changed" cue the filter
+                // button uses.
+                Menu {
+                    Picker(selection: $filters.sort) {
+                        ForEach(TransactionSort.allCases) { sort in
+                            Label(sort.hebrewLabel, systemImage: sort.systemImage).tag(sort)
+                        }
+                    } label: {
+                        Text("מיון")
+                    }
+                } label: {
+                    Label(
+                        "מיון",
+                        systemImage: filters.sort == .newestFirst
+                            ? "arrow.up.arrow.down.circle"
+                            : "arrow.up.arrow.down.circle.fill"
+                    )
+                    .foregroundStyle(Theme.Colors.accent)
+                }
+                .accessibilityValue(Text(filters.sort.hebrewLabel))
+
                 Button {
                     isShowingFilters = true
                 } label: {
-                    Image(systemName: filters.hasActiveFilters
-                          ? "line.3.horizontal.decrease.circle.fill"
-                          : "line.3.horizontal.decrease.circle")
-                        .foregroundStyle(Theme.Colors.accent)
+                    Label(
+                        "פילטרים",
+                        systemImage: filters.hasActiveFilters
+                            ? "line.3.horizontal.decrease.circle.fill"
+                            : "line.3.horizontal.decrease.circle"
+                    )
+                    .foregroundStyle(Theme.Colors.accent)
                 }
-                .accessibilityLabel(Text("פילטרים"))
             }
             // Only shown when there's something to recover, so the toolbar
             // stays quiet in the common case. Opens the shared "Recently
@@ -142,7 +182,11 @@ struct TransactionsListView: View {
         }
         .sheet(isPresented: $isShowingFilters) {
             FiltersSheet(filters: filters, categories: categories)
-                .presentationDetents([.medium, .large])
+                // Tall enough to show every date preset and its caption, short
+                // enough to leave the chips row visible above it, so each tap
+                // in the sheet shows up there as it happens. `.medium` cut the
+                // date grid off after its second row.
+                .presentationDetents([.fraction(0.7), .large])
         }
         .sheet(isPresented: $isShowingRecentlyDeleted) {
             RecentlyDeletedView()
@@ -180,8 +224,35 @@ struct TransactionsListView: View {
             categoryID: filters.categoryID,
             range: filters.range,
             customStart: filters.customStart,
-            customEnd: filters.customEnd
+            customEnd: filters.customEnd,
+            sort: filters.sort
         )
+    }
+
+    /// What an amount sort ranks each row by: its size in the preferred
+    /// currency, so $100 outranks ₪150. A row whose currency has no rate falls
+    /// back to its raw amount rather than dropping out of the list.
+    ///
+    /// Only runs for the amount orders (`TransactionSort.apply` never calls it
+    /// otherwise), and converts **once per currency**, not once per row — a
+    /// ledger has a handful of currencies and thousands of rows, and the
+    /// conversion is linear, so one factor per currency is exact.
+    private func rankingAmount() -> (Transaction) -> Decimal {
+        let target = profiles.first?.preferredCurrencyCode ?? "ILS"
+        let snapshot = fxSnapshots.first
+        var factors: [String: Decimal?] = [:]
+        return { tx in
+            let size = abs(tx.amount)
+            guard tx.currencyCode != target else { return size }
+            let factor: Decimal?
+            if let cached = factors[tx.currencyCode] {
+                factor = cached
+            } else {
+                factor = snapshot.flatMap { CurrencyConverter.convert(1, from: tx.currencyCode, to: target, using: $0) }
+                factors[tx.currencyCode] = factor
+            }
+            return size * (factor ?? 1)
+        }
     }
 
     /// Clear every filter and the search, applied at once rather than after
@@ -273,6 +344,117 @@ private struct LedgerQueryKey: Hashable {
     let range: DateRangeFilter
     let customStart: Date
     let customEnd: Date
+    let sort: TransactionSort
+}
+
+// MARK: - Expansion motion
+
+/// One timing for everything that moves when a row opens or closes — the
+/// card row's insertion, the rows below making room, the chevron and a
+/// similar-row jump — so they land together instead of drifting apart.
+private enum ExpansionMotion {
+    /// No bounce: an overshoot reads as the list wobbling, which the
+    /// previous spring did.
+    static let animation: Animation = .smooth(duration: 0.3)
+}
+
+// MARK: - Active filters bar
+
+/// One removable chip per active filter, in a row under the search field.
+///
+/// Each chip clears only its own filter — the single "reset filters" chip it
+/// replaces meant that dropping a date range also threw away a category the
+/// user had deliberately picked. Editing a filter still goes through the
+/// toolbar button; with two or more on, a last "ניקוי הכל" clears them at once.
+///
+/// Scrolls sideways rather than wrapping, so three long chips at a large text
+/// size cost one row of height, never three.
+private struct ActiveFiltersBar: View {
+    let filters: TransactionFilters
+    let categories: [Category]
+
+    var body: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: Theme.Spacing.sm) {
+                if filters.type != .all {
+                    FilterChip(title: filters.type.hebrewLabel, systemImage: typeSymbol) {
+                        filters.type = .all
+                    }
+                }
+                if filters.categoryID != nil {
+                    FilterChip(
+                        title: selectedCategory?.name ?? String(localized: "קטגוריה"),
+                        systemImage: selectedCategory?.symbolName ?? "tag"
+                    ) {
+                        filters.categoryID = nil
+                    }
+                }
+                if filters.range != .all {
+                    FilterChip(title: filters.dateChipLabel(), systemImage: "calendar") {
+                        filters.range = .all
+                    }
+                }
+                if filters.activeFilterCount > 1 {
+                    Button("ניקוי הכל", action: filters.clear)
+                        .font(Theme.Typography.bodySmall)
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                        .padding(.horizontal, Theme.Spacing.sm)
+                        .buttonStyle(.plain)
+                }
+            }
+        }
+        .scrollIndicators(.hidden)
+        // Lines the first chip up with the search field above it.
+        .contentMargins(.horizontal, Theme.Spacing.lg, for: .scrollContent)
+        .padding(.bottom, Theme.Spacing.sm)
+    }
+
+    /// The same ↙ in / ↗ out arrows the calendar's month strip uses.
+    private var typeSymbol: String {
+        switch filters.type {
+        case .income:        "arrow.down.left"
+        case .expense:       "arrow.up.right"
+        case .transfer, .all: "arrow.left.arrow.right"
+        }
+    }
+
+    private var selectedCategory: Category? {
+        guard let id = filters.categoryID else { return nil }
+        return categories.first { $0.persistentModelID == id }
+    }
+}
+
+/// A filter as a removable token: its glyph, its value and a ✕. The whole
+/// chip is the remove button — a separate ✕ target would be too small to hit
+/// reliably, and removing is the only thing a tap on it could mean.
+private struct FilterChip: View {
+    let title: String
+    let systemImage: String
+    let onRemove: () -> Void
+
+    var body: some View {
+        Button(action: onRemove) {
+            HStack(spacing: Theme.Spacing.xs) {
+                Image(systemName: systemImage)
+                    .imageScale(.small)
+                Text(title)
+                    .lineLimit(1)
+                Image(systemName: "xmark")
+                    .imageScale(.small)
+                    .fontWeight(.semibold)
+            }
+            .font(Theme.Typography.bodySmall)
+            .foregroundStyle(Theme.Colors.accent)
+            .padding(.horizontal, Theme.Spacing.sm + Theme.Spacing.xs)
+            .padding(.vertical, Theme.Spacing.sm)
+            .background(Theme.Colors.accent.opacity(0.12), in: .capsule)
+            .contentShape(.capsule)
+        }
+        .buttonStyle(.plain)
+        // Read as the filter's value, not "calendar, החודש, close".
+        .accessibilityLabel(Text(title))
+        .accessibilityHint(Text("הקש להסרת הפילטר"))
+    }
 }
 
 // MARK: - Ledger
@@ -291,6 +473,9 @@ private struct TransactionLedger: View {
     let allTransactions: [Transaction]
     let attachedIDs: Set<PersistentIdentifier>
     let resetKey: LedgerQueryKey
+    /// Date orders group rows under day headers; amount orders list them flat,
+    /// each row carrying its own date — see `TransactionSort.groupsByDay`.
+    let groupsByDay: Bool
     let filters: TransactionFilters
     let fxSnapshot: FXRateSnapshot?
     /// Clears the filters and search so a hidden row can be shown.
@@ -334,8 +519,11 @@ private struct TransactionLedger: View {
     /// Row briefly tinted after a "similar transaction" jump, so the eye
     /// lands on the right line once the scroll settles. Cleared ~1.5s later.
     @State private var highlightedID: PersistentIdentifier?
+    /// A jump waiting for the filters to clear — see `jump(to:proxy:)`.
+    @State private var pendingJumpID: PersistentIdentifier?
 
     var body: some View {
+        let mounted = rows.prefix(rowLimit)
         VStack(spacing: 0) {
             if isSelecting {
                 selectionBar
@@ -343,11 +531,22 @@ private struct TransactionLedger: View {
             // The reader exists solely for the similar-transaction jumps —
             // `jump(to:proxy:)` scrolls the List to the tapped row.
             ScrollViewReader { proxy in
-                list(groups: Self.groupedByDay(rows.prefix(rowLimit)), proxy: proxy)
+                list(
+                    groups: groupsByDay
+                        ? Self.groupedByDay(mounted)
+                        : [DayGroup(day: nil, items: Array(mounted))],
+                    proxy: proxy
+                )
+                // Inside the reader, so a jump that had to clear the filters
+                // first can scroll once the new rows are here.
+                .onChange(of: resetKey) {
+                    rowLimit = Self.pageSize
+                    if let id = pendingJumpID {
+                        pendingJumpID = nil
+                        finishJump(to: id, proxy: proxy)
+                    }
+                }
             }
-        }
-        .onChange(of: resetKey) {
-            rowLimit = Self.pageSize
         }
         .confirmationDialog(
             Text("מחיקת התנועות שנבחרו"),
@@ -522,7 +721,7 @@ private struct TransactionLedger: View {
         if reduceMotion {
             expandedID = next
         } else {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+            withAnimation(ExpansionMotion.animation) {
                 expandedID = next
             }
         }
@@ -537,17 +736,22 @@ private struct TransactionLedger: View {
     /// unmissable.
     private func jump(to target: Transaction, proxy: ScrollViewProxy) {
         let id = target.persistentModelID
-        // Where the row will sit once visible. `rows` is a date-ordered subset
-        // of `allTransactions`, so a row the filters hide has an index in the
-        // full ledger at least as large as it would have in the list — once
-        // the filters are cleared, the two are the same list.
-        let index: Int
-        if let visibleIndex = rows.firstIndex(where: { $0.persistentModelID == id }) {
-            index = visibleIndex
+        if rows.contains(where: { $0.persistentModelID == id }) {
+            finishJump(to: id, proxy: proxy)
         } else {
+            // Hidden by a filter or the search. Its position is only known
+            // once they're cleared and the rows come back in the current
+            // order — which, under an amount sort, isn't the ledger's date
+            // order, so it can't be read off `allTransactions`. The query-key
+            // change that clearing causes finishes the jump (see `body`).
+            pendingJumpID = id
             onRevealAll()
-            index = allTransactions.firstIndex { $0.persistentModelID == id } ?? 0
         }
+    }
+
+    /// Mount the page holding the row, then scroll to it and flash it.
+    private func finishJump(to id: PersistentIdentifier, proxy: ScrollViewProxy) {
+        guard let index = rows.firstIndex(where: { $0.persistentModelID == id }) else { return }
         rowLimit = max(rowLimit, index + Self.pageSize)
 
         // Defer one runloop tick so the List has re-rendered with the
@@ -558,7 +762,7 @@ private struct TransactionLedger: View {
                 expandedID = id
                 proxy.scrollTo(id, anchor: .center)
             } else {
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+                withAnimation(ExpansionMotion.animation) {
                     expandedID = id
                     proxy.scrollTo(id, anchor: .center)
                 }
@@ -584,177 +788,33 @@ private struct TransactionLedger: View {
 
     // MARK: - List
 
-    /// A one-tap "clear filters" chip, shown only while type / category /
-    /// date filters are active (search has its own clear button). Lets the
-    /// user drop back to the full list without reopening the filter sheet.
-    /// Lives as the first row of the list (above the day headers).
-    private var filterChip: some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.2)) { filters.clear() }
-        } label: {
-            HStack(spacing: Theme.Spacing.xs) {
-                Image(systemName: "xmark.circle.fill")
-                Text("איפוס פילטרים")
-            }
-            .font(Theme.Typography.caption)
-            .foregroundStyle(Theme.Colors.accent)
-            .padding(.horizontal, Theme.Spacing.sm)
-            .background(Theme.Colors.accent.opacity(0.12), in: Capsule())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text("איפוס כל הפילטרים"))
-    }
-
     private func list(groups: [DayGroup], proxy: ScrollViewProxy) -> some View {
         List {
-            // Quick "clear filters" chip, pinned above the day headers. It's
-            // its own headerless section so a tight per-section spacing
-            // override sits it close to the first day header — without
-            // touching the List's default day-to-day section spacing.
-            if filters.hasActiveFilters {
-                Section {
-                    HStack {
-                        filterChip
-                    }
-                    .padding(.horizontal, Theme.Spacing.lg)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Theme.Colors.surface)
-                }
-                .listSectionSpacing(Theme.Spacing.xs)
-            }
-
             ForEach(groups, id: \.day) { group in
-                Section {
-                    ForEach(group.items) { tx in
-                        VStack(spacing: 0) {
-                            TransactionRow(
-                                transaction: tx,
-                                hasAttachments: attachedIDs.contains(tx.persistentModelID),
-                                isExpanded: isExpandable(tx) && expandedID == tx.persistentModelID,
-                                showsDisclosure: isExpandable(tx) && !isSelecting,
-                                isSelecting: isSelecting,
-                                isSelected: selection.contains(tx.persistentModelID)
-                            )
-                                // Make the whole row a tap target. Normally a
-                                // tap toggles the inline insights card; in
-                                // selection mode it picks the row instead.
-                                // The swipe actions below still work — a
-                                // horizontal swipe and a tap don't compete.
-                                // Manual balance-edit rows aren't expandable,
-                                // so `toggleExpand` ignores their taps.
-                                .contentShape(.rect)
-                                .onTapGesture {
-                                    if isSelecting {
-                                        toggleSelection(tx)
-                                    } else {
-                                        toggleExpand(tx)
-                                    }
-                                }
-                                // Long press is the way in to multi-select.
-                                // Ordered after the tap so a quick tap still
-                                // resolves as a tap, and it stays live during
-                                // selection so pressing another row is
-                                // harmless rather than re-entering the mode.
-                                .onLongPressGesture(minimumDuration: 0.4) {
-                                    beginSelecting(tx)
-                                }
-
-                            if isExpandable(tx), expandedID == tx.persistentModelID {
-                                ExpandedTransactionCard(
-                                    transaction: tx,
-                                    allTransactions: allTransactions,
-                                    onSelectSimilar: { similar in
-                                        jump(to: similar, proxy: proxy)
-                                    }
-                                )
-                                    .transition(reduceMotion
-                                        ? .opacity
-                                        : .opacity.combined(with: .move(edge: .top)))
-                            }
+                // Date orders get a header per day. An amount order is one
+                // headerless run, since consecutive rows come from different
+                // days — each row shows its own date instead.
+                if let day = group.day {
+                    Section {
+                        ForEach(group.items) { tx in
+                            row(tx, proxy: proxy)
                         }
-                            // Anchor for `proxy.scrollTo` in similar-transaction jumps.
-                            .id(tx.persistentModelID)
-                            .listRowBackground(rowBackground(tx))
-                            // Full-bleed surface row (zero horizontal inset)
-                            // so the swipe actions reveal the white row
-                            // itself rather than the gray gutter an inset
-                            // group leaves around it — matching the look of
-                            // the dashboard's accounts card. The row content
-                            // carries its own horizontal padding instead.
+                    } header: {
+                        Text(Self.dayHeader(day))
+                            .font(Theme.Typography.caption)
+                            .foregroundStyle(Theme.Colors.textSecondary)
+                            // Align the day label with the row content's
+                            // horizontal padding now that rows are full-bleed.
+                            .padding(.horizontal, Theme.Spacing.lg)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                             .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                            .listRowSeparator(.hidden)
-                            // Empty while selecting — which disables the swipe
-                            // entirely. A swipe-delete acting on one row while
-                            // the bar's delete acts on the selection would be
-                            // two different answers to "delete".
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                              if !isSelecting {
-                                // Order matters: SwiftUI lays the first
-                                // item closest to the swipe edge, so Delete
-                                // first puts it at the trailing edge — the
-                                // destructive slot users expect, and the one
-                                // a full swipe triggers. Unified with the
-                                // accounts and budget lists.
-                                //
-                                // Icon-only (`Image`, not `Label`) for a
-                                // compact look that doesn't depend on row
-                                // height; `accessibilityLabel` keeps the
-                                // spoken name for VoiceOver.
-                                Button(role: .destructive) {
-                                    deleteTransaction(tx)
-                                } label: {
-                                    Image(systemName: "trash")
-                                }
-                                .accessibilityLabel(Text("מחיקה"))
-
-                                // Manual balance-edit markers are
-                                // bookkeeping rows, not real income/expense,
-                                // and may be tied to a non-current account
-                                // the editor can't represent — so they're
-                                // delete-only (deleting reverses the manual
-                                // adjustment). Transfers are delete-only too:
-                                // the editor models a single account, not a
-                                // two-sided move, so we don't reopen them.
-                                if !tx.isManualBalanceEdit && !tx.isTransfer {
-                                    Button {
-                                        editingTransaction = tx
-                                    } label: {
-                                        Image(systemName: "pencil")
-                                    }
-                                    .tint(Theme.Colors.accent)
-                                    .accessibilityLabel(Text("עריכה"))
-                                }
-                              }
-                            }
-                            // The leading edge (visual right, reached by
-                            // swiping left): copy, opposite delete/edit. A
-                            // full swipe opens the sheet straight away — "the
-                            // same again" is the whole point. Hidden while
-                            // selecting like the trailing actions, and on
-                            // manual balance edits, which are bookkeeping, not
-                            // something anyone logs twice.
-                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                                if !isSelecting && !tx.isManualBalanceEdit {
-                                    Button {
-                                        copyingTransaction = tx
-                                    } label: {
-                                        Image(systemName: "doc.on.doc")
-                                    }
-                                    .tint(Theme.Colors.accent)
-                                    .accessibilityLabel(Text("העתקה"))
-                                }
-                            }
                     }
-                } header: {
-                    Text(Self.dayHeader(group.day))
-                        .font(Theme.Typography.caption)
-                        .foregroundStyle(Theme.Colors.textSecondary)
-                        // Align the day label with the row content's
-                        // horizontal padding now that rows are full-bleed.
-                        .padding(.horizontal, Theme.Spacing.lg)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                } else {
+                    Section {
+                        ForEach(group.items) { tx in
+                            row(tx, proxy: proxy)
+                        }
+                    }
                 }
             }
 
@@ -778,8 +838,8 @@ private struct TransactionLedger: View {
         // No top inset: the search field's own bottom padding is the gap above
         // the first row, and adding a second one here was part of what made the
         // header read as too tall. Day-to-day section spacing stays at the List
-        // default — only the chip section overrides its own spacing (above) to
-        // sit tight against the first day header.
+        // default. (Active filters sit above the list, not in it — see
+        // `ActiveFiltersBar`.)
         .contentMargins(.top, 0, for: .scrollContent)
         // Full clearance: every row here is interactive (tap to expand, swipe
         // to delete or edit), so the last one has to sit clear of both the bar
@@ -793,6 +853,140 @@ private struct TransactionLedger: View {
         // backgrounds are surface too, so the whole list reads as one
         // continuous white sheet with no gray gutter beside the buttons.
         .background(Theme.Colors.surface)
+    }
+
+    /// One ledger entry: the transaction's row with its swipe actions and,
+    /// while open, its insights card as a second row beneath it (`@ViewBuilder`
+    /// so the List sees two rows). A method rather than a view of its own because
+    /// nearly all of it is this ledger's state — selection, expansion, the
+    /// highlight and the sheets it opens.
+    @ViewBuilder
+    private func row(_ tx: Transaction, proxy: ScrollViewProxy) -> some View {
+        TransactionRow(
+            transaction: tx,
+            hasAttachments: attachedIDs.contains(tx.persistentModelID),
+            isExpanded: isExpandable(tx) && expandedID == tx.persistentModelID,
+            showsDisclosure: isExpandable(tx) && !isSelecting,
+            isSelecting: isSelecting,
+            isSelected: selection.contains(tx.persistentModelID),
+            showsDate: !groupsByDay
+        )
+            // Make the whole row a tap target. Normally a
+            // tap toggles the inline insights card; in
+            // selection mode it picks the row instead.
+            // The swipe actions below still work — a
+            // horizontal swipe and a tap don't compete.
+            // Manual balance-edit rows aren't expandable,
+            // so `toggleExpand` ignores their taps.
+            .contentShape(.rect)
+            .onTapGesture {
+                if isSelecting {
+                    toggleSelection(tx)
+                } else {
+                    toggleExpand(tx)
+                }
+            }
+            // Long press is the way in to multi-select.
+            // Ordered after the tap so a quick tap still
+            // resolves as a tap, and it stays live during
+            // selection so pressing another row is
+            // harmless rather than re-entering the mode.
+            .onLongPressGesture(minimumDuration: 0.4) {
+                beginSelecting(tx)
+            }
+            // Anchor for `proxy.scrollTo` in similar-transaction jumps.
+            .id(tx.persistentModelID)
+            .listRowBackground(rowBackground(tx))
+            // Full-bleed surface row (zero horizontal inset)
+            // so the swipe actions reveal the white row
+            // itself rather than the gray gutter an inset
+            // group leaves around it — matching the look of
+            // the dashboard's accounts card. The row content
+            // carries its own horizontal padding instead.
+            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+            .listRowSeparator(.hidden)
+            // Empty while selecting — which disables the swipe
+            // entirely. A swipe-delete acting on one row while
+            // the bar's delete acts on the selection would be
+            // two different answers to "delete".
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+              if !isSelecting {
+                // Order matters: SwiftUI lays the first
+                // item closest to the swipe edge, so Delete
+                // first puts it at the trailing edge — the
+                // destructive slot users expect, and the one
+                // a full swipe triggers. Unified with the
+                // accounts and budget lists.
+                //
+                // Icon-only (`Image`, not `Label`) for a
+                // compact look that doesn't depend on row
+                // height; `accessibilityLabel` keeps the
+                // spoken name for VoiceOver.
+                Button(role: .destructive) {
+                    deleteTransaction(tx)
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .accessibilityLabel(Text("מחיקה"))
+
+                // Manual balance-edit markers are
+                // bookkeeping rows, not real income/expense,
+                // and may be tied to a non-current account
+                // the editor can't represent — so they're
+                // delete-only (deleting reverses the manual
+                // adjustment). Transfers are delete-only too:
+                // the editor models a single account, not a
+                // two-sided move, so we don't reopen them.
+                if !tx.isManualBalanceEdit && !tx.isTransfer {
+                    Button {
+                        editingTransaction = tx
+                    } label: {
+                        Image(systemName: "pencil")
+                    }
+                    .tint(Theme.Colors.accent)
+                    .accessibilityLabel(Text("עריכה"))
+                }
+              }
+            }
+            // The leading edge (visual right, reached by
+            // swiping left): copy, opposite delete/edit. A
+            // full swipe opens the sheet straight away — "the
+            // same again" is the whole point. Hidden while
+            // selecting like the trailing actions, and on
+            // manual balance edits, which are bookkeeping, not
+            // something anyone logs twice.
+            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                if !isSelecting && !tx.isManualBalanceEdit {
+                    Button {
+                        copyingTransaction = tx
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                    }
+                    .tint(Theme.Colors.accent)
+                    .accessibilityLabel(Text("העתקה"))
+                }
+            }
+        // The card is a row of its own, inserted below the transaction's —
+        // not extra height on the transaction's row. The List is a UIKit
+        // collection view: growing a row animates the cell's frame from its
+        // centre while SwiftUI has already laid the content out at the final
+        // size, and a frame-by-frame recording showed the tapped row vanishing
+        // for three frames and sliding back in. Row insertion is the collection
+        // view's own smooth animation, and the tapped row never moves at all.
+        if isExpandable(tx), expandedID == tx.persistentModelID {
+            ExpandedTransactionCard(
+                transaction: tx,
+                allTransactions: allTransactions,
+                hasAttachments: attachedIDs.contains(tx.persistentModelID),
+                fxSnapshot: fxSnapshot,
+                onSelectSimilar: { similar in
+                    jump(to: similar, proxy: proxy)
+                }
+            )
+                .listRowBackground(rowBackground(tx))
+                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                .listRowSeparator(.hidden)
+        }
     }
 
     // MARK: - Grouping
@@ -830,7 +1024,9 @@ private struct TransactionLedger: View {
 // MARK: - Day group
 
 private struct DayGroup {
-    let day: Date
+    /// The day these rows share, or `nil` for the single ungrouped run an
+    /// amount sort produces.
+    let day: Date?
     var items: [Transaction]
 }
 
@@ -855,6 +1051,9 @@ private struct TransactionRow: View {
     /// slides in ahead of the category badge.
     var isSelecting: Bool = false
     var isSelected: Bool = false
+    /// Whether the row names its own day — needed when the list isn't grouped
+    /// under day headers (an amount sort), otherwise redundant.
+    var showsDate: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -926,7 +1125,7 @@ private struct TransactionRow: View {
                 .rotationEffect(.degrees(isExpanded ? 180 : 0))
                 .frame(width: 12)
                 .opacity(showsDisclosure ? 1 : 0)
-                .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8), value: isExpanded)
+                .animation(reduceMotion ? nil : ExpansionMotion.animation, value: isExpanded)
                 .accessibilityHidden(true)
         }
         // Rows are full-bleed in the list (zero row insets) so the swipe
@@ -1011,12 +1210,23 @@ private struct TransactionRow: View {
             // direction as the diagram in the entry sheet.
             let source = transaction.account?.name ?? "—"
             let destination = transaction.destinationAccount?.name ?? "—"
-            return "\(source) ← \(destination)"
+            let route = "\(source) ← \(destination)"
+            return showsDate ? "\(dateText) • \(route)" : route
         }
         var parts: [String] = []
+        if showsDate { parts.append(dateText) }
         if let category = transaction.category { parts.append(category.name) }
         if let account = transaction.account { parts.append(account.name) }
         return parts.joined(separator: " • ")
+    }
+
+    /// "12 במרץ", with the year only when it isn't this one.
+    private var dateText: String {
+        var style = Date.FormatStyle.dateTime.day().month(.abbreviated).locale(Locale(identifier: "he_IL"))
+        if !Calendar.current.isDate(transaction.date, equalTo: .now, toGranularity: .year) {
+            style = style.year()
+        }
+        return transaction.date.formatted(style)
     }
 
     /// Running-balance line(s) shown under the amount. An income/expense
@@ -1091,10 +1301,12 @@ private struct TransactionRow: View {
 
 // MARK: - Expanded insights card
 
-/// The card revealed under a row when it's tapped open. Surfaces the
-/// previously-hidden note, a few computed insights (how often this recurs,
-/// how the amount compares, when it was last seen, a timing pattern), any
-/// attached files, and a short list of similar past transactions.
+/// The card revealed under a row when it's tapped open. Leads with where the
+/// transaction's category stands against its budget that month (when it has
+/// one — see `CategoryBudgetStatus`), then the previously-hidden note, a few
+/// computed insights (how often this recurs, how the amount compares, when it
+/// was last seen, a timing pattern), any attached files, and a short list of
+/// similar past transactions.
 ///
 /// All the number-crunching lives in the pure `TransactionInsights` value
 /// type; this view only formats those facts into Hebrew. Insights are
@@ -1104,6 +1316,20 @@ private struct TransactionRow: View {
 private struct ExpandedTransactionCard: View {
     let transaction: Transaction
     let allTransactions: [Transaction]
+    /// From the list's one attachments query. Asking `transaction.attachments`
+    /// just to decide whether to show the block faults every attachment row
+    /// in on the very frame the card starts opening.
+    let hasAttachments: Bool
+    /// For the category budget, which is totalled in the preferred currency.
+    let fxSnapshot: FXRateSnapshot?
+
+    /// Queried here rather than threaded down the list: only the one open
+    /// card needs them, and a budget edit shouldn't re-render the list.
+    @Query private var budgetItems: [BudgetItem]
+    @Query private var profiles: [UserProfile]
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Flipped on appear, so the budget bar grows in as the card opens.
+    @State private var revealed = false
     /// Called when the user taps a row in the "תנועות דומות" block, with
     /// the tapped transaction. The list answers by scrolling to and
     /// expanding that original row. Nil renders the block as plain text.
@@ -1119,13 +1345,26 @@ private struct ExpandedTransactionCard: View {
 
     var body: some View {
         let insights = TransactionInsights.make(for: transaction, in: allTransactions)
+        let budget = transaction.category.flatMap { category in
+            CategoryBudgetStatus.make(
+                category: category,
+                containing: transaction.date,
+                budgetItems: budgetItems,
+                transactions: allTransactions,
+                preferredCurrency: profiles.first?.preferredCurrencyCode ?? "ILS",
+                fxSnapshot: fxSnapshot
+            )
+        }
 
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
+            if let budget, let category = transaction.category {
+                budgetBlock(budget, categoryName: category.name)
+            }
             if !trimmedNote.isEmpty { noteBlock }
             if insights.hasMeaningfulInsights { insightsBlock(insights) }
-            if !transaction.attachments.isEmpty { attachmentsBlock }
+            if hasAttachments { attachmentsBlock }
             if !insights.similar.isEmpty { similarBlock(insights.similar) }
-            if isEmpty(insights) { emptyHint }
+            if budget == nil, isEmpty(insights) { emptyHint }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Theme.Spacing.md)
@@ -1135,9 +1374,53 @@ private struct ExpandedTransactionCard: View {
         )
         .padding(.horizontal, Theme.Spacing.lg)
         .padding(.bottom, Theme.Spacing.md)
+        .onAppear { revealed = true }
     }
 
+
     // MARK: Blocks
+
+    /// Where this transaction's category stands against its budget in the
+    /// transaction's own month: "₪620 מתוך ₪1,000", a bar, and the share. First
+    /// in the card because it answers the question a new expense raises —
+    /// "how much of this category is left?"
+    private func budgetBlock(_ status: CategoryBudgetStatus, categoryName: String) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
+            // The category's name in bold, so "which budget" stands out from
+            // the rest of the caption.
+            Text("תקציב \(Text(categoryName).bold()) · \(budgetMonthLabel(status.month))")
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: Theme.Spacing.sm) {
+                BudgetProgressBar(
+                    fillFraction: min(status.fraction, 1),
+                    color: budgetColor(status),
+                    revealed: revealed,
+                    reduceMotion: reduceMotion
+                )
+                Text(status.fraction.formatted(.percent.precision(.fractionLength(0))))
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(status.isOver ? Theme.Colors.expense : Theme.Colors.textSecondary)
+                    .monospacedDigit()
+            }
+            Text(budgetSummary(status))
+                .font(Theme.Typography.bodySmall)
+                .foregroundStyle(status.isOver ? Theme.Colors.expense : Theme.Colors.textPrimary)
+                .monospacedDigit()
+                .frame(maxWidth: .infinity, alignment: .leading)
+            if status.fxUnavailable {
+                Text("חלק מהסכומים לא נספרו — אין שער חליפין עדכני.")
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        // One element for VoiceOver, read as a sentence rather than as a bar,
+        // a percentage and two amounts in a row.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(budgetAccessibilityLabel(status, categoryName: categoryName)))
+    }
 
     private var noteBlock: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
@@ -1183,16 +1466,46 @@ private struct ExpandedTransactionCard: View {
         }
     }
 
+    /// Up to three rows show at once; any more scroll inside the block.
     private func similarBlock(_ similar: [Transaction]) -> some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            blockLabel("תנועות דומות")
-            VStack(spacing: Theme.Spacing.xs) {
-                ForEach(similar) { tx in
-                    similarRow(tx)
+            blockLabel("תנועות דומות (\(similar.count))")
+            if similar.count > Self.visibleSimilarRows {
+                // The first three rows, laid out but invisible, give the box
+                // its height, and the scroll view is overlaid on exactly that
+                // space — three rows tall at every text size, in one layout
+                // pass. Measuring the rows into state instead would resize the
+                // card a frame after it appears, the same row-height jump the
+                // list's expansion was just rid of.
+                VStack(spacing: Theme.Spacing.xs) {
+                    ForEach(similar.prefix(Self.visibleSimilarRows)) { tx in
+                        SimilarTransactionRow(transaction: tx, isLink: onSelectSimilar != nil)
+                    }
+                }
+                .hidden()
+                .overlay {
+                    ScrollView {
+                        VStack(spacing: Theme.Spacing.xs) {
+                            ForEach(similar) { tx in
+                                similarRow(tx)
+                            }
+                        }
+                    }
+                    // A brief flash says "there's more in here" the moment
+                    // the card opens.
+                    .scrollIndicatorsFlash(onAppear: true)
+                }
+            } else {
+                VStack(spacing: Theme.Spacing.xs) {
+                    ForEach(similar) { tx in
+                        similarRow(tx)
+                    }
                 }
             }
         }
     }
+
+    private static let visibleSimilarRows = 3
 
     /// One similar-transaction line. When the card has an `onSelectSimilar`
     /// handler the line is a button that jumps the list to the original row;
@@ -1221,6 +1534,44 @@ private struct ExpandedTransactionCard: View {
 
     // MARK: Helpers
 
+    /// "ספטמבר", or "ספטמבר 2025" once it isn't this year.
+    private func budgetMonthLabel(_ month: Date) -> String {
+        let calendar = CategoryBudgetStatus.calendar
+        var style = Date.FormatStyle.dateTime.month(.wide).locale(Locale(identifier: "he_IL"))
+        style.calendar = calendar
+        if !calendar.isDate(month, equalTo: .now, toGranularity: .year) {
+            style = style.year()
+        }
+        return month.formatted(style)
+    }
+
+    /// Accent while there's room, orange from 90% (nearly spent), red once
+    /// over. Income is green whatever the share — more than planned is good.
+    private func budgetColor(_ status: CategoryBudgetStatus) -> Color {
+        guard status.kind == .expense else { return Theme.Colors.income }
+        if status.isOver { return Theme.Colors.expense }
+        return status.fraction >= 0.9 ? Theme.Colors.wants : Theme.Colors.accent
+    }
+
+    private func budgetSummary(_ status: CategoryBudgetStatus) -> String {
+        let code = status.currencyCode
+        let actual = status.actual.formattedCurrency(code)
+        let planned = status.planned.formattedCurrency(code)
+        if status.kind == .income {
+            return "התקבלו \(actual) מתוך \(planned)"
+        }
+        if status.isOver {
+            return "\(actual) מתוך \(planned) · חריגה של \(status.overAmount.formattedCurrency(code))"
+        }
+        let left = (status.planned - status.actual).formattedCurrency(code)
+        return "\(actual) מתוך \(planned) · נותרו \(left)"
+    }
+
+    private func budgetAccessibilityLabel(_ status: CategoryBudgetStatus, categoryName: String) -> String {
+        let percent = status.fraction.formatted(.percent.precision(.fractionLength(0)))
+        return "תקציב \(categoryName) ל\(budgetMonthLabel(status.month)): \(budgetSummary(status)), \(percent)"
+    }
+
     private var trimmedNote: String {
         transaction.note.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -1230,7 +1581,7 @@ private struct ExpandedTransactionCard: View {
     private func isEmpty(_ insights: TransactionInsights) -> Bool {
         trimmedNote.isEmpty
             && !insights.hasMeaningfulInsights
-            && transaction.attachments.isEmpty
+            && !hasAttachments
             && insights.similar.isEmpty
     }
 
@@ -1428,8 +1779,6 @@ private struct SimilarTransactionRow: View {
     }
 }
 
-// MARK: - Filter enums
-
 // MARK: - Filters sheet
 
 /// Modal filter editor — separated from the list itself so the toolbar
@@ -1495,19 +1844,21 @@ private struct FiltersSheet: View {
                     Text("קטגוריה")
                 }
 
+                // Every window is one visible tap — it used to be a menu picker,
+                // so the options were hidden until opened and "custom" took two
+                // more steps after that.
                 Section {
-                    Picker("טווח", selection: $filters.range) {
-                        ForEach(DateRangeFilter.allCases) { r in
-                            Text(r.hebrewLabel).tag(r)
-                        }
-                    }
+                    DatePresetGrid(selection: filters.range, onSelect: select)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: Theme.Spacing.xs, leading: 0, bottom: Theme.Spacing.xs, trailing: 0))
 
                     if filters.range == .custom {
                         // Two native date fields — each taps open Apple's
                         // graphical calendar. Both are capped at today (a
                         // ledger only holds past dates), and "to" can't precede
-                        // "from"; `currentInterval` still normalises whole days
-                        // and absorbs any flipped pair defensively.
+                        // "from"; `interval(now:)` still normalises whole days
+                        // and absorbs any flipped pair defensively. They open
+                        // on the window that was showing (`beginCustomRange`).
                         DatePicker(
                             "מתאריך",
                             selection: $filters.customStart,
@@ -1525,7 +1876,14 @@ private struct FiltersSheet: View {
                         .environment(\.locale, Locale(identifier: "he_IL"))
                     }
                 } header: {
-                    Text("טווח תאריכים")
+                    Text("תאריכים")
+                } footer: {
+                    // Spells out what a preset covers — "30 ימים אחרונים" is
+                    // exact, but "which days is that" shouldn't need working
+                    // out. A custom range already shows its dates in the pickers.
+                    if filters.range != .custom, let description = filters.rangeDescription() {
+                        Text(description)
+                    }
                 }
             }
             .scrollContentBackground(.hidden)
@@ -1534,6 +1892,10 @@ private struct FiltersSheet: View {
             .navigationTitle(Text("פילטרים"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("איפוס", action: filters.clear)
+                        .disabled(!filters.hasActiveFilters)
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("סיום") { dismiss() }
                 }
@@ -1555,6 +1917,15 @@ private struct FiltersSheet: View {
         return categories.first { $0.persistentModelID == id }
     }
 
+    /// Picking "custom" seeds its two dates from the window already showing.
+    private func select(_ preset: DateRangeFilter) {
+        if preset == .custom {
+            filters.beginCustomRange()
+        } else {
+            filters.range = preset
+        }
+    }
+
     /// Category kinds that can match under the current type filter. Transfers
     /// carry no category, so that filter keeps both on offer.
     private var offeredKinds: Set<TransactionKind> {
@@ -1562,6 +1933,56 @@ private struct FiltersSheet: View {
         case .income:  [.income]
         case .expense: [.expense]
         case .all, .transfer: [.income, .expense]
+        }
+    }
+}
+
+/// The date windows as a grid of one-tap buttons, current one highlighted.
+///
+/// Adaptive columns with a *scaled* minimum width: at larger text sizes each
+/// button needs more room, so the grid drops to fewer columns rather than
+/// truncating labels like "החודש שעבר".
+private struct DatePresetGrid: View {
+    let selection: DateRangeFilter
+    let onSelect: (DateRangeFilter) -> Void
+
+    @ScaledMetric(relativeTo: .subheadline) private var minimumWidth: CGFloat = 104
+
+    var body: some View {
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: minimumWidth), spacing: Theme.Spacing.sm)],
+            spacing: Theme.Spacing.sm
+        ) {
+            ForEach(DateRangeFilter.allCases) { preset in
+                let isSelected = preset == selection
+                // Plain style is load-bearing: inside a `Form` row, default
+                // buttons all fire together on a tap anywhere in the row.
+                Button {
+                    onSelect(preset)
+                } label: {
+                    Text(preset.hebrewLabel)
+                        .font(Theme.Typography.bodySmall)
+                        .fontWeight(isSelected ? .semibold : .regular)
+                        .foregroundStyle(isSelected ? Theme.Colors.accent : Theme.Colors.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Theme.Spacing.sm + Theme.Spacing.xs)
+                        .background(
+                            isSelected ? Theme.Colors.accent.opacity(0.12) : Theme.Colors.surface,
+                            in: .rect(cornerRadius: Theme.Radius.button)
+                        )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: Theme.Radius.button)
+                                .strokeBorder(isSelected ? Theme.Colors.accent : Theme.Colors.separator, lineWidth: 1)
+                        }
+                        .contentShape(.rect(cornerRadius: Theme.Radius.button))
+                }
+                .buttonStyle(.plain)
+                // Selection isn't carried by colour alone: weight and border
+                // change too, and VoiceOver hears it as a trait.
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+            }
         }
     }
 }

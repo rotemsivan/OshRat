@@ -126,7 +126,9 @@ extension TransactionInsights {
 
         return TransactionInsights(
             occurrenceCount: matches.count,
-            similar: Array(others.prefix(5)),
+            // Ten, not everything: the card shows three at a time and scrolls
+            // for the rest, and a year of weekly groceries is fifty rows.
+            similar: Array(others.prefix(10)),
             cadence: detectCadence(dates: matches.map(\.date)),
             averageAmount: averageAmount,
             amountDeltaFraction: amountDeltaFraction,

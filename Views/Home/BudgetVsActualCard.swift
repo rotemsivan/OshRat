@@ -504,8 +504,10 @@ private struct BudgetProgressRow: View {
 
 /// A single-value progress bar that fills from the leading (RTL: right) edge
 /// to `fillFraction`, growing in once the card appears (unless Reduce Motion
-/// is on, where it's drawn at its final width immediately).
-private struct BudgetProgressBar: View {
+/// is on, where it's drawn at its final width immediately). Shared with the
+/// category budget in a transaction's expanded card, so a budget reads the
+/// same wherever it's shown.
+struct BudgetProgressBar: View {
     let fillFraction: Double
     let color: Color
     let revealed: Bool

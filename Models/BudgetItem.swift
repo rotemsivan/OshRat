@@ -634,3 +634,113 @@ struct BudgetSchedule: Hashable {
         return date.formatted(.dateTime.locale(Locale(identifier: "he_IL")).month(.wide))
     }
 }
+
+// MARK: - CategoryBudgetStatus (one category's month, planned vs actual)
+
+/// How one category is doing against its budget in one month — "₪620 of the
+/// ₪1,000 planned for כלכלת בית in September". A transaction's expanded card
+/// shows it for that transaction's category and month.
+///
+/// Counted by the dashboard card's rules (`BudgetVsActual`), only for a single
+/// category rather than a whole bucket: every budget line of the category adds
+/// its `plannedAmount(inMonth:year:)`; every real transaction of the category
+/// dated in the month adds its amount, transfers and manual balance edits left
+/// out; both sides are converted into the preferred currency, and whatever has
+/// no rate is skipped and flagged rather than counted at face value.
+///
+/// Lives beside `BudgetItem` so the test target, which compiles this file,
+/// can pin the rules down.
+struct CategoryBudgetStatus: Equatable {
+    let kind: TransactionKind
+    let planned: Decimal
+    let actual: Decimal
+    let currencyCode: String
+    /// The first day of the month the figures cover.
+    let month: Date
+    /// Something in the month couldn't be converted, so the figures undercount.
+    let fxUnavailable: Bool
+
+    /// Actual as a share of planned — can pass 1.
+    var fraction: Double {
+        planned > 0 ? NSDecimalNumber(decimal: actual / planned).doubleValue : 0
+    }
+
+    /// Spending past the plan. Income beyond it is good news, not an overrun.
+    var isOver: Bool { kind == .expense && actual > planned }
+
+    var overAmount: Decimal { max(actual - planned, 0) }
+
+    /// Months are Gregorian, as `BudgetItem`'s month/year numbers are — the
+    /// same reason `BudgetReminderService` pins its calendar.
+    static let calendar: Calendar = {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        return calendar
+    }()
+
+    /// The status for `category` in the month containing `date`, or `nil` when
+    /// no budget line plans anything for that category that month — the card
+    /// then says nothing rather than showing a bar against zero.
+    ///
+    /// - Parameter transactions: the ledger **newest first**, as the list's
+    ///   query delivers it. The scan skips everything after the month and
+    ///   stops at the first row before it, so opening a recent transaction
+    ///   reads a month's worth of rows, not the whole history — this runs on
+    ///   the frame the card starts opening.
+    static func make(
+        category: Category,
+        containing date: Date,
+        budgetItems: [BudgetItem],
+        transactions: [Transaction],
+        preferredCurrency: String,
+        fxSnapshot: FXRateSnapshot?,
+        calendar: Calendar = CategoryBudgetStatus.calendar
+    ) -> CategoryBudgetStatus? {
+        guard let window = calendar.dateInterval(of: .month, for: date) else { return nil }
+        let components = calendar.dateComponents([.month, .year], from: date)
+        guard let month = components.month, let year = components.year else { return nil }
+        let kind = category.kind
+        let categoryID = category.persistentModelID
+
+        var fxMissing = false
+        func convert(_ amount: Decimal, _ code: String) -> Decimal? {
+            if code == preferredCurrency { return amount }
+            guard let fxSnapshot,
+                  let value = CurrencyConverter.convert(amount, from: code, to: preferredCurrency, using: fxSnapshot)
+            else {
+                fxMissing = true
+                return nil
+            }
+            return value
+        }
+
+        var planned = Decimal(0)
+        for item in budgetItems where item.kind == kind && item.category?.persistentModelID == categoryID {
+            let amount = item.plannedAmount(inMonth: month, year: year)
+            guard amount != 0, let converted = convert(amount, item.currencyCode) else { continue }
+            planned += converted
+        }
+        guard planned > 0 else { return nil }
+
+        var actual = Decimal(0)
+        for tx in transactions {
+            let day = tx.date
+            if day >= window.end { continue }
+            if day < window.start { break }
+            guard tx.category?.persistentModelID == categoryID,
+                  tx.kind == kind, !tx.isTransfer, !tx.isManualBalanceEdit,
+                  let converted = convert(tx.amount, tx.currencyCode)
+            else { continue }
+            actual += converted
+        }
+
+        return CategoryBudgetStatus(
+            kind: kind,
+            planned: planned,
+            actual: actual,
+            currencyCode: preferredCurrency,
+            month: window.start,
+            fxUnavailable: fxMissing
+        )
+    }
+}
