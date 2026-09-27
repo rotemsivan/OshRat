@@ -237,13 +237,26 @@ struct AdminPanelView: View {
 
 /// The little hammer that opens the panel. Lives in the dashboard header and on
 /// the onboarding screen; both are DEBUG-only call sites.
+///
+/// `-hideAdmin` on the launch line hides it, so a DEBUG build can be recorded
+/// for a teaser without a dev tool in the header. Checked here rather than at
+/// each call site so both hammers obey it.
 struct AdminPanelButton: View {
     /// Passed through to the panel — see `AdminPanelView.onDataChanged`.
     var onDataChanged: (() -> Void)?
 
     @State private var isPresented = false
 
+    /// Launch arguments can't change while the app runs, so read them once.
+    private static let isHidden = CommandLine.arguments.contains("-hideAdmin")
+
     var body: some View {
+        if !Self.isHidden {
+            button
+        }
+    }
+
+    private var button: some View {
         Button {
             isPresented = true
         } label: {

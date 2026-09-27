@@ -45,7 +45,10 @@ struct OshRatApp: App {
     /// xcrun simctl launch booted com.rotem.OshRat -demoScenario saver -demoMonths 24
     /// xcrun simctl launch booted com.rotem.OshRat -resetStore
     /// xcrun simctl launch booted com.rotem.OshRat -demoEquip item-hat-propeller-red
+    /// xcrun simctl launch booted com.rotem.OshRat -hideAdmin
     /// ```
+    ///
+    /// (`-hideAdmin` is read by `AdminPanelButton` itself, not here.)
     ///
     /// `-demoEquip` runs after any deploy (which starts the rat bare), so the
     /// two combine. The item still has to be unlocked at the store's level to
