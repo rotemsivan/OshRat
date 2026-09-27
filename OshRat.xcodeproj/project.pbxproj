@@ -90,6 +90,7 @@
 		5EBREM0100000000000000B1 /* BudgetReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBREM0100000000000000F1 /* BudgetReminder.swift */; };
 		5EBREM0200000000000000B1 /* BudgetReminderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBREM0200000000000000F1 /* BudgetReminderService.swift */; };
 		5EBREM0300000000000000B1 /* BudgetReminderToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBREM0300000000000000F1 /* BudgetReminderToast.swift */; };
+		5ECATM0100000000000000B1 /* CategoryMenuContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECATM0100000000000000F1 /* CategoryMenuContent.swift */; };
 		5ECC1F6E2FDDC729006BAC51 /* TransactionsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECC1F6D2FDDC729006BAC51 /* TransactionsListView.swift */; };
 		5ECC1F702FDDCC37006BAC51 /* HebrewTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECC1F6F2FDDCC37006BAC51 /* HebrewTextField.swift */; };
 		5ECELB0100000000000000B1 /* Celebration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECELB0100000000000000F1 /* Celebration.swift */; };
@@ -154,7 +155,6 @@
 		5EWARD0600000000000000B1 /* WardrobeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0600000000000000F1 /* WardrobeView.swift */; };
 		5EWARD0700000000000000B1 /* WardrobeItemTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0700000000000000F1 /* WardrobeItemTile.swift */; };
 		5EWARD0800000000000000B1 /* WardrobeEntryPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0800000000000000F1 /* WardrobeEntryPoint.swift */; };
-		5ECATM0100000000000000B1 /* CategoryMenuContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECATM0100000000000000F1 /* CategoryMenuContent.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -257,6 +257,7 @@
 		5EBREM0100000000000000F1 /* BudgetReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetReminder.swift; sourceTree = "<group>"; };
 		5EBREM0200000000000000F1 /* BudgetReminderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetReminderService.swift; sourceTree = "<group>"; };
 		5EBREM0300000000000000F1 /* BudgetReminderToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetReminderToast.swift; sourceTree = "<group>"; };
+		5ECATM0100000000000000F1 /* CategoryMenuContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryMenuContent.swift; sourceTree = "<group>"; };
 		5ECC1F6D2FDDC729006BAC51 /* TransactionsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionsListView.swift; sourceTree = "<group>"; };
 		5ECC1F6F2FDDCC37006BAC51 /* HebrewTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HebrewTextField.swift; sourceTree = "<group>"; };
 		5ECELB0100000000000000F1 /* Celebration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Celebration.swift; sourceTree = "<group>"; };
@@ -298,7 +299,6 @@
 		5EWARD0600000000000000F1 /* WardrobeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeView.swift; sourceTree = "<group>"; };
 		5EWARD0700000000000000F1 /* WardrobeItemTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeItemTile.swift; sourceTree = "<group>"; };
 		5EWARD0800000000000000F1 /* WardrobeEntryPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeEntryPoint.swift; sourceTree = "<group>"; };
-		5ECATM0100000000000000F1 /* CategoryMenuContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryMenuContent.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
