@@ -41,10 +41,14 @@ struct AnalyticsReport {
     let periodExpense: Decimal
     let periodTransactionCount: Int
 
-    // The period immediately before the selected one — the baseline for the
-    // comparison station (previous month, or previous year).
-    let prevPeriodIncome: Decimal
-    let prevPeriodExpense: Decimal
+    // The comparison with the period before (previous month, or previous
+    // year) and what drove it — like-for-like while the period is still
+    // running (see `PeriodDrivers.windows`).
+    let comparisonWindows: PeriodDrivers.Windows
+    let drivers: PeriodDrivers
+
+    // The period's plan against reality, category by category.
+    let budget: CategoryBudgetBreakdown
 
     // Where the money goes (selected period, expenses only), biggest first.
     let categoryBreakdown: [CategorySlice]
@@ -63,7 +67,6 @@ struct AnalyticsReport {
     // MARK: Derived
 
     var periodNet: Decimal { periodIncome - periodExpense }
-    var prevPeriodNet: Decimal { prevPeriodIncome - prevPeriodExpense }
 
     /// Whether there's enough to render the roadmap at all. A brand-new
     /// user with no accounts and no transactions sees an empty state
@@ -76,18 +79,16 @@ struct AnalyticsReport {
     /// Signed period-over-period change of expenses, as a fraction
     /// (-0.2 == "20% less than the previous period"). `nil` when there's no
     /// prior-period baseline to compare against.
-    var expenseChangeFraction: Double? {
-        Self.changeFraction(from: prevPeriodExpense, to: periodExpense)
-    }
+    var expenseChangeFraction: Double? { drivers.expense.changeFraction }
 
-    var incomeChangeFraction: Double? {
-        Self.changeFraction(from: prevPeriodIncome, to: periodIncome)
-    }
+    var incomeChangeFraction: Double? { drivers.income.changeFraction }
 
-    static func changeFraction(from old: Decimal, to new: Decimal) -> Double? {
-        guard old > 0 else { return nil }
-        let delta = (new - old) / old
-        return (delta as NSDecimalNumber).doubleValue
+    /// The subtitle for a card comparing against the previous period: the
+    /// period's label, or — while it's still running and the comparison is
+    /// cut to the days so far — how many days are being compared.
+    var comparisonSubtitle: String {
+        guard let days = comparisonWindows.elapsedDays else { return periodLabel }
+        return days == 1 ? "היום הראשון" : "\(days) הימים הראשונים"
     }
 }
 
@@ -144,6 +145,7 @@ extension AnalyticsReport {
     init(
         transactions: [Transaction],
         accounts: [Account],
+        budgetItems: [BudgetItem],
         preferredCurrency: String,
         fxSnapshot: FXRateSnapshot?,
         period: AnalyticsPeriod,
@@ -177,10 +179,9 @@ extension AnalyticsReport {
         let periodInterval = period.interval(calendar)
         let prevInterval = period.previous(calendar).interval(calendar)
 
-        // MARK: Selected period + previous period + category + needs/wants
+        // MARK: Selected period + category + needs/wants
 
         var income = Decimal(0), expense = Decimal(0)
-        var prevIncome = Decimal(0), prevExpense = Decimal(0)
         var periodCount = 0
         var needs = Decimal(0), wants = Decimal(0)
         // Keyed by category name so two transactions in "כלכלת בית" merge.
@@ -207,9 +208,6 @@ extension AnalyticsReport {
                     default: break
                     }
                 }
-            } else if let prevInterval, prevInterval.contains(tx.date) {
-                guard let value = convert(tx.amount, tx.currencyCode) else { continue }
-                if tx.kind == .income { prevIncome += value } else { prevExpense += value }
             }
         }
 
@@ -272,6 +270,33 @@ extension AnalyticsReport {
             }
             .sorted { Self.typeSortRank($0.id) < Self.typeSortRank($1.id) }
 
+        // MARK: Comparison, drivers and budget
+
+        // A period with no interval (a calendar that can't resolve it) falls
+        // back to an empty instant, which simply counts nothing.
+        let emptyInterval = DateInterval(start: now, duration: 0)
+        let windows = PeriodDrivers.windows(
+            current: periodInterval ?? emptyInterval,
+            previous: prevInterval ?? emptyInterval,
+            now: now,
+            calendar: calendar
+        )
+        let drivers = PeriodDrivers(
+            transactions: real,
+            windows: windows,
+            preferredCurrency: preferredCurrency,
+            fxSnapshot: fxSnapshot
+        )
+        let budget = CategoryBudgetBreakdown(
+            budgetItems: budgetItems,
+            transactions: real,
+            interval: periodInterval ?? emptyInterval,
+            preferredCurrency: preferredCurrency,
+            fxSnapshot: fxSnapshot,
+            calendar: calendar,
+            now: now
+        )
+
         // MARK: Assign
 
         self.currencyCode = preferredCurrency
@@ -281,8 +306,9 @@ extension AnalyticsReport {
         self.periodIncome = income
         self.periodExpense = expense
         self.periodTransactionCount = periodCount
-        self.prevPeriodIncome = prevIncome
-        self.prevPeriodExpense = prevExpense
+        self.comparisonWindows = windows
+        self.drivers = drivers
+        self.budget = budget
         self.categoryBreakdown = categorySlices
         self.needsTotal = needs
         self.wantsTotal = wants
@@ -291,7 +317,7 @@ extension AnalyticsReport {
         self.assetAllocation = allocation
         // Set last so every `convert` call above has had its chance to
         // flip the flag.
-        self.fxUnavailable = fxMissing
+        self.fxUnavailable = fxMissing || drivers.fxUnavailable || budget.fxUnavailable
     }
 
     // MARK: - Records
@@ -515,9 +541,12 @@ struct AnalyticsPeriod: Equatable {
 // MARK: - Currency formatting helpers
 
 extension Decimal {
-    /// Plain currency string in the given ISO code.
-    func formattedCurrency(_ code: String) -> String {
-        formatted(.currency(code: code))
+    /// Plain currency string in the given ISO code. `whole` drops the
+    /// agorot — for headline figures, where ".00" is only noise.
+    func formattedCurrency(_ code: String, whole: Bool = false) -> String {
+        whole
+            ? formatted(.currency(code: code).precision(.fractionLength(0)))
+            : formatted(.currency(code: code))
     }
 
     /// Currency string with a +/- sign on the visual left inside an RTL
@@ -530,8 +559,8 @@ extension Decimal {
     /// its own RLMs) into left-to-right order and moved the ₪ to the right of
     /// the number, so a signed amount no longer matched the unsigned ones
     /// around it.
-    func formattedSignedCurrency(_ code: String) -> String {
-        let body = Swift.abs(self).formatted(.currency(code: code))
+    func formattedSignedCurrency(_ code: String, whole: Bool = false) -> String {
+        let body = Swift.abs(self).formattedCurrency(code, whole: whole)
         guard self != 0 else { return body }
         let sign = self > 0 ? "+" : "-"
         return "\(body)\u{2066}\(sign)\u{2069}"

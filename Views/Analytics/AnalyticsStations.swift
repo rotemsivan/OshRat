@@ -43,15 +43,15 @@ struct IncomeExpenseStationView: View {
 
 /// How the selected period stacks up against the one before it (last month /
 /// last year), framed encouragingly — spending less or earning more is good.
+/// While the period is still running both sides are cut to the days it has
+/// had so far (`PeriodDrivers.windows`), and the subtitle says how many.
 struct ComparisonStationView: View {
     let report: AnalyticsReport
 
-    private var hasBaseline: Bool {
-        report.prevPeriodIncome > 0 || report.prevPeriodExpense > 0
-    }
+    private var hasBaseline: Bool { report.drivers.hasBaseline }
 
     var body: some View {
-        StationCard(title: title) {
+        StationCard(title: title, subtitle: report.comparisonSubtitle) {
             if !hasBaseline {
                 StationEmptyText(noBaselineText)
             } else {

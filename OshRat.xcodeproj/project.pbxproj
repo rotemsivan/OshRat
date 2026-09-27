@@ -120,6 +120,14 @@
 		5EDEP00700000000000000B1 /* DepositLadder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00700000000000000F1 /* DepositLadder.swift */; };
 		5EDEP00700000000000000C1 /* DepositLadder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00700000000000000F1 /* DepositLadder.swift */; };
 		5EDEP00700000000000000C2 /* DepositLadder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00700000000000000F1 /* DepositLadder.swift */; };
+		5EINS00100000000000000B1 /* PeriodDrivers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00100000000000000F1 /* PeriodDrivers.swift */; };
+		5EINS00100000000000000C1 /* PeriodDrivers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00100000000000000F1 /* PeriodDrivers.swift */; };
+		5EINS00100000000000000C2 /* PeriodDrivers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00100000000000000F1 /* PeriodDrivers.swift */; };
+		5EINS00200000000000000B1 /* CategoryBudgetBreakdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */; };
+		5EINS00200000000000000C1 /* CategoryBudgetBreakdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */; };
+		5EINS00200000000000000C2 /* CategoryBudgetBreakdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */; };
+		5EINS00300000000000000B1 /* DriversStationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00300000000000000F1 /* DriversStationView.swift */; };
+		5EINS00400000000000000B1 /* BudgetStationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00400000000000000F1 /* BudgetStationView.swift */; };
 		5EFACE0100000000000000A1 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
 		5EFACE0100000000000000A2 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
 		5EFACE0100000000000000A3 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
@@ -278,6 +286,10 @@
 		5EDEP00500000000000000F1 /* DepositLadderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositLadderService.swift; sourceTree = "<group>"; };
 		5EDEP00600000000000000F1 /* DepositTranche.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositTranche.swift; sourceTree = "<group>"; };
 		5EDEP00700000000000000F1 /* DepositLadder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositLadder.swift; sourceTree = "<group>"; };
+		5EINS00100000000000000F1 /* PeriodDrivers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeriodDrivers.swift; sourceTree = "<group>"; };
+		5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryBudgetBreakdown.swift; sourceTree = "<group>"; };
+		5EINS00300000000000000F1 /* DriversStationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DriversStationView.swift; sourceTree = "<group>"; };
+		5EINS00400000000000000F1 /* BudgetStationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetStationView.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F1 /* TransactionAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionAttachment.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F2 /* TransactionInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionInsights.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F3 /* TransactionAttachments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionAttachments.swift; sourceTree = "<group>"; };
@@ -472,6 +484,8 @@
 				5EDEP00100000000000000F1 /* DepositTerms.swift */,
 				5EDEP00600000000000000F1 /* DepositTranche.swift */,
 				5EDEP00700000000000000F1 /* DepositLadder.swift */,
+				5EINS00100000000000000F1 /* PeriodDrivers.swift */,
+				5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */,
 				5E31E5432FD16B6D00FF83C8 /* BudgetItem.swift */,
 				5E31E5442FD16B6D00FF83C8 /* Category.swift */,
 				5E31E5452FD16B6D00FF83C8 /* Goal.swift */,
@@ -544,6 +558,8 @@
 				5EAA170100000000000000F1 /* AnalyticsReport.swift */,
 				5EAA170100000000000000F2 /* AnalyticsView.swift */,
 				5EAA170100000000000000F3 /* AnalyticsStations.swift */,
+				5EINS00300000000000000F1 /* DriversStationView.swift */,
+				5EINS00400000000000000F1 /* BudgetStationView.swift */,
 			);
 			path = Analytics;
 			sourceTree = "<group>";
@@ -842,6 +858,10 @@
 				5EAA170100000000000000B1 /* AnalyticsReport.swift in Sources */,
 				5EAA170100000000000000B2 /* AnalyticsView.swift in Sources */,
 				5EAA170100000000000000B3 /* AnalyticsStations.swift in Sources */,
+				5EINS00100000000000000B1 /* PeriodDrivers.swift in Sources */,
+				5EINS00200000000000000B1 /* CategoryBudgetBreakdown.swift in Sources */,
+				5EINS00300000000000000B1 /* DriversStationView.swift in Sources */,
+				5EINS00400000000000000B1 /* BudgetStationView.swift in Sources */,
 				5E13B1962FD5BD0700C87118 /* DecimalField.swift in Sources */,
 				5EPICK0100000000000000B1 /* PickerRowLabel.swift in Sources */,
 				5E31E54B2FD16B6D00FF83C8 /* UserProfile.swift in Sources */,
@@ -941,6 +961,8 @@
 				5EDEP00100000000000000C1 /* DepositTerms.swift in Sources */,
 				5EDEP00600000000000000C1 /* DepositTranche.swift in Sources */,
 				5EDEP00700000000000000C1 /* DepositLadder.swift in Sources */,
+				5EINS00100000000000000C1 /* PeriodDrivers.swift in Sources */,
+				5EINS00200000000000000C1 /* CategoryBudgetBreakdown.swift in Sources */,
 				5EGAM00100000000000000C1 /* XPRules.swift in Sources */,
 				5EACHV0100000000000000C1 /* Achievement.swift in Sources */,
 				5ECELB0100000000000000C1 /* Celebration.swift in Sources */,
@@ -972,6 +994,8 @@
 				5EDEP00100000000000000C2 /* DepositTerms.swift in Sources */,
 				5EDEP00600000000000000C2 /* DepositTranche.swift in Sources */,
 				5EDEP00700000000000000C2 /* DepositLadder.swift in Sources */,
+				5EINS00100000000000000C2 /* PeriodDrivers.swift in Sources */,
+				5EINS00200000000000000C2 /* CategoryBudgetBreakdown.swift in Sources */,
 				5EGAM00100000000000000C2 /* XPRules.swift in Sources */,
 				5EACHV0100000000000000C2 /* Achievement.swift in Sources */,
 				5ECELB0100000000000000C2 /* Celebration.swift in Sources */,

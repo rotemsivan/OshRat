@@ -6,15 +6,8 @@ import SwiftData
 /// the station instead of animating off-screen. Defaults to `true` so a
 /// station's content shown outside the roadmap (previews, etc.) is fully
 /// drawn.
-private struct StationRevealedKey: EnvironmentKey {
-    static let defaultValue = true
-}
-
 extension EnvironmentValues {
-    var stationRevealed: Bool {
-        get { self[StationRevealedKey.self] }
-        set { self[StationRevealedKey.self] = newValue }
-    }
+    @Entry var stationRevealed = true
 }
 
 /// The analytics screen — a vertical, gamified "financial journey".
@@ -23,8 +16,8 @@ extension EnvironmentValues {
 /// medallions, with content cards swinging to alternating sides as the
 /// user scrolls down. It reads *gradually*, from the basics at the top
 /// (this month, this year) toward richer insight further down
-/// (month-over-month comparison, spending by category, needs vs wants,
-/// personal records, and finally the asset mix).
+/// (month-over-month comparison, what drove it, the budget category by
+/// category, personal records, and finally the asset mix).
 ///
 /// All the number-crunching lives in `AnalyticsReport`; this view just
 /// feeds the right slice of it into each station and animates them in.
@@ -35,6 +28,8 @@ struct AnalyticsView: View {
     private var transactions: [Transaction]
     @Query(filter: #Predicate<Account> { $0.deletedAt == nil }, sort: \Account.name)
     private var accounts: [Account]
+    // Budget lines hard-delete (no trash), so every row here is live.
+    @Query private var budgetItems: [BudgetItem]
     @Query private var profiles: [UserProfile]
     @Query(sort: \FXRateSnapshot.fetchedAt, order: .reverse) private var fxSnapshots: [FXRateSnapshot]
 
@@ -63,6 +58,7 @@ struct AnalyticsView: View {
         AnalyticsReport(
             transactions: transactions,
             accounts: accounts,
+            budgetItems: budgetItems,
             preferredCurrency: profiles.first?.preferredCurrencyCode ?? "ILS",
             fxSnapshot: fxSnapshots.first,
             period: period
@@ -138,18 +134,27 @@ struct AnalyticsView: View {
             RoadmapStationView(index: 3, total: Self.stationCount, symbol: "arrow.left.arrow.right") {
                 ComparisonStationView(report: report)
             }
+            // The two deep-dive stations run full width (no swing): their rows
+            // carry a name, a signed amount and a bar, which need the room.
+            // "What drove it" sits straight under the comparison it explains.
+            RoadmapStationView(index: 4, total: Self.stationCount, symbol: "magnifyingglass", swing: 0) {
+                DriversStationView(report: report)
+            }
+            RoadmapStationView(index: 5, total: Self.stationCount, symbol: "target", swing: 0) {
+                BudgetStationView(report: report)
+            }
             // Full width (no swing): record rows carry a title *and* an amount
             // side by side, so they need the extra room to both stay legible.
-            RoadmapStationView(index: 4, total: Self.stationCount, symbol: "trophy.fill", swing: 0) {
+            RoadmapStationView(index: 6, total: Self.stationCount, symbol: "trophy.fill", swing: 0) {
                 RecordsStationView(report: report)
             }
-            RoadmapStationView(index: 5, total: Self.stationCount, symbol: "building.columns.fill") {
+            RoadmapStationView(index: 7, total: Self.stationCount, symbol: "building.columns.fill") {
                 AssetsStationView(report: report)
             }
         }
     }
 
-    private static let stationCount = 6
+    private static let stationCount = 8
 
     private var fxFootnote: some View {
         Text("חלק מהסכומים לא הומרו — שערי חליפין לא זמינים כרגע.")
