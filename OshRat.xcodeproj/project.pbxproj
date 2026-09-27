@@ -152,6 +152,7 @@
 		5EWARD0300000000000000B1 /* WardrobeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0300000000000000F1 /* WardrobeService.swift */; };
 		5EWARD0400000000000000B1 /* UserAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0400000000000000F1 /* UserAvatar.swift */; };
 		5EWARD0500000000000000B1 /* AvatarPortrait.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0500000000000000F1 /* AvatarPortrait.swift */; };
+		5EWARD0900000000000000B1 /* AvatarRig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0900000000000000F1 /* AvatarRig.swift */; };
 		5EWARD0600000000000000B1 /* WardrobeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0600000000000000F1 /* WardrobeView.swift */; };
 		5EWARD0700000000000000B1 /* WardrobeItemTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0700000000000000F1 /* WardrobeItemTile.swift */; };
 		5EWARD0800000000000000B1 /* WardrobeEntryPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0800000000000000F1 /* WardrobeEntryPoint.swift */; };
@@ -296,6 +297,7 @@
 		5EWARD0300000000000000F1 /* WardrobeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeService.swift; sourceTree = "<group>"; };
 		5EWARD0400000000000000F1 /* UserAvatar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserAvatar.swift; sourceTree = "<group>"; };
 		5EWARD0500000000000000F1 /* AvatarPortrait.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarPortrait.swift; sourceTree = "<group>"; };
+		5EWARD0900000000000000F1 /* AvatarRig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarRig.swift; sourceTree = "<group>"; };
 		5EWARD0600000000000000F1 /* WardrobeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeView.swift; sourceTree = "<group>"; };
 		5EWARD0700000000000000F1 /* WardrobeItemTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeItemTile.swift; sourceTree = "<group>"; };
 		5EWARD0800000000000000F1 /* WardrobeEntryPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeEntryPoint.swift; sourceTree = "<group>"; };
@@ -622,6 +624,7 @@
 			children = (
 				5EWARD0400000000000000F1 /* UserAvatar.swift */,
 				5EWARD0500000000000000F1 /* AvatarPortrait.swift */,
+				5EWARD0900000000000000F1 /* AvatarRig.swift */,
 			);
 			path = Avatar;
 			sourceTree = "<group>";
@@ -901,6 +904,7 @@
 				5EWARD0300000000000000B1 /* WardrobeService.swift in Sources */,
 				5EWARD0400000000000000B1 /* UserAvatar.swift in Sources */,
 				5EWARD0500000000000000B1 /* AvatarPortrait.swift in Sources */,
+				5EWARD0900000000000000B1 /* AvatarRig.swift in Sources */,
 				5EWARD0600000000000000B1 /* WardrobeView.swift in Sources */,
 				5EWARD0700000000000000B1 /* WardrobeItemTile.swift in Sources */,
 				5EWARD0800000000000000B1 /* WardrobeEntryPoint.swift in Sources */,

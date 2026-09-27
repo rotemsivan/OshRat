@@ -15,74 +15,102 @@ enum AvatarCrop {
     }
 }
 
-/// The Bare rat's poses. They differ only in one arm, which is why a hat
-/// drawn once registers on every one of them.
-enum AvatarPose {
-    case base, wave, present, thumbsup, confident, cheer
-
-    /// The body layer's asset. Not every pose exists on both canvases — the
-    /// bust has no `confident`/`cheer`, the full body no `present` — so a
-    /// missing one falls back to `base` rather than to a blank image.
-    func bodyAssetName(for crop: AvatarCrop) -> String {
-        switch crop {
-        case .bust:
-            switch self {
-            case .wave:     return "bare-bust-wave"
-            case .present:  return "bare-bust-present"
-            case .thumbsup: return "bare-bust-thumbsup"
-            case .base, .confident, .cheer: return "bare-bust-base"
-            }
-        case .fullBody:
-            switch self {
-            case .wave:      return "bare-fullbody-wave"
-            case .thumbsup:  return "bare-fullbody-thumbsup"
-            case .confident: return "bare-fullbody-confident"
-            case .cheer:     return "bare-fullbody-cheer"
-            case .base, .present: return "bare-fullbody-base"
-            }
-        }
-    }
-}
-
-/// The avatar drawn from an explicit outfit — back to front: background,
-/// Bare body, outfit, glasses, hat, prop. Glasses go under the hat so a
-/// brim can overlap the frames, never the other way round.
+/// The avatar drawn from an explicit outfit, as a rig: the Bare rat cut into
+/// parts, each limb a group turned about its joint with whatever it wears
+/// drawn *inside* the group, so a sleeve, a pant leg or a shoe takes exactly
+/// its limb's rotation. Back to front:
+///
+///     background
+///     → left leg (leg, pant leg, shoe) → right leg        full body only
+///     → body → pants' hips → top's torso
+///     → left arm (arm, sleeve) → right arm
+///     → head → glasses → hat → prop
+///
+/// The legs sit behind the body so the hips hide their tops at any angle;
+/// glasses sit under the hat so a brim can overlap the frames.
 ///
 /// Every layer is on the same canvas and scaled to fit the same frame, which
 /// is all it takes for them to register. The wardrobe's tiles use this
 /// directly to preview an item on the rat; everything else uses `UserAvatar`.
 struct AvatarLayers: View {
     let crop: AvatarCrop
-    let pose: AvatarPose
+    let rig: AvatarRig
     /// Equipped item per slot. Ids with no catalogue entry are skipped.
     let equipped: [WardrobeSlot: String]
 
-    var body: some View {
-        ZStack {
-            layer(for: .background)
-            layer(named: bodyPose.bodyAssetName(for: crop))
-            layer(for: .outfit)
-            layer(for: .glasses)
-            layer(for: .hat)
-            layer(for: .prop)
-        }
-        .aspectRatio(crop.aspectRatio, contentMode: .fit)
+    init(crop: AvatarCrop, pose: AvatarPose = .base, equipped: [WardrobeSlot: String]) {
+        self.init(crop: crop, rig: pose.rig, equipped: equipped)
     }
 
-    /// The pose the body is actually drawn in. An outfit is drawn with both
-    /// sleeves at rest (the art has one cut, fitted to `base`), so over a
-    /// waving body the rat grows a third arm — the bare one still waving
-    /// beside two sleeves. Dressed, it stands; the wave keeps its whole-body
-    /// tilt where one is animated (the greeting), so it still reads as a
-    /// hello. Hats and glasses don't touch the arms and keep every pose.
-    private var bodyPose: AvatarPose {
-        equipped[.outfit].flatMap(WardrobeItem.withID) == nil ? pose : .base
+    init(crop: AvatarCrop, rig: AvatarRig, equipped: [WardrobeSlot: String]) {
+        self.crop = crop
+        self.rig = rig
+        self.equipped = equipped
+    }
+
+    var body: some View {
+        let items = equipped.compactMapValues(WardrobeItem.withID)
+        ZStack {
+            bodyLayer(.background, items)
+            if crop == .fullBody {
+                part("tail")
+                leg(.left, items)
+                leg(.right, items)
+            }
+            part("body")
+            bodyLayer(.pants, items)
+            bodyLayer(.outfit, items)
+            arm(.left, items)
+            arm(.right, items)
+            part("head")
+            bodyLayer(.glasses, items)
+            bodyLayer(.hat, items)
+            bodyLayer(.prop, items)
+        }
+        .aspectRatio(crop.aspectRatio, contentMode: .fit)
+        // The pivots are canvas coordinates measured from the left, and the
+        // art is never mirrored. Under the app's RTL layout a rotation's
+        // anchor would be measured from the right instead, turning each arm
+        // about the other shoulder. Nothing in here is text, so pin it.
+        .environment(\.layoutDirection, .leftToRight)
+    }
+
+    // MARK: - Limbs
+
+    private func arm(_ side: LimbSide, _ items: [WardrobeSlot: WardrobeItem]) -> some View {
+        ZStack {
+            part("arm-\(side.rawValue)")
+            limbLayer(.outfit, side, items)
+        }
+        .rotationEffect(rig.arm(side), anchor: crop.armPivot(side))
+    }
+
+    private func leg(_ side: LimbSide, _ items: [WardrobeSlot: WardrobeItem]) -> some View {
+        ZStack {
+            part("leg-\(side.rawValue)")
+            limbLayer(.pants, side, items)
+            limbLayer(.shoes, side, items)
+        }
+        .rotationEffect(rig.leg(side), anchor: crop.legPivot(side))
+    }
+
+    // MARK: - Layers
+
+    private func part(_ name: String) -> some View {
+        layer(named: "\(crop.rigPrefix)-\(name)")
     }
 
     @ViewBuilder
-    private func layer(for slot: WardrobeSlot) -> some View {
-        if let id = equipped[slot], let item = WardrobeItem.withID(id) {
-            layer(named: crop == .bust ? item.bustAssetName : item.fullBodyAssetName)
+    private func bodyLayer(_ slot: WardrobeSlot, _ items: [WardrobeSlot: WardrobeItem]) -> some View {
+        if let name = items[slot]?.bodyAssetName(on: crop.canvas) {
+            layer(named: name)
+        }
+    }
+
+    @ViewBuilder
+    private func limbLayer(_ slot: WardrobeSlot, _ side: LimbSide, _ items: [WardrobeSlot: WardrobeItem]) -> some View {
+        if let name = items[slot]?.limbAssetName(side, on: crop.canvas) {
+            layer(named: name)
         }
     }
 
@@ -102,17 +130,29 @@ struct AvatarLayers: View {
 /// call site can't forget to pass it along and show a stale rat.
 struct UserAvatar: View {
     var crop: AvatarCrop = .bust
-    var pose: AvatarPose = .base
+    var rig: AvatarRig = .rest
 
     @Query(sort: \MascotConfig.createdAt, order: .forward)
     private var configs: [MascotConfig]
     @Query(sort: \UserProgress.createdAt, order: .forward)
     private var progressRows: [UserProgress]
 
+    init(crop: AvatarCrop = .bust, pose: AvatarPose = .base) {
+        self.crop = crop
+        self.rig = pose.rig
+    }
+
+    /// For a caller animating the limbs itself.
+    init(crop: AvatarCrop = .bust, rig: AvatarRig) {
+        self.crop = crop
+        self.rig = rig
+    }
+
     var body: some View {
-        AvatarLayers(crop: crop, pose: pose, equipped: equipped)
+        let equipped = equipped
+        AvatarLayers(crop: crop, rig: rig, equipped: equipped)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text(accessibilityLabel))
+            .accessibilityLabel(Text(accessibilityLabel(for: equipped)))
     }
 
     /// The config's picks, minus anything the current level no longer
@@ -133,8 +173,11 @@ struct UserAvatar: View {
         return result
     }
 
-    private var accessibilityLabel: String {
-        let names = WardrobeSlot.allCases.compactMap { equipped[$0].flatMap(WardrobeItem.withID)?.name }
+    /// Names only what this crop shows — a bust can't be wearing shoes.
+    private func accessibilityLabel(for equipped: [WardrobeSlot: String]) -> String {
+        let names = WardrobeSlot.allCases
+            .filter { $0.isDrawn(on: crop.canvas) }
+            .compactMap { equipped[$0].flatMap(WardrobeItem.withID)?.name }
         guard !names.isEmpty else { return String(localized: "העכבר שלך") }
         return String(localized: "העכבר שלך, עם \(names.formatted(.list(type: .and)))")
     }

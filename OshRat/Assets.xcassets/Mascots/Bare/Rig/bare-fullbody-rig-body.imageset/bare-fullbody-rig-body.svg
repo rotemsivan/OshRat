@@ -1,0 +1,9 @@
+<svg width="360" height="660" viewBox="0 0 360 660" xmlns="http://www.w3.org/2000/svg">
+  <title>OshRat rig (full): body</title>
+  <defs>
+    <radialGradient id="fur" cx="42%" cy="34%" r="78%"><stop offset="0%" stop-color="#B4B4BC"/><stop offset="100%" stop-color="#80808A"/></radialGradient>
+  </defs>
+  <path d="M118 268 Q128 250 180 248 Q232 250 242 268 L248 388 Q248 438 180 450 Q112 438 104 388 Z" fill="url(#fur)"/>
+  <ellipse cx="180" cy="356" rx="46" ry="64" fill="#C7C7CF" opacity="0.85"/>
+  <path d="M170 238 Q180 235 190 238 L196 290 L164 290 Z" fill="url(#fur)"/>
+</svg>

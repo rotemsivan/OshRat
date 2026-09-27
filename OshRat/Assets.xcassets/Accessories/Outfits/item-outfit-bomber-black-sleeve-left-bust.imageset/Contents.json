@@ -1,0 +1,15 @@
+{
+  "images": [
+    {
+      "filename": "item-outfit-bomber-black-sleeve-left-bust.svg",
+      "idiom": "universal"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  },
+  "properties": {
+    "preserves-vector-representation": true
+  }
+}

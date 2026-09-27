@@ -62,31 +62,34 @@ struct GreetingHeaderView: View {
     /// The rat at rest, giving a short wave each time the dashboard appears.
     ///
     /// The dashboard branch is rebuilt on every switch to the Home tab, so
-    /// `onAppear` fires on each arrival and bumps the trigger. The art is one
-    /// drawing per pose, so the arm can't swing on its own: the wave is the
-    /// wave pose held for a moment, with the whole rat tilting side to side
-    /// on its base. Under Reduce Motion the tilt and hop stay at zero and only
-    /// the pose changes.
+    /// `onAppear` fires on each arrival and bumps the trigger. The arm is a
+    /// rig part, so it really swings about the shoulder — sleeve and all —
+    /// with a small tilt and hop of the whole rat for warmth. Under Reduce
+    /// Motion the tilt and hop stay at zero and the arm steps to the wave
+    /// pose and back.
     private var wavingRat: some View {
         KeyframeAnimator(initialValue: WaveMotion(), trigger: waveTrigger) { motion in
-            UserAvatar(crop: .bust, pose: motion.armRaised > 0.5 ? .wave : .base)
+            let rig = AvatarRig(rightArm: motion.rightArm)
+            UserAvatar(crop: .bust, rig: reduceMotion ? rig.steppedToWave : rig)
                 .rotationEffect(.degrees(reduceMotion ? 0 : motion.tilt), anchor: .bottom)
                 .offset(y: reduceMotion ? 0 : motion.hop)
         } keyframes: { _ in
-            // Wait out the tab's fade, raise the arm, hold, lower it.
-            KeyframeTrack(\.armRaised) {
+            // Wait out the tab's fade, raise the arm, wave, lower it.
+            KeyframeTrack(\.rightArm) {
                 LinearKeyframe(0, duration: 0.3)
-                LinearKeyframe(1, duration: 0.01)
-                LinearKeyframe(1, duration: 1.1)
-                LinearKeyframe(0, duration: 0.01)
+                CubicKeyframe(-135, duration: 0.25)
+                CubicKeyframe(-115, duration: 0.2)
+                CubicKeyframe(-150, duration: 0.2)
+                CubicKeyframe(-120, duration: 0.2)
+                CubicKeyframe(-135, duration: 0.15)
+                CubicKeyframe(0, duration: 0.35)
             }
             // A little side-to-side while the arm is up, settling to rest.
             KeyframeTrack(\.tilt) {
                 LinearKeyframe(0, duration: 0.3)
-                CubicKeyframe(-4, duration: 0.2)
-                CubicKeyframe(3, duration: 0.25)
-                CubicKeyframe(-3, duration: 0.25)
-                CubicKeyframe(2, duration: 0.25)
+                CubicKeyframe(-2, duration: 0.25)
+                CubicKeyframe(2, duration: 0.4)
+                CubicKeyframe(-1, duration: 0.4)
                 SpringKeyframe(0, duration: 0.4)
             }
             // A small lift as the arm goes up.
@@ -122,9 +125,8 @@ struct GreetingHeaderView: View {
 
 /// The greeting rat's wave, as the values `KeyframeAnimator` interpolates.
 private struct WaveMotion {
-    /// Above 0.5 shows the wave pose. A number rather than a `Bool` because
-    /// keyframes only interpolate numbers.
-    var armRaised: Double = 0
+    /// The right arm's angle about its shoulder, in degrees (see `AvatarRig`).
+    var rightArm: Double = 0
     /// Degrees, around the bust's base.
     var tilt: Double = 0
     /// Points; negative lifts.

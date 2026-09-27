@@ -20,6 +20,9 @@ final class MascotConfig {
     var glassesID: String?
     var hatID: String?
     var propID: String?
+    /// Added with the leg rig, the same way as `glassesID`.
+    var pantsID: String?
+    var shoesID: String?
 
     var createdAt: Date = Date.now
 
@@ -30,6 +33,8 @@ final class MascotConfig {
     func equippedID(for slot: WardrobeSlot) -> String? {
         switch slot {
         case .background: return backgroundID
+        case .shoes:      return shoesID
+        case .pants:      return pantsID
         case .outfit:     return outfitID
         case .glasses:    return glassesID
         case .hat:        return hatID
@@ -40,6 +45,8 @@ final class MascotConfig {
     func setEquippedID(_ id: String?, for slot: WardrobeSlot) {
         switch slot {
         case .background: backgroundID = id
+        case .shoes:      shoesID = id
+        case .pants:      pantsID = id
         case .outfit:     outfitID = id
         case .glasses:    glassesID = id
         case .hat:        hatID = id

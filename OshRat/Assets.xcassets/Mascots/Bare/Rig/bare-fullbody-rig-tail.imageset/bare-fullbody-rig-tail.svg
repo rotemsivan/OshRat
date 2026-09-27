@@ -1,0 +1,8 @@
+<svg width="360" height="660" viewBox="0 0 360 660" xmlns="http://www.w3.org/2000/svg">
+  <title>OshRat rig (full): tail</title>
+  <defs>
+    <radialGradient id="fur" cx="42%" cy="34%" r="78%"><stop offset="0%" stop-color="#B4B4BC"/><stop offset="100%" stop-color="#80808A"/></radialGradient>
+  </defs>
+  <path d="M200 460 Q282 476 298 420 Q306 390 286 380" fill="none" stroke="#A0A0A8" stroke-width="13" stroke-linecap="round"/>
+  <path d="M200 460 Q282 476 298 420 Q306 390 286 380" fill="none" stroke="#D99A9A" stroke-width="5" stroke-linecap="round" opacity="0.35"/>
+</svg>

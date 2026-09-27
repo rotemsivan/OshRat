@@ -24,12 +24,8 @@ struct WardrobeView: View {
     private var progressRows: [UserProgress]
 
     @State private var slot: WardrobeSlot = .hat
-    /// Tapping the big rat makes it wave for a moment.
-    @State private var isWaving = false
-
-    /// Compact on purpose: the rat is the star of this screen, and the
-    /// items are a strip of choices under it.
-    @ScaledMetric(relativeTo: .body) private var tileWidth: CGFloat = 68
+    /// Bumped by a tap on the big rat to replay its wave.
+    @State private var waveCount = 0
 
     private var level: Int { progressRows.first?.level ?? 1 }
 
@@ -52,12 +48,7 @@ struct WardrobeView: View {
                 VStack(spacing: Theme.Spacing.lg) {
                     preview
 
-                    Picker("סוג פריט", selection: $slot) {
-                        ForEach(WardrobeSlot.tabOrder) { slot in
-                            Text(slot.hebrewLabel).tag(slot)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+                    slotTabs
 
                     slotContent
                 }
@@ -110,13 +101,49 @@ struct WardrobeView: View {
         .accessibilityHint(Text("הקש כדי שהעכבר ינופף"))
     }
 
+    /// One chip per slot, scrolling sideways. Seven slots don't fit a
+    /// segmented control at phone width — the labels truncate, and at large
+    /// text sizes they'd be unreadable — so this is the filter-chip look
+    /// from the transactions list instead.
+    private var slotTabs: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: Theme.Spacing.sm) {
+                ForEach(WardrobeSlot.tabOrder) { tab in
+                    let isSelected = tab == slot
+                    Button {
+                        slot = tab
+                    } label: {
+                        Text(tab.hebrewLabel)
+                            .font(Theme.Typography.bodySmall)
+                            .fontWeight(isSelected ? .semibold : .regular)
+                            .foregroundStyle(isSelected ? Theme.Colors.accent : Theme.Colors.textSecondary)
+                            .padding(.horizontal, Theme.Spacing.sm + Theme.Spacing.xs)
+                            .padding(.vertical, Theme.Spacing.sm)
+                            .background(
+                                isSelected ? Theme.Colors.accent.opacity(0.12) : Theme.Colors.surface,
+                                in: .capsule
+                            )
+                            .contentShape(.capsule)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(isSelected ? .isSelected : [])
+                }
+            }
+        }
+        .scrollIndicators(.hidden)
+        // Bleed to the screen edges so chips scroll off them rather than
+        // vanishing at the gutter, and put the gutter back as a margin.
+        .padding(.horizontal, -Theme.Spacing.lg)
+        .contentMargins(.horizontal, Theme.Spacing.lg, for: .scrollContent)
+    }
+
     /// The rat, alive: a slow breath (a slight vertical stretch) and a gentle
     /// sway, looping. Both pivot on the feet, so it moves without sliding off
     /// its shadow. The two tracks share one 4.8 s period so the loop has no
     /// seam. Under Reduce Motion it stands still.
     @ViewBuilder
     private var idlingRat: some View {
-        let rat = UserAvatar(crop: .fullBody, pose: isWaving ? .wave : .base)
+        let rat = wavingRat
         if reduceMotion {
             rat
         } else {
@@ -142,17 +169,36 @@ struct WardrobeView: View {
         }
     }
 
-    /// Wave, hold it a moment, then settle — chained through the first
-    /// animation's completion, with the hold as the second one's delay.
-    private func wave() {
-        guard !isWaving else { return }
-        withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.6)) {
-            isWaving = true
-        } completion: {
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.25).delay(0.8)) {
-                isWaving = false
+    /// The rat's wave: the right arm swings up and waves about its
+    /// shoulder while the left foot kicks out — every layer riding its limb,
+    /// so a sleeve, a pant leg and a shoe move with it in any outfit.
+    ///
+    /// Under Reduce Motion the arm steps to the wave pose and back, with no
+    /// swing and no kick.
+    private var wavingRat: some View {
+        KeyframeAnimator(initialValue: AvatarRig.rest, trigger: waveCount) { rig in
+            UserAvatar(crop: .fullBody, rig: reduceMotion ? rig.steppedToWave : rig)
+        } keyframes: { _ in
+            KeyframeTrack(\.rightArm) {
+                CubicKeyframe(-135, duration: 0.3)
+                CubicKeyframe(-115, duration: 0.18)
+                CubicKeyframe(-150, duration: 0.18)
+                CubicKeyframe(-120, duration: 0.18)
+                CubicKeyframe(-140, duration: 0.18)
+                CubicKeyframe(-135, duration: 0.12)
+                CubicKeyframe(0, duration: 0.35)
+            }
+            KeyframeTrack(\.leftLeg) {
+                LinearKeyframe(0, duration: 0.15)
+                CubicKeyframe(15, duration: 0.2)
+                LinearKeyframe(15, duration: 0.8)
+                CubicKeyframe(0, duration: 0.3)
             }
         }
+    }
+
+    private func wave() {
+        waveCount += 1
     }
 
     // MARK: - Items
@@ -170,9 +216,15 @@ struct WardrobeView: View {
             }
             .padding(.top, Theme.Spacing.lg)
         } else {
+            // Three to a row, always: at phone width that makes each tile
+            // about a third of the screen, big enough to read the item on
+            // the rat — an adaptive grid packed five small ones in.
             LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: tileWidth), spacing: Theme.Spacing.sm, alignment: .top)],
-                spacing: Theme.Spacing.sm
+                columns: Array(
+                    repeating: GridItem(.flexible(), spacing: Theme.Spacing.md, alignment: .top),
+                    count: 3
+                ),
+                spacing: Theme.Spacing.md
             ) {
                 // "Nothing" first: the way to take the current item off.
                 WardrobeItemTile(

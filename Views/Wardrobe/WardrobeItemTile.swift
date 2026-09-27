@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// One wardrobe choice: the rat's head wearing the item, its name, and its
+/// One wardrobe choice: the rat wearing the item (cropped to where it goes), its name, and its
 /// state. `item == nil` is the "nothing" tile that takes the slot's item off.
 ///
 /// - Unlocked: rimmed in the tier's metal (the achievement colours, so a gold
@@ -16,7 +16,6 @@ struct WardrobeItemTile: View {
     let onSelect: () -> Void
 
     @State private var isShowingLockedNote = false
-    @ScaledMetric(relativeTo: .body) private var portraitSize: CGFloat = 56
 
     private var isLocked: Bool {
         guard let item else { return false }
@@ -50,14 +49,33 @@ struct WardrobeItemTile: View {
 
     // MARK: - Parts
 
-    private var portrait: some View {
-        AvatarPortrait(diameter: portraitSize, framing: slot == .outfit ? .torso : .headroom) {
-            AvatarLayers(
-                crop: .bust,
-                pose: .base,
-                equipped: item.map { [slot: $0.id] } ?? [:]
-            )
+    /// Where the tile looks: the part of the rat the slot dresses.
+    private var framing: AvatarFraming {
+        switch slot {
+        case .outfit: return .torso
+        case .pants:  return .legs
+        case .shoes:  return .feet
+        case .background, .glasses, .hat, .prop: return .headroom
         }
+    }
+
+    /// A square as wide as the tile's grid column. The `GeometryReader` sits
+    /// in an overlay of that square, so it reads the size in the same layout
+    /// pass rather than a frame later.
+    private var portrait: some View {
+        Color.clear
+            .aspectRatio(1, contentMode: .fit)
+            .overlay {
+                GeometryReader { proxy in
+                    AvatarPortrait(diameter: proxy.size.width, framing: framing) {
+                        AvatarLayers(
+                            crop: framing.crop,
+                            pose: .base,
+                            equipped: item.map { [slot: $0.id] } ?? [:]
+                        )
+                    }
+                }
+            }
         .background(Theme.Colors.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
         .saturation(isLocked ? 0 : 1)
