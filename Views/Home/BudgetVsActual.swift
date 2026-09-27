@@ -102,7 +102,7 @@ struct BudgetLine: Identifiable {
             switch self {
             case .income: return "הכנסות"
             case .needs:  return "צרכים"
-            case .wants:  return "רצונות"
+            case .wants:  return "מותרות"
             }
         }
 

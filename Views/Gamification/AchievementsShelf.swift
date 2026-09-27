@@ -12,6 +12,11 @@ import SwiftUI
 ///
 /// Order is the catalogue's, not earned-first: the shelf is a collection, and
 /// patches shuffling position as they unlock would make it read like a list.
+///
+/// **Collapsed by default** to its first group, with a button that opens the
+/// rest — all 24 patches made the shelf the longest thing on the profile
+/// tab. The header's "N מתוך 24" still counts the whole collection, so the
+/// short view never hides how far along the user is.
 struct AchievementsShelf: View {
     /// `UserProgress.unlockedAchievements`, passed in rather than queried so
     /// the shelf reads the same row the level card beside it does.
@@ -21,7 +26,14 @@ struct AchievementsShelf: View {
     /// fewer, wider columns at large text sizes instead of squeezing titles.
     @ScaledMetric(relativeTo: .caption) private var minimumTileWidth: CGFloat = 76
 
+    @State private var isExpanded = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     private var unlocked: Set<String> { Set(unlockedIDs) }
+
+    private var visibleGroups: [AchievementGroup] {
+        isExpanded ? AchievementGroup.allCases : Array(AchievementGroup.allCases.prefix(1))
+    }
 
     private var earnedCount: Int {
         Achievement.catalogue.filter { unlocked.contains($0.id) }.count
@@ -31,9 +43,21 @@ struct AchievementsShelf: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
             header
 
-            ForEach(AchievementGroup.allCases, id: \.self) { group in
+            ForEach(visibleGroups, id: \.self) { group in
                 section(for: group)
             }
+
+            Button(action: toggleExpanded) {
+                Label(
+                    isExpanded ? "הצג פחות" : "כל ההישגים",
+                    systemImage: isExpanded ? "chevron.up" : "chevron.down"
+                )
+                .font(Theme.Typography.bodySmall)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Theme.Colors.accent)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardStyle()
@@ -61,6 +85,12 @@ struct AchievementsShelf: View {
                 .background(Theme.Colors.accent.opacity(0.12), in: Capsule())
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private func toggleExpanded() {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.25)) {
+            isExpanded.toggle()
+        }
     }
 
     private func section(for group: AchievementGroup) -> some View {

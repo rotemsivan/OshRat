@@ -130,8 +130,8 @@ extension Achievement {
             symbolName: "checkmark.shield.fill", hint: "שנים-עשר חודשים רצופים בתוך התקציב"
         ),
         Achievement(
-            id: "wants-under-30", title: "רצונות מתחת ל-30%", group: .discipline, tier: .bronze,
-            symbolName: "bag.fill", hint: "חודש שבו הרצונות היו פחות מ-30% מההוצאות"
+            id: "wants-under-30", title: "מותרות מתחת ל-30%", group: .discipline, tier: .bronze,
+            symbolName: "bag.fill", hint: "חודש שבו המותרות היו פחות מ-30% מההוצאות"
         ),
 
         // צמיחה — growth

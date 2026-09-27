@@ -1,37 +1,62 @@
 import Foundation
 import SwiftData
 
-/// Creates a starter set of Hebrew categories the first time the app launches,
-/// so the user isn't faced with an empty list. Runs only when none exist yet.
+/// Keeps the default Hebrew categories in the store, so the user is never
+/// faced with an empty list.
 ///
-/// Each expense category is tagged as a *need* (צרכים) or a *want* (רצונות)
+/// Each expense category is tagged as a *need* (צרכים) or a *want* (מותרות)
 /// so the budget builder during onboarding — and the dashboard later — can
 /// visually distinguish "must-pay" lines from discretionary spending.
 /// Income categories use `.neutral`.
+///
+/// The defaults are **immutable** (`Category.isUserCreated` is false for
+/// them; the manager can't edit or delete them), which is what makes a plain
+/// top-up by name on every launch safe: nothing the user did can be undone by
+/// it.
 enum SeedData {
-    /// Idempotent seed: insert any default categories that aren't
-    /// already in the store, keyed by `(name, kind)`. The old
-    /// implementation skipped the entire pass if *any* category
-    /// existed, which made it easy to end up with a partial set after
-    /// a debug reset (e.g. user added one custom category, then reset
-    /// killed everything → next launch saw "non-empty" and skipped).
-    /// This version is safe to call every launch.
+
+    /// Defaults that were renamed, old name → new. Applied before the top-up,
+    /// so an existing user's row is renamed **in place** — its transactions
+    /// and budget lines come with it — rather than a second, empty category
+    /// appearing beside it under the new name.
+    static let renamedDefaults: [(old: String, new: String)] = [
+        ("שכירות", "דיור"),
+        ("לימודים", "חינוך והשכלה")
+    ]
+
+    /// Renames any default still under an old name, then inserts every default
+    /// the store doesn't have (keyed by name and kind). Idempotent, so it runs
+    /// every launch — and a new default added to `defaultCategories()` reaches
+    /// existing users without any extra step. A **rename** does need an entry
+    /// in `renamedDefaults`, or the old row would be kept and a new empty one
+    /// added beside it.
     static func seedDefaultCategoriesIfNeeded(in context: ModelContext) {
         let existing = (try? context.fetch(FetchDescriptor<Category>())) ?? []
-        // A composite key — same name on income vs expense (e.g.
-        // "מתנות") should not collide.
-        var existingKeys: Set<String> = []
-        for category in existing {
-            existingKeys.insert(Self.key(for: category))
+        var changed = false
+
+        for (old, new) in renamedDefaults {
+            let hasNew = existing.contains { $0.kind == .expense && $0.name == new }
+            // Only a default is renamed; a category the user made is theirs.
+            if !hasNew, let legacy = existing.first(where: {
+                $0.kind == .expense && $0.name == old && !$0.isUserCreated
+            }) {
+                legacy.name = new
+                changed = true
+            }
         }
 
-        var inserted = false
-        for category in defaultCategories() where !existingKeys.contains(Self.key(for: category)) {
+        // Name and kind, not nature: a user's own "מינויים" filed as a need
+        // still means the default "מינויים" is already there.
+        var present = Set(existing.map { "\($0.name)|\($0.kind.rawValue)" })
+        for category in defaultCategories() {
+            let key = "\(category.name)|\(category.kind.rawValue)"
+            guard !present.contains(key) else { continue }
             context.insert(category)
-            existingKeys.insert(Self.key(for: category))
-            inserted = true
+            present.insert(key)
+            changed = true
         }
-        if inserted {
+
+        if changed {
             try? context.save()
         }
     }
@@ -99,21 +124,21 @@ enum SeedData {
     }
 
     /// Returns a fresh batch of the starter categories. Pulled out so the
-    /// dev "reset" flow can re-seed without going through the
-    /// "only if empty" gate above.
+    /// dev "reset" flow can re-seed directly. Adding a category here is all
+    /// it takes; **renaming** one also needs an entry in `renamedDefaults`.
     static func defaultCategories() -> [Category] {
         return [
             // NEEDS — צרכים
             Category(name: "כלכלת בית",              kind: .expense, colorHex: "#E57373", symbolName: "cart",            nature: .need),
-            Category(name: "שכירות",            kind: .expense, colorHex: "#64B5F6", symbolName: "house",           nature: .need),
+            Category(name: "דיור",              kind: .expense, colorHex: "#64B5F6", symbolName: "house",           nature: .need),
             Category(name: "חשבונות",           kind: .expense, colorHex: "#BA68C8", symbolName: "doc.text",        nature: .need),
             Category(name: "ביטוחים",           kind: .expense, colorHex: "#9575CD", symbolName: "shield",          nature: .need),
-            Category(name: "לימודים",           kind: .expense, colorHex: "#7986CB", symbolName: "graduationcap",   nature: .need),
+            Category(name: "חינוך והשכלה",      kind: .expense, colorHex: "#7986CB", symbolName: "graduationcap",   nature: .need),
             Category(name: "תחבורה ציבורית",   kind: .expense, colorHex: "#FFB74D", symbolName: "bus",             nature: .need),
             Category(name: "הוצאות רכב",        kind: .expense, colorHex: "#FF8A65", symbolName: "car",             nature: .need),
             Category(name: "בריאות",            kind: .expense, colorHex: "#F06292", symbolName: "cross.case",      nature: .need),
 
-            // WANTS — רצונות
+            // WANTS — מותרות
             Category(name: "בילויים",                 kind: .expense, colorHex: "#4DB6AC", symbolName: "ticket",     nature: .want),
             Category(name: "חופשות",                 kind: .expense, colorHex: "#4d83b6", symbolName: "airplane",     nature: .want),
             Category(name: "מסעדות ובתי קפה",       kind: .expense, colorHex: "#81C784", symbolName: "fork.knife", nature: .want),
@@ -121,6 +146,9 @@ enum SeedData {
             Category(name: "מתנות",                    kind: .expense, colorHex: "#FFB74D", symbolName: "gift",       nature: .want),
             Category(name: "טיפוח",                    kind: .expense, colorHex: "#CE93D8", symbolName: "scissors",   nature: .want),
             Category(name: "כושר גופני",                 kind: .expense, colorHex: "#A1887F", symbolName: "figure.run",  nature: .want),
+            // Netflix, Spotify, iCloud… — small, recurring and easy to forget.
+            Category(name: "מינויים",                  kind: .expense, colorHex: "#E53935", symbolName: "play.rectangle", nature: .want),
+            Category(name: "שונות",                    kind: .expense, colorHex: "#90A4AE", symbolName: "ellipsis.circle", nature: .want),
 
             // SECURITIES — ני״ע
             // Stand-ins until investment accounts are built: until then, buying

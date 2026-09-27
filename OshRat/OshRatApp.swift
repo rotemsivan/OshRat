@@ -25,9 +25,9 @@ struct OshRatApp: App {
             // the idempotent seed would see "name already present" and
             // skip while a duplicate still lurked in the database.
             SeedData.dedupeCategoriesIfNeeded(in: container.mainContext)
-            // Now safe to top up. Idempotent — adds only categories the
-            // store doesn't already have, so it runs every launch
-            // without growing the table.
+            // Now safe to top up. Idempotent — renames legacy defaults in
+            // place and adds only the defaults the store doesn't have, so it
+            // runs every launch without growing the table.
             SeedData.seedDefaultCategoriesIfNeeded(in: container.mainContext)
             #if DEBUG
             Self.applyDemoLaunchArguments(in: container.mainContext)

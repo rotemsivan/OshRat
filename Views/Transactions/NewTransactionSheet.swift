@@ -81,6 +81,7 @@ struct NewTransactionSheet: View {
     @State private var sourceAccount: Account?
     @State private var destinationAccount: Account?
     @State private var category: Category?
+    @State private var isCreatingCategory = false
     @State private var title: String = ""
     @State private var details: String = ""
     /// When the transaction happened. Defaults to "now" for a new entry,
@@ -475,7 +476,7 @@ struct NewTransactionSheet: View {
     }
 
     /// The app's shared category menu (see `CategoryMenuContent`): an
-    /// expense lists its categories grouped into צרכים / רצונות / אחר like
+    /// expense lists its categories grouped into צרכים / מותרות / אחר like
     /// the budget does, an income its income categories — same order and
     /// glyphs as every other category picker. The row shows the chosen
     /// category's glyph too, as the budget editor's does.
@@ -484,12 +485,20 @@ struct NewTransactionSheet: View {
             sectionLabel("קטגוריה")
             Menu {
                 if let transactionKind = kind.transactionKind {
-                    CategoryMenuContent(categories: categories, kinds: [transactionKind]) { picked in
-                        category = picked
-                    }
+                    CategoryMenuContent(
+                        categories: categories,
+                        kinds: [transactionKind],
+                        onSelect: { category = $0 },
+                        onCreate: { isCreatingCategory = true }
+                    )
                 }
             } label: {
                 PickerRowLabel(text: category?.name ?? "בחרו קטגוריה", systemImage: category?.symbolName)
+            }
+            // A category made here is selected straight away — making it was
+            // the point.
+            .sheet(isPresented: $isCreatingCategory) {
+                CategoryEditorSheet(fixedKind: kind.transactionKind) { category = $0 }
             }
         }
     }

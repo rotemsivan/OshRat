@@ -161,7 +161,7 @@ enum DepositKind: String, Codable, CaseIterable, Identifiable {
 /// user creates manually later — we never want to silently mislabel.
 enum CategoryNature: String, Codable, CaseIterable, Identifiable {
     case need      // צרכים
-    case want      // רצונות
+    case want      // מותרות
     case neutral   // לא מסווג / הכנסה
 
     var id: String { rawValue }
@@ -169,7 +169,7 @@ enum CategoryNature: String, Codable, CaseIterable, Identifiable {
     var hebrewLabel: String {
         switch self {
         case .need:    return "צרכים"
-        case .want:    return "רצונות"
+        case .want:    return "מותרות"
         case .neutral: return "אחר"
         }
     }

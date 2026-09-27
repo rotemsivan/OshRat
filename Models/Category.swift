@@ -23,6 +23,14 @@ final class Category {
     /// silently labelled as a "need" or "want" unless the user asks.
     var natureRaw: String = CategoryNature.neutral.rawValue
 
+    /// True for a category the user made in the category editor; false for
+    /// the defaults `SeedData` ships. Defaults are **read-only** — every
+    /// screen, analytic and demo scenario can rely on them being there under
+    /// their own names — so the manager greys them out and only user-made
+    /// ones can be edited or deleted. Defaulted to `false`, so every row
+    /// from before the flag existed (all of them seeded) migrates as a default.
+    var isUserCreated: Bool = false
+
     @Relationship(deleteRule: .nullify, inverse: \Transaction.category)
     var transactions: [Transaction] = []
 
@@ -45,6 +53,29 @@ final class Category {
     var nature: CategoryNature {
         get { CategoryNature(rawValue: natureRaw) ?? .neutral }
         set { natureRaw = newValue.rawValue }
+    }
+}
+
+extension Category {
+    /// Whether `name` would clash with another category of the same kind —
+    /// the rule the category editor enforces. Two "מסעדות" expense rows
+    /// would read as one in every menu, and the launch-time dedupe pass
+    /// (`SeedData.dedupeCategoriesIfNeeded`) would merge them. Compared
+    /// trimmed and ignoring case and niqqud; `excluding` is the category
+    /// being edited, which may keep its own name.
+    static func nameIsTaken(
+        _ name: String,
+        kind: TransactionKind,
+        among categories: [Category],
+        excluding: Category? = nil
+    ) -> Bool {
+        let wanted = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return categories.contains { other in
+            other !== excluding
+                && other.kind == kind
+                && other.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                    .compare(wanted, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
+        }
     }
 }
 

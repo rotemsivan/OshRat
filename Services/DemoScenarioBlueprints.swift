@@ -164,7 +164,7 @@ enum DemoScenarioLibrary {
                 DemoRecurringSpec(title: "משכורת", amount: 11_400, day: 10, accountKey: "current", categoryName: "משכורת", jitter: 4)
             ],
             expenses: [
-                DemoRecurringSpec(title: "שכר דירה", amount: 4_200, day: 1, accountKey: "current", categoryName: "שכירות"),
+                DemoRecurringSpec(title: "שכר דירה", amount: 4_200, day: 1, accountKey: "current", categoryName: "דיור"),
                 DemoRecurringSpec(title: "חשמל, מים וארנונה", amount: 520, day: 15, accountKey: "current", categoryName: "חשבונות", jitter: 18),
                 DemoRecurringSpec(title: "רב קו", amount: 225, day: 5, accountKey: "current", categoryName: "תחבורה ציבורית"),
                 DemoRecurringSpec(title: "מנוי חדר כושר", amount: 199, day: 3, accountKey: "current", categoryName: "כושר גופני")
@@ -253,9 +253,9 @@ enum DemoScenarioLibrary {
                 DemoRecurringSpec(title: "משכורת בת/בן הזוג", amount: 11_200, day: 1, accountKey: "current", categoryName: "משכורת", jitter: 5)
             ],
             expenses: [
-                DemoRecurringSpec(title: "משכנתא", amount: 7_450, day: 2, accountKey: "current", categoryName: "שכירות"),
+                DemoRecurringSpec(title: "משכנתא", amount: 7_450, day: 2, accountKey: "current", categoryName: "דיור"),
                 DemoRecurringSpec(title: "חשבונות הבית", amount: 1_250, day: 15, accountKey: "current", categoryName: "חשבונות", jitter: 22),
-                DemoRecurringSpec(title: "גן וצהרון", amount: 3_100, day: 5, accountKey: "current", categoryName: "לימודים"),
+                DemoRecurringSpec(title: "גן וצהרון", amount: 3_100, day: 5, accountKey: "current", categoryName: "חינוך והשכלה"),
                 DemoRecurringSpec(title: "ביטוח בריאות", amount: 780, day: 8, accountKey: "current", categoryName: "ביטוחים"),
                 DemoRecurringSpec(title: "ליסינג ודלק", amount: 2_150, day: 20, accountKey: "current", categoryName: "הוצאות רכב", jitter: 12),
                 DemoRecurringSpec(title: "חוגים לילדים", amount: 640, day: 6, accountKey: "current", categoryName: "כושר גופני")
@@ -388,7 +388,7 @@ enum DemoScenarioLibrary {
                 DemoRecurringSpec(title: "דיבידנד רבעוני", amount: 2_400, day: 22, accountKey: "current", categoryName: "הכנסה נוספת", jitter: 35)
             ],
             expenses: [
-                DemoRecurringSpec(title: "שכר דירה", amount: 6_100, day: 1, accountKey: "current", categoryName: "שכירות"),
+                DemoRecurringSpec(title: "שכר דירה", amount: 6_100, day: 1, accountKey: "current", categoryName: "דיור"),
                 DemoRecurringSpec(title: "חשבונות", amount: 890, day: 15, accountKey: "current", categoryName: "חשבונות", jitter: 20),
                 DemoRecurringSpec(title: "ביטוחים", amount: 610, day: 7, accountKey: "current", categoryName: "ביטוחים"),
                 DemoRecurringSpec(title: "מנוי תחבורה", amount: 280, day: 4, accountKey: "current", categoryName: "תחבורה ציבורית")
@@ -477,7 +477,7 @@ enum DemoScenarioLibrary {
                 )
             ],
             expenses: [
-                DemoRecurringSpec(title: "שכר דירה", amount: 4_900, day: 1, accountKey: "personal", categoryName: "שכירות"),
+                DemoRecurringSpec(title: "שכר דירה", amount: 4_900, day: 1, accountKey: "personal", categoryName: "דיור"),
                 DemoRecurringSpec(title: "חשבונות", amount: 690, day: 15, accountKey: "personal", categoryName: "חשבונות", jitter: 25),
                 DemoRecurringSpec(title: "ביטוח לאומי", amount: 1_180, day: 15, accountKey: "business", categoryName: "ביטוחים"),
                 DemoRecurringSpec(title: "רואה חשבון", amount: 750, day: 20, accountKey: "business", categoryName: "חשבונות"),
@@ -486,7 +486,7 @@ enum DemoScenarioLibrary {
             ],
             annual: [
                 DemoAnnualSpec(title: "ביטוח ציוד שנתי", amount: 2_900, day: 10, month: 4, accountKey: "business", categoryName: "ביטוחים"),
-                DemoAnnualSpec(title: "השתלמות מקצועית", amount: 5_400, day: 18, month: 10, accountKey: "business", categoryName: "לימודים")
+                DemoAnnualSpec(title: "השתלמות מקצועית", amount: 5_400, day: 18, month: 10, accountKey: "business", categoryName: "חינוך והשכלה")
             ],
             randomSpends: [
                 DemoRandomSpendSpec(

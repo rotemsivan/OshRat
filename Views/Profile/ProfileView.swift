@@ -59,6 +59,16 @@ struct ProfileView: View {
         .scrollIndicators(.hidden)
         .navigationTitle(Text("הפרופיל שלי"))
         .navigationBarTitleDisplayMode(.large)
+        // The category manager's home until a Settings screen exists.
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                NavigationLink {
+                    CategoriesView()
+                } label: {
+                    Label("הקטגוריות שלי", systemImage: "tag")
+                }
+            }
+        }
     }
 
     // MARK: - Identity

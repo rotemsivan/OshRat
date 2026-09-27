@@ -6,7 +6,7 @@ import SwiftUI
 ///
 /// One arrangement everywhere:
 /// - **Grouped.** Income first (when it's offered), then expenses split into
-///   צרכים, רצונות and אחר — the needs-vs-wants split the budget and the
+///   צרכים, מותרות and אחר — the needs-vs-wants split the budget and the
 ///   dashboard are built on, so picking a category shows which side of it the
 ///   money lands on. A group with nothing in it is left out rather than shown
 ///   as an empty heading.
@@ -17,12 +17,18 @@ import SwiftUI
 ///
 /// Wrap it in a `Menu` whose label is a `PickerRowLabel`, and put any "no
 /// category" / "all" option ahead of it.
+///
+/// Pass `onCreate` to end the menu with "קטגוריה חדשה…" — for pickers that
+/// *assign* a category (the transaction sheet, the budget editor), where
+/// the right one may not exist yet. The filter leaves it out: filtering by a
+/// category that has nothing in it can only show an empty list.
 struct CategoryMenuContent: View {
     let categories: [Category]
     /// Which kinds to offer, e.g. `[.expense]` for the budget editor or both
     /// for the filter. Their order doesn't matter — income always leads.
     let kinds: Set<TransactionKind>
     let onSelect: (Category) -> Void
+    var onCreate: (() -> Void)? = nil
 
     var body: some View {
         let groups = CategoryMenuGroup.groups(from: categories, kinds: kinds)
@@ -41,6 +47,11 @@ struct CategoryMenuContent: View {
                 if groups.count > 1 {
                     Text(group.title)
                 }
+            }
+        }
+        if let onCreate {
+            Section {
+                Button("קטגוריה חדשה…", systemImage: "plus", action: onCreate)
             }
         }
     }
@@ -69,7 +80,7 @@ struct CategoryMenuGroup: Identifiable {
         if kinds.contains(.expense) {
             let expenses = unique.filter { $0.kind == .expense }
             groups.append(CategoryMenuGroup(id: "need", title: "צרכים", categories: expenses.filter { $0.nature == .need }))
-            groups.append(CategoryMenuGroup(id: "want", title: "רצונות", categories: expenses.filter { $0.nature == .want }))
+            groups.append(CategoryMenuGroup(id: "want", title: "מותרות", categories: expenses.filter { $0.nature == .want }))
             groups.append(CategoryMenuGroup(id: "neutral", title: "אחר", categories: expenses.filter { $0.nature == .neutral }))
         }
         return groups.filter { !$0.categories.isEmpty }

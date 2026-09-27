@@ -90,6 +90,9 @@
 		5EBREM0100000000000000B1 /* BudgetReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBREM0100000000000000F1 /* BudgetReminder.swift */; };
 		5EBREM0200000000000000B1 /* BudgetReminderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBREM0200000000000000F1 /* BudgetReminderService.swift */; };
 		5EBREM0300000000000000B1 /* BudgetReminderToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBREM0300000000000000F1 /* BudgetReminderToast.swift */; };
+		5ECATAP100000000000000B1 /* CategoryAppearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECATAP100000000000000F1 /* CategoryAppearance.swift */; };
+		5ECATED100000000000000B1 /* CategoryEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECATED100000000000000F1 /* CategoryEditorSheet.swift */; };
+		5ECATLS100000000000000B1 /* CategoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECATLS100000000000000F1 /* CategoriesView.swift */; };
 		5ECATM0100000000000000B1 /* CategoryMenuContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECATM0100000000000000F1 /* CategoryMenuContent.swift */; };
 		5ECC1F6E2FDDC729006BAC51 /* TransactionsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECC1F6D2FDDC729006BAC51 /* TransactionsListView.swift */; };
 		5ECC1F702FDDCC37006BAC51 /* HebrewTextField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECC1F6F2FDDCC37006BAC51 /* HebrewTextField.swift */; };
@@ -120,14 +123,6 @@
 		5EDEP00700000000000000B1 /* DepositLadder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00700000000000000F1 /* DepositLadder.swift */; };
 		5EDEP00700000000000000C1 /* DepositLadder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00700000000000000F1 /* DepositLadder.swift */; };
 		5EDEP00700000000000000C2 /* DepositLadder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00700000000000000F1 /* DepositLadder.swift */; };
-		5EINS00100000000000000B1 /* PeriodDrivers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00100000000000000F1 /* PeriodDrivers.swift */; };
-		5EINS00100000000000000C1 /* PeriodDrivers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00100000000000000F1 /* PeriodDrivers.swift */; };
-		5EINS00100000000000000C2 /* PeriodDrivers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00100000000000000F1 /* PeriodDrivers.swift */; };
-		5EINS00200000000000000B1 /* CategoryBudgetBreakdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */; };
-		5EINS00200000000000000C1 /* CategoryBudgetBreakdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */; };
-		5EINS00200000000000000C2 /* CategoryBudgetBreakdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */; };
-		5EINS00300000000000000B1 /* DriversStationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00300000000000000F1 /* DriversStationView.swift */; };
-		5EINS00400000000000000B1 /* BudgetStationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00400000000000000F1 /* BudgetStationView.swift */; };
 		5EFACE0100000000000000A1 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
 		5EFACE0100000000000000A2 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
 		5EFACE0100000000000000A3 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
@@ -149,6 +144,14 @@
 		5EHSRC0100000000000000C1 /* HebrewSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EHSRC0100000000000000F1 /* HebrewSearch.swift */; };
 		5EHSRC0200000000000000B1 /* TransactionSearchIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EHSRC0200000000000000F1 /* TransactionSearchIndex.swift */; };
 		5EHSRC0200000000000000C1 /* TransactionSearchIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EHSRC0200000000000000F1 /* TransactionSearchIndex.swift */; };
+		5EINS00100000000000000B1 /* PeriodDrivers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00100000000000000F1 /* PeriodDrivers.swift */; };
+		5EINS00100000000000000C1 /* PeriodDrivers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00100000000000000F1 /* PeriodDrivers.swift */; };
+		5EINS00100000000000000C2 /* PeriodDrivers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00100000000000000F1 /* PeriodDrivers.swift */; };
+		5EINS00200000000000000B1 /* CategoryBudgetBreakdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */; };
+		5EINS00200000000000000C1 /* CategoryBudgetBreakdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */; };
+		5EINS00200000000000000C2 /* CategoryBudgetBreakdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */; };
+		5EINS00300000000000000B1 /* DriversStationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00300000000000000F1 /* DriversStationView.swift */; };
+		5EINS00400000000000000B1 /* BudgetStationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00400000000000000F1 /* BudgetStationView.swift */; };
 		5EPICK0100000000000000B1 /* PickerRowLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPICK0100000000000000F1 /* PickerRowLabel.swift */; };
 		5EPRF00100000000000000B1 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPRF00100000000000000F1 /* ProfileView.swift */; };
 		5ETRSH0100000000000000C1 /* TrashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F2 /* TrashService.swift */; };
@@ -160,10 +163,10 @@
 		5EWARD0300000000000000B1 /* WardrobeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0300000000000000F1 /* WardrobeService.swift */; };
 		5EWARD0400000000000000B1 /* UserAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0400000000000000F1 /* UserAvatar.swift */; };
 		5EWARD0500000000000000B1 /* AvatarPortrait.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0500000000000000F1 /* AvatarPortrait.swift */; };
-		5EWARD0900000000000000B1 /* AvatarRig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0900000000000000F1 /* AvatarRig.swift */; };
 		5EWARD0600000000000000B1 /* WardrobeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0600000000000000F1 /* WardrobeView.swift */; };
 		5EWARD0700000000000000B1 /* WardrobeItemTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0700000000000000F1 /* WardrobeItemTile.swift */; };
 		5EWARD0800000000000000B1 /* WardrobeEntryPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0800000000000000F1 /* WardrobeEntryPoint.swift */; };
+		5EWARD0900000000000000B1 /* AvatarRig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0900000000000000F1 /* AvatarRig.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -266,6 +269,9 @@
 		5EBREM0100000000000000F1 /* BudgetReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetReminder.swift; sourceTree = "<group>"; };
 		5EBREM0200000000000000F1 /* BudgetReminderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetReminderService.swift; sourceTree = "<group>"; };
 		5EBREM0300000000000000F1 /* BudgetReminderToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetReminderToast.swift; sourceTree = "<group>"; };
+		5ECATAP100000000000000F1 /* CategoryAppearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryAppearance.swift; sourceTree = "<group>"; };
+		5ECATED100000000000000F1 /* CategoryEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryEditorSheet.swift; sourceTree = "<group>"; };
+		5ECATLS100000000000000F1 /* CategoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesView.swift; sourceTree = "<group>"; };
 		5ECATM0100000000000000F1 /* CategoryMenuContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryMenuContent.swift; sourceTree = "<group>"; };
 		5ECC1F6D2FDDC729006BAC51 /* TransactionsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionsListView.swift; sourceTree = "<group>"; };
 		5ECC1F6F2FDDCC37006BAC51 /* HebrewTextField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HebrewTextField.swift; sourceTree = "<group>"; };
@@ -286,10 +292,6 @@
 		5EDEP00500000000000000F1 /* DepositLadderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositLadderService.swift; sourceTree = "<group>"; };
 		5EDEP00600000000000000F1 /* DepositTranche.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositTranche.swift; sourceTree = "<group>"; };
 		5EDEP00700000000000000F1 /* DepositLadder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositLadder.swift; sourceTree = "<group>"; };
-		5EINS00100000000000000F1 /* PeriodDrivers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeriodDrivers.swift; sourceTree = "<group>"; };
-		5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryBudgetBreakdown.swift; sourceTree = "<group>"; };
-		5EINS00300000000000000F1 /* DriversStationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DriversStationView.swift; sourceTree = "<group>"; };
-		5EINS00400000000000000F1 /* BudgetStationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetStationView.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F1 /* TransactionAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionAttachment.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F2 /* TransactionInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionInsights.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F3 /* TransactionAttachments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionAttachments.swift; sourceTree = "<group>"; };
@@ -302,6 +304,10 @@
 		5EGAM00600000000000000F1 /* XPLevelBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPLevelBadge.swift; sourceTree = "<group>"; };
 		5EHSRC0100000000000000F1 /* HebrewSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HebrewSearch.swift; sourceTree = "<group>"; };
 		5EHSRC0200000000000000F1 /* TransactionSearchIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionSearchIndex.swift; sourceTree = "<group>"; };
+		5EINS00100000000000000F1 /* PeriodDrivers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeriodDrivers.swift; sourceTree = "<group>"; };
+		5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryBudgetBreakdown.swift; sourceTree = "<group>"; };
+		5EINS00300000000000000F1 /* DriversStationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DriversStationView.swift; sourceTree = "<group>"; };
+		5EINS00400000000000000F1 /* BudgetStationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetStationView.swift; sourceTree = "<group>"; };
 		5EPICK0100000000000000F1 /* PickerRowLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerRowLabel.swift; sourceTree = "<group>"; };
 		5EPRF00100000000000000F1 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		5EWARD0100000000000000F1 /* WardrobeItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeItem.swift; sourceTree = "<group>"; };
@@ -309,10 +315,10 @@
 		5EWARD0300000000000000F1 /* WardrobeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeService.swift; sourceTree = "<group>"; };
 		5EWARD0400000000000000F1 /* UserAvatar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserAvatar.swift; sourceTree = "<group>"; };
 		5EWARD0500000000000000F1 /* AvatarPortrait.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarPortrait.swift; sourceTree = "<group>"; };
-		5EWARD0900000000000000F1 /* AvatarRig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarRig.swift; sourceTree = "<group>"; };
 		5EWARD0600000000000000F1 /* WardrobeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeView.swift; sourceTree = "<group>"; };
 		5EWARD0700000000000000F1 /* WardrobeItemTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeItemTile.swift; sourceTree = "<group>"; };
 		5EWARD0800000000000000F1 /* WardrobeEntryPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeEntryPoint.swift; sourceTree = "<group>"; };
+		5EWARD0900000000000000F1 /* AvatarRig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarRig.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -425,6 +431,7 @@
 				5EWARDGR00000000000000A1 /* Avatar */,
 				5EWARDGR00000000000000A2 /* Wardrobe */,
 				5EPRF00000000000000000A1 /* Profile */,
+				5ECATGR100000000000000A1 /* Categories */,
 				5EADM00000000000000000A1 /* Admin */,
 			);
 			path = Views;
@@ -515,6 +522,7 @@
 				5E13B1952FD5BD0700C87118 /* DecimalField.swift */,
 				5ECC1F6F2FDDCC37006BAC51 /* HebrewTextField.swift */,
 				5EPICK0100000000000000F1 /* PickerRowLabel.swift */,
+				5ECATAP100000000000000F1 /* CategoryAppearance.swift */,
 				5ECATM0100000000000000F1 /* CategoryMenuContent.swift */,
 			);
 			path = DesignSystem;
@@ -597,6 +605,15 @@
 				5EBD610100000000000000F2 /* BudgetCalendarView.swift */,
 			);
 			path = Budget;
+			sourceTree = "<group>";
+		};
+		5ECATGR100000000000000A1 /* Categories */ = {
+			isa = PBXGroup;
+			children = (
+				5ECATED100000000000000F1 /* CategoryEditorSheet.swift */,
+				5ECATLS100000000000000F1 /* CategoriesView.swift */,
+			);
+			path = Categories;
 			sourceTree = "<group>";
 		};
 		5ED3E0ED2FD1BE5C003083F0 /* Home */ = {
@@ -938,6 +955,9 @@
 				5EGAM00500000000000000B1 /* CelebrationToast.swift in Sources */,
 				5EGAM00600000000000000B1 /* XPLevelBadge.swift in Sources */,
 				5EPRF00100000000000000B1 /* ProfileView.swift in Sources */,
+				5ECATAP100000000000000B1 /* CategoryAppearance.swift in Sources */,
+				5ECATED100000000000000B1 /* CategoryEditorSheet.swift in Sources */,
+				5ECATLS100000000000000B1 /* CategoriesView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

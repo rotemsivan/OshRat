@@ -16,6 +16,7 @@ struct PlannedExpenseEditorSheet: View {
     let categories: [Category]
 
     @State private var draft: PlannedExpenseDraft
+    @State private var isCreatingCategory = false
     private let isNew: Bool
     private let onSave: (PlannedExpenseDraft) -> Void
     private let onCancel: () -> Void
@@ -78,7 +79,7 @@ struct PlannedExpenseEditorSheet: View {
     // MARK: - Sections
 
     /// Category picker — the app's one category control: a `Menu` built
-    /// from `CategoryMenuContent` (grouped צרכים / רצונות / אחר, alphabetical,
+    /// from `CategoryMenuContent` (grouped צרכים / מותרות / אחר, alphabetical,
     /// each with its glyph), opened from a bordered `PickerRowLabel`. The
     /// transaction sheet and the transactions filter use the very same pair,
     /// so choosing a category looks and orders the same everywhere.
@@ -94,14 +95,20 @@ struct PlannedExpenseEditorSheet: View {
                     Label("בחרו קטגוריה", systemImage: "circle.dashed")
                 }
 
-                CategoryMenuContent(categories: categories, kinds: [.expense]) { category in
-                    draft.category = category
-                }
+                CategoryMenuContent(
+                    categories: categories,
+                    kinds: [.expense],
+                    onSelect: { draft.category = $0 },
+                    onCreate: { isCreatingCategory = true }
+                )
             } label: {
                 PickerRowLabel(
                     text: draft.category?.name ?? "בחרו קטגוריה",
                     systemImage: draft.category?.symbolName
                 )
+            }
+            .sheet(isPresented: $isCreatingCategory) {
+                CategoryEditorSheet(fixedKind: .expense) { draft.category = $0 }
             }
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets(
@@ -113,7 +120,7 @@ struct PlannedExpenseEditorSheet: View {
         } header: {
             Text("קטגוריה")
         } footer: {
-            Text("הקטגוריה קובעת אם ההוצאה משויכת לצרכים (חובה) או לרצונות (בחירה).")
+            Text("הקטגוריה קובעת אם ההוצאה משויכת לצרכים (חובה) או למותרות (בחירה).")
         }
     }
 

@@ -147,9 +147,9 @@ struct NeedsWantsStationView: View {
     }
 
     var body: some View {
-        StationCard(title: "צרכים מול רצונות", subtitle: report.periodLabel) {
+        StationCard(title: "צרכים מול מותרות", subtitle: report.periodLabel) {
             if isEmpty {
-                StationEmptyText("עדיין אין מספיק הוצאות כדי לפצל לצרכים ורצונות.")
+                StationEmptyText("עדיין אין מספיק הוצאות כדי לפצל לצרכים ומותרות.")
             } else {
                 VStack(alignment: .trailing, spacing: Theme.Spacing.md) {
                     SplitBar(segments: [
@@ -159,7 +159,7 @@ struct NeedsWantsStationView: View {
 
                     AnalyticsAmountRow(title: "צרכים", amount: report.needsTotal,
                                        code: report.currencyCode, dotColor: Theme.Colors.expense)
-                    AnalyticsAmountRow(title: "רצונות", amount: report.wantsTotal,
+                    AnalyticsAmountRow(title: "מותרות", amount: report.wantsTotal,
                                        code: report.currencyCode, dotColor: Theme.Colors.wants)
 
                     Text("\(needsPercentText) מההוצאות שלך הן צרכים חיוניים.")
