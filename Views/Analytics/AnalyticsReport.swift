@@ -45,6 +45,11 @@ struct AnalyticsReport {
     // year) and what drove it — like-for-like while the period is still
     // running (see `PeriodDrivers.windows`).
     let comparisonWindows: PeriodDrivers.Windows
+    /// The subtitle for a card comparing against the previous period: the
+    /// period's label, or — while it's still running and the comparison is
+    /// cut to the days so far — the date range compared, "1.1–27.9". A range
+    /// rather than a day count: "270 הימים הראשונים" read as a puzzle.
+    let comparisonSubtitle: String
     let drivers: PeriodDrivers
 
     // The period's plan against reality, category by category.
@@ -82,14 +87,6 @@ struct AnalyticsReport {
     var expenseChangeFraction: Double? { drivers.expense.changeFraction }
 
     var incomeChangeFraction: Double? { drivers.income.changeFraction }
-
-    /// The subtitle for a card comparing against the previous period: the
-    /// period's label, or — while it's still running and the comparison is
-    /// cut to the days so far — how many days are being compared.
-    var comparisonSubtitle: String {
-        guard let days = comparisonWindows.elapsedDays else { return periodLabel }
-        return days == 1 ? "היום הראשון" : "\(days) הימים הראשונים"
-    }
 }
 
 // MARK: - Supporting value types
@@ -307,6 +304,9 @@ extension AnalyticsReport {
         self.periodExpense = expense
         self.periodTransactionCount = periodCount
         self.comparisonWindows = windows
+        self.comparisonSubtitle = windows.isPartial
+            ? Self.dayRange(windows.current, calendar: calendar)
+            : period.label(calendar)
         self.drivers = drivers
         self.budget = budget
         self.categoryBreakdown = categorySlices
@@ -318,6 +318,20 @@ extension AnalyticsReport {
         // Set last so every `convert` call above has had its chance to
         // flip the flag.
         self.fxUnavailable = fxMissing || drivers.fxUnavailable || budget.fxUnavailable
+    }
+
+    /// "1.9–27.9": a half-open interval's first and last day as day.month,
+    /// the way dates are written in Israel. A one-day range is just that day.
+    /// It has no Hebrew letters, so it lays out left to right, earliest day
+    /// first — the way a date range is written in Hebrew text too.
+    private static func dayRange(_ interval: DateInterval, calendar: Calendar) -> String {
+        func dayMonth(_ date: Date) -> String {
+            let parts = calendar.dateComponents([.day, .month], from: date)
+            return "\(parts.day ?? 1).\(parts.month ?? 1)"
+        }
+        let lastDay = calendar.date(byAdding: .day, value: -1, to: interval.end) ?? interval.start
+        let first = dayMonth(interval.start), last = dayMonth(lastDay)
+        return first == last ? first : "\(first)–\(last)"
     }
 
     // MARK: - Records
