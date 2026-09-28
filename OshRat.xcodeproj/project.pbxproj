@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5EONB00100000000000000B1 /* OnboardingProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EONB00100000000000000F1 /* OnboardingProgress.swift */; };
 		5EPAY00500000000000000B1 /* ApplePayTipPopup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00500000000000000F1 /* ApplePayTipPopup.swift */; };
 		5EPAY00200000000000000C1 /* IncomingPaymentRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00200000000000000F1 /* IncomingPaymentRouter.swift */; };
 		5E0A2E862FE04B62004441B5 /* BudgetEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0A2E852FE04B62004441B5 /* BudgetEditorSheet.swift */; };
@@ -216,6 +217,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		5EONB00100000000000000F1 /* OnboardingProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingProgress.swift; sourceTree = "<group>"; };
 		5EPAY00500000000000000F1 /* ApplePayTipPopup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplePayTipPopup.swift; sourceTree = "<group>"; };
 		5E0A2E852FE04B62004441B5 /* BudgetEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetEditorSheet.swift; sourceTree = "<group>"; };
 		5E13B1812FD5ADF900C87118 /* Heebo-Black.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-Black.ttf"; sourceTree = "<group>"; };
@@ -424,6 +426,7 @@
 		5E2626BF2FD1821F00180F49 /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
+				5EONB00100000000000000F1 /* OnboardingProgress.swift */,
 				5E2626C02FD1821F00180F49 /* OnboardingViewModel.swift */,
 				5EFILT0100000000000000F1 /* TransactionFilters.swift */,
 				5EHSRC0200000000000000F1 /* TransactionSearchIndex.swift */,
@@ -883,6 +886,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5EONB00100000000000000B1 /* OnboardingProgress.swift in Sources */,
 				5EPAY00500000000000000B1 /* ApplePayTipPopup.swift in Sources */,
 				5EPAY00400000000000000B1 /* ApplePaySetupView.swift in Sources */,
 				5EPAY00300000000000000B1 /* LogPaymentIntent.swift in Sources */,

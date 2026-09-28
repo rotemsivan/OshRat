@@ -453,7 +453,9 @@ final class BudgetItem {
 /// Keeping the UI in value-type land (rather than binding straight to a
 /// SwiftData `@Model`) matches the rest of the budget flow, where drafts
 /// stay in memory until the user confirms a save.
-struct BudgetSchedule: Hashable {
+/// `Codable` so the onboarding wizard can save a half-finished budget line
+/// (`OnboardingProgress`) and restore it on the next launch.
+struct BudgetSchedule: Hashable, Codable {
     /// A one-time line is a single dated event; everything else recurs on
     /// `unit` + `count`.
     var isOneTime: Bool = false

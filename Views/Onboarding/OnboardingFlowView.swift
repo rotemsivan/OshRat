@@ -20,17 +20,30 @@ struct OnboardingFlowView: View {
     /// tapped "let's start" and we've switched to the wizard.
     @State private var hasStarted: Bool = false
 
+    /// A setup the user left half-way on an earlier launch, if it's worth
+    /// offering back. Read once, when the wizard first appears.
+    @State private var savedProgress: OnboardingProgress? =
+        OnboardingProgressStore.load().flatMap { $0.isWorthResuming ? $0 : nil }
+
     var body: some View {
         Group {
             if hasStarted {
                 wizard
                     .transition(.opacity)
             } else {
-                WelcomeView {
-                    withAnimation(.easeInOut(duration: 0.4)) {
-                        hasStarted = true
+                WelcomeView(
+                    savedProgress: savedProgress,
+                    onStart: {
+                        // A fresh start replaces whatever was saved before.
+                        OnboardingProgressStore.clear()
+                        enterWizard()
+                    },
+                    onResume: resume,
+                    onStartOver: {
+                        OnboardingProgressStore.clear()
+                        savedProgress = nil
                     }
-                }
+                )
                 .transition(.opacity)
             }
         }
@@ -49,6 +62,8 @@ struct OnboardingFlowView: View {
             // wizard over is both the safe answer and the expected one.
             AdminPanelButton {
                 viewModel = OnboardingViewModel()
+                OnboardingProgressStore.clear()
+                savedProgress = nil
                 hasStarted = false
             }
             .padding(.horizontal, Theme.Spacing.sm)
@@ -90,6 +105,30 @@ struct OnboardingFlowView: View {
                 bottomBar
             }
         }
+        // Saved on every change, so closing the app at any point keeps what
+        // was typed. `progress` is a value, so an unchanged wizard writes
+        // nothing. (A form still open in an editor sheet isn't in the view
+        // model yet, so that one sheet's typing isn't covered.)
+        .onChange(of: viewModel.progress) { _, progress in
+            OnboardingProgressStore.save(progress)
+        }
+    }
+
+    private func enterWizard() {
+        withAnimation(.easeInOut(duration: 0.4)) {
+            hasStarted = true
+        }
+    }
+
+    /// Put the saved wizard back — step included — and go straight to it.
+    private func resume() {
+        guard let savedProgress else {
+            enterWizard()
+            return
+        }
+        let categories = (try? modelContext.fetch(FetchDescriptor<Category>())) ?? []
+        viewModel.restore(savedProgress, categories: categories)
+        enterWizard()
     }
 
     private var navigationTitle: LocalizedStringKey {
@@ -147,6 +186,8 @@ struct OnboardingFlowView: View {
     private func primaryAction() {
         if viewModel.isOnLastStep {
             viewModel.commit(into: modelContext)
+            // Everything is in the store now; nothing left to resume.
+            OnboardingProgressStore.clear()
         } else {
             withAnimation(.easeInOut) {
                 viewModel.advance()

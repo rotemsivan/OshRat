@@ -319,8 +319,9 @@ final class OnboardingViewModel {
     }
 }
 
-/// The discrete steps of the setup wizard, in order.
-enum OnboardingStep: CaseIterable {
+/// The discrete steps of the setup wizard, in order. `Codable` (by name)
+/// so a half-finished wizard can be resumed — see `OnboardingProgress`.
+enum OnboardingStep: String, CaseIterable, Codable {
     case personalDetails
     case financialAccounts
     case budget
@@ -340,7 +341,7 @@ enum OnboardingStep: CaseIterable {
 /// Co-located with `AccountDraft` (rather than in its own file) because it's
 /// part of the draft's vocabulary and has no meaning without it — the same
 /// rule the rest of the project follows for tightly-coupled helper types.
-enum PayoutTargetRef: Hashable {
+enum PayoutTargetRef: Hashable, Codable {
     case saved(PersistentIdentifier)
     case draft(UUID)
 }
@@ -371,7 +372,7 @@ struct PayoutCandidate: Identifiable, Hashable {
 /// component, and `holdings` lists the stocks/ETFs/other assets the user
 /// holds in that same account. For every other account type, `balance`
 /// is the whole account and `holdings` stays empty.
-struct AccountDraft: Identifiable, Hashable {
+struct AccountDraft: Identifiable, Hashable, Codable {
     let id: UUID
     var name: String
     var type: AccountType
@@ -634,7 +635,7 @@ extension AccountDraft {
 
 /// A draft holding inside an investment account, edited inline during
 /// onboarding and turned into a real `Holding` row at commit time.
-struct HoldingDraft: Identifiable, Hashable {
+struct HoldingDraft: Identifiable, Hashable, Codable {
     let id: UUID
     var symbol: String
     var name: String
@@ -676,7 +677,7 @@ extension HoldingDraft {
 /// A single income source line being entered during onboarding. The
 /// user names each one freely (e.g. "משכורת", "עבודה צדדית") so the
 /// dashboard can report them by name rather than as anonymous totals.
-struct IncomeSourceDraft: Identifiable, Hashable {
+struct IncomeSourceDraft: Identifiable, Hashable, Codable {
     let id: UUID
     var name: String
     var plannedAmount: Decimal

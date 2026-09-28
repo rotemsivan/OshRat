@@ -334,6 +334,9 @@ enum DemoDataService {
     /// SwiftData's batch delete doesn't reliably notify `@Query` observers, so
     /// the dashboard would keep showing the old ledger until a cold relaunch.
     static func wipe(in context: ModelContext, reseedCategories: Bool = true) {
+        // A wipe drops the app back into the wizard; it should open fresh,
+        // not offer to resume a setup from before the wipe.
+        OnboardingProgressStore.clear()
         // Attachments and tranches first: they hang off rows deleted below, and
         // clearing them explicitly keeps the cascade from doing it mid-pass
         // while a view might still be reading.
