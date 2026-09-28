@@ -121,12 +121,27 @@ enum XPRules {
     /// personal finance and still leaves the honest user never touching it.
     static let dailyUsageCap = 30
 
-    /// Days a streak may skip without breaking: Friday and Saturday
-    /// (`Calendar` weekdays 6 and 7), the Israeli weekend. Logging on them still
-    /// adds a day; *not* logging on them costs nothing. Most people don't touch
-    /// their finances over the weekend, and a streak that dies every Saturday
-    /// would punish that — exactly what GAMIFICATION.md rules out.
+    /// Weekdays a streak may skip without breaking: Friday and Saturday
+    /// (`Calendar` weekdays 6 and 7), the Israeli weekend. Rest-day holidays
+    /// are skipped too — see `isStreakRestDay`. Logging on them still adds a
+    /// day; *not* logging on them costs nothing. Most people don't touch their
+    /// finances over a weekend or a chag, and a streak that dies every
+    /// Saturday would punish that — exactly what GAMIFICATION.md rules out.
     static let streakRestWeekdays: Set<Int> = [6, 7]
+
+    /// Longest run of skipped days walked before calling it a lapse. Rest
+    /// days chain (Rosh Hashanah on Thursday and Friday, then Shabbat), but
+    /// never for anything like this long, so it only bounds the loop.
+    static let maxStreakRestRun = 7
+
+    /// Whether missing `day` leaves a streak intact: Friday, Saturday, or an
+    /// Israeli rest-day holiday — the same holidays that move a salary to the
+    /// next business day (`IsraeliHolidays.isBankHoliday`). Working-day
+    /// holidays (Hanukkah, Purim…) are ordinary days here, as they are there.
+    static func isStreakRestDay(_ day: Date, calendar: Calendar = .current) -> Bool {
+        streakRestWeekdays.contains(calendar.component(.weekday, from: day))
+            || IsraeliHolidays.isBankHoliday(day)
+    }
 
     /// Streak lengths that pay a bonus, and what each one pays. Rising steeply
     /// because the milestones are rare and getting to 100 days is the single
@@ -163,8 +178,8 @@ enum XPRules {
     ///
     /// Same day → unchanged (logging six things on Tuesday is one day of
     /// consistency, not six). Yesterday → one longer. A longer gap is still
-    /// one longer when every day skipped was a rest day
-    /// (`streakRestWeekdays`) — Thursday to Sunday keeps the streak going.
+    /// one longer when every day skipped was a rest day (`isStreakRestDay`:
+    /// the weekend or a chag) — Thursday to Sunday keeps the streak going.
     /// Any other gap, or no history at all → back to a streak of 1. The
     /// weekend only ever *adds*: activity on it counts like any day, and its
     /// absence doesn't break anything. Note that a lapse resets the
@@ -188,15 +203,15 @@ enum XPRules {
         guard previous < today else { return max(current, 1) }
 
         let gap = calendar.dateComponents([.day], from: previous, to: today).day ?? 0
-        // More skipped days than there are rest days in a row means a
-        // working day was missed, without walking the whole gap.
-        guard gap >= 1, gap <= streakRestWeekdays.count + 1 else { return 1 }
+        // A gap longer than any run of rest days has a working day in it;
+        // no need to walk it.
+        guard gap >= 1, gap <= maxStreakRestRun + 1 else { return 1 }
 
         var skipped = previous
         for _ in 1..<gap {
             guard let next = calendar.date(byAdding: .day, value: 1, to: skipped) else { return 1 }
             skipped = next
-            guard streakRestWeekdays.contains(calendar.component(.weekday, from: skipped)) else { return 1 }
+            guard isStreakRestDay(skipped, calendar: calendar) else { return 1 }
         }
         return current + 1
     }

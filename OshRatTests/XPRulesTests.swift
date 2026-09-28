@@ -217,15 +217,15 @@ struct XPRulesTests {
         #expect(streak == 1)
     }
 
-    // MARK: - The weekend can't break a streak
+    // MARK: - The weekend and holidays can't break a streak
 
-    // September 2026: Thu 10, Fri 11, Sat 12, Sun 13, Mon 14.
+    // November 2026, a week with no holidays: Thu 5, Fri 6, Sat 7, Sun 8, Mon 9.
 
     @Test func thursdayToSundayKeepsTheStreak() {
         let streak = XPRules.nextStreak(
             current: 6,
-            lastActivity: Self.date(2026, 9, 10),
-            now: Self.date(2026, 9, 13),
+            lastActivity: Self.date(2026, 11, 5),
+            now: Self.date(2026, 11, 8),
             calendar: Self.calendar
         )
         #expect(streak == 7)
@@ -234,8 +234,8 @@ struct XPRulesTests {
     @Test func fridayToSundayKeepsTheStreak() {
         let streak = XPRules.nextStreak(
             current: 6,
-            lastActivity: Self.date(2026, 9, 11),
-            now: Self.date(2026, 9, 13),
+            lastActivity: Self.date(2026, 11, 6),
+            now: Self.date(2026, 11, 8),
             calendar: Self.calendar
         )
         #expect(streak == 7)
@@ -244,10 +244,10 @@ struct XPRulesTests {
     /// The weekend only adds: logging on it counts like any other day.
     @Test func loggingOnTheWeekendStillAddsADay() {
         let friday = XPRules.nextStreak(
-            current: 3, lastActivity: Self.date(2026, 9, 10), now: Self.date(2026, 9, 11), calendar: Self.calendar
+            current: 3, lastActivity: Self.date(2026, 11, 5), now: Self.date(2026, 11, 6), calendar: Self.calendar
         )
         let saturday = XPRules.nextStreak(
-            current: friday, lastActivity: Self.date(2026, 9, 11), now: Self.date(2026, 9, 12), calendar: Self.calendar
+            current: friday, lastActivity: Self.date(2026, 11, 6), now: Self.date(2026, 11, 7), calendar: Self.calendar
         )
         #expect(friday == 4)
         #expect(saturday == 5)
@@ -257,8 +257,8 @@ struct XPRulesTests {
     @Test func aMissedThursdayBeforeTheWeekendStillBreaksIt() {
         let streak = XPRules.nextStreak(
             current: 6,
-            lastActivity: Self.date(2026, 9, 9),
-            now: Self.date(2026, 9, 13),
+            lastActivity: Self.date(2026, 11, 4),
+            now: Self.date(2026, 11, 8),
             calendar: Self.calendar
         )
         #expect(streak == 1)
@@ -268,11 +268,59 @@ struct XPRulesTests {
     @Test func aMissedSundayAfterTheWeekendStillBreaksIt() {
         let streak = XPRules.nextStreak(
             current: 6,
-            lastActivity: Self.date(2026, 9, 10),
-            now: Self.date(2026, 9, 14),
+            lastActivity: Self.date(2026, 11, 5),
+            now: Self.date(2026, 11, 9),
             calendar: Self.calendar
         )
         #expect(streak == 1)
+    }
+
+    /// A rest-day holiday on a weekday is skipped like Shabbat. Found by
+    /// search rather than hard-coded, so the test states its own premise:
+    /// the first weekday rest-day holiday of 2026-27 with working days on
+    /// either side of it.
+    @Test func aWeekdayChagDoesNotBreakTheStreak() throws {
+        let chag = try #require(Self.weekdayChag())
+        let before = Self.calendar.date(byAdding: .day, value: -1, to: chag)!
+        let after = Self.calendar.date(byAdding: .day, value: 1, to: chag)!
+        let streak = XPRules.nextStreak(current: 9, lastActivity: before, now: after, calendar: Self.calendar)
+        #expect(streak == 10)
+    }
+
+    /// A working-day holiday (Hanukkah, Purim) is an ordinary day: missing it
+    /// still breaks the streak, as it doesn't move a salary either.
+    @Test func onlyRestDayHolidaysAreSkipped() throws {
+        let day = try #require(Self.firstDay { date in
+            IsraeliHolidays.holiday(for: date).map { !$0.isRestDay } == true
+                && !XPRules.streakRestWeekdays.contains(Self.calendar.component(.weekday, from: date))
+        })
+        let before = Self.calendar.date(byAdding: .day, value: -1, to: day)!
+        let after = Self.calendar.date(byAdding: .day, value: 1, to: day)!
+        #expect(!XPRules.isStreakRestDay(day, calendar: Self.calendar))
+        #expect(XPRules.nextStreak(current: 9, lastActivity: before, now: after, calendar: Self.calendar) == 1)
+    }
+
+    /// A rest-day holiday that falls Sunday–Thursday, between two days that
+    /// are neither weekend nor holiday.
+    private static func weekdayChag() -> Date? {
+        firstDay { date in
+            let weekday = calendar.component(.weekday, from: date)
+            guard !XPRules.streakRestWeekdays.contains(weekday), IsraeliHolidays.isBankHoliday(date),
+                  let before = calendar.date(byAdding: .day, value: -1, to: date),
+                  let after = calendar.date(byAdding: .day, value: 1, to: date)
+            else { return false }
+            return !XPRules.isStreakRestDay(before, calendar: calendar)
+                && !XPRules.isStreakRestDay(after, calendar: calendar)
+        }
+    }
+
+    private static func firstDay(matching predicate: (Date) -> Bool) -> Date? {
+        var day = date(2026, 9, 1)
+        for _ in 0..<400 {
+            if predicate(day) { return day }
+            day = calendar.date(byAdding: .day, value: 1, to: day)!
+        }
+        return nil
     }
 
     /// A device clock that has gone backwards (timezone travel, a manual
