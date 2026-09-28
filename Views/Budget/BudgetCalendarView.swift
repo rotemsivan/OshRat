@@ -424,7 +424,9 @@ struct BudgetCalendarView: View {
         let logged = loggedOccurrences
         let isToday = calendar.isDate(selectedDay, inSameDayAs: today)
         return budgetItems.compactMap { item in
-            guard let occurrence = BudgetReminderService.occurrence(of: item, on: selectedDay) else { return nil }
+            guard let occurrence = BudgetReminderService.occurrence(
+                of: item, on: selectedDay, shiftIncomeToBusinessDay: shiftsIncome
+            ) else { return nil }
             let isLogged = logged.contains(occurrence)
             return CalendarDayEntry(
                 id: item.persistentModelID,
@@ -450,7 +452,15 @@ struct BudgetCalendarView: View {
 
     /// Today's lines that nothing has logged yet — what the reminder is about.
     private var dueToday: [BudgetItem] {
-        BudgetReminderService.dueItems(on: today, in: budgetItems, logged: loggedOccurrences)
+        BudgetReminderService.dueItems(
+            on: today, in: budgetItems, logged: loggedOccurrences,
+            shiftIncomeToBusinessDay: shiftsIncome
+        )
+    }
+
+    /// The user's "income on business days" setting (Settings → תקציב).
+    private var shiftsIncome: Bool {
+        profiles.first?.shiftsIncomeToBusinessDay ?? true
     }
 
     private var dueTodayIDs: [PersistentIdentifier] {
@@ -497,7 +507,10 @@ struct BudgetCalendarView: View {
             // Budget lines that land on a concrete day this month. A logged
             // occurrence's dot goes grey, matching its row below.
             for item in budgetItems {
-                guard let date = item.occurrenceDate(inMonth: month, year: year, calendar: calendar) else { continue }
+                guard let date = item.occurrenceDate(
+                    inMonth: month, year: year, calendar: calendar,
+                    shiftIncomeToBusinessDay: shiftsIncome
+                ) else { continue }
                 let day = calendar.startOfDay(for: date)
                 let isLogged = logged.contains(BudgetOccurrence(itemID: item.persistentModelID, day: day))
                 result[day, default: CalendarDayDecoration()].dotColors.append(

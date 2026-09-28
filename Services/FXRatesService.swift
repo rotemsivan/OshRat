@@ -30,13 +30,26 @@ enum FXRatesService {
     /// rest of the app falls back to whatever cache exists, or to a
     /// "FX unavailable" display.
     static func refreshIfNeeded(in context: ModelContext) async {
+        await refresh(in: context, force: false)
+    }
+
+    /// Fetch today's rates now, cache or no cache — Settings' "רענון עכשיו".
+    /// Same endpoint and same single call as the daily refresh, so it stays
+    /// inside the network exception in CLAUDE.md. Returns whether it worked.
+    @discardableResult
+    static func refreshNow(in context: ModelContext) async -> Bool {
+        await refresh(in: context, force: true)
+    }
+
+    @discardableResult
+    private static func refresh(in context: ModelContext, force: Bool) async -> Bool {
         let descriptor = FetchDescriptor<FXRateSnapshot>(
             sortBy: [SortDescriptor(\.fetchedAt, order: .reverse)]
         )
         let snapshots = (try? context.fetch(descriptor)) ?? []
 
-        if let latest = snapshots.first, !isStale(latest) {
-            return
+        if !force, let latest = snapshots.first, !isStale(latest) {
+            return true
         }
 
         do {
@@ -48,10 +61,12 @@ enum FXRatesService {
             }
             context.insert(fresh)
             try? context.save()
+            return true
         } catch {
             #if DEBUG
             print("FX fetch failed: \(error)")
             #endif
+            return false
         }
     }
 

@@ -22,12 +22,21 @@ import CoreHaptics
 ///   does, and that's exactly how the previous swell felt.
 /// - **No haptics hardware, no vibration** — silently, not as an error.
 ///
-/// There's no mute toggle yet; one is on the planned Settings list (see
-/// CLAUDE.md). Until then the silent switch is the off switch for the sound.
+/// "צלילים ורטט" in Settings turns both off (`isEnabledKey`); the silent
+/// switch still mutes the sound on its own.
 @MainActor
 final class CelebrationFeedback {
 
     static let shared = CelebrationFeedback()
+
+    /// The Settings switch ("צלילים ורטט"), on by default. A `UserDefaults`
+    /// key rather than a model field: it's how *this device* should behave,
+    /// the same kind of preference as a phone's own sound settings.
+    static let isEnabledKey = "celebrationFeedbackEnabled"
+
+    private var isEnabled: Bool {
+        UserDefaults.standard.object(forKey: Self.isEnabledKey) as? Bool ?? true
+    }
 
     enum Moment: CaseIterable {
         case transactionLogged
@@ -91,6 +100,7 @@ final class CelebrationFeedback {
     /// Play a moment's sound and haptic together. Cheap to call; the first
     /// call sets things up.
     func play(_ moment: Moment) {
+        guard isEnabled else { return }
         prepareIfNeeded()
         if let player = players[moment] {
             player.currentTime = 0

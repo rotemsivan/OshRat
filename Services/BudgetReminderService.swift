@@ -50,10 +50,21 @@ enum BudgetReminderService {
 
     /// Start of the day `item` lands on within `day`'s month, if that is
     /// `day` itself — i.e. whether the line is scheduled for that day.
-    static func occurrence(of item: BudgetItem, on day: Date) -> BudgetOccurrence? {
+    ///
+    /// `shiftIncomeToBusinessDay` is the user's setting
+    /// (`UserProfile.shiftsIncomeToBusinessDay`), passed down rather than read
+    /// here so this stays a pure function of its inputs.
+    static func occurrence(
+        of item: BudgetItem,
+        on day: Date,
+        shiftIncomeToBusinessDay: Bool = true
+    ) -> BudgetOccurrence? {
         let comps = calendar.dateComponents([.month, .year], from: day)
         guard let month = comps.month, let year = comps.year,
-              let date = item.occurrenceDate(inMonth: month, year: year, calendar: calendar),
+              let date = item.occurrenceDate(
+                  inMonth: month, year: year, calendar: calendar,
+                  shiftIncomeToBusinessDay: shiftIncomeToBusinessDay
+              ),
               calendar.isDate(date, inSameDayAs: day)
         else { return nil }
         return BudgetOccurrence(itemID: item.persistentModelID, day: calendar.startOfDay(for: day))
@@ -63,10 +74,13 @@ enum BudgetReminderService {
     static func dueItems(
         on day: Date,
         in items: [BudgetItem],
-        logged: Set<BudgetOccurrence>
+        logged: Set<BudgetOccurrence>,
+        shiftIncomeToBusinessDay: Bool = true
     ) -> [BudgetItem] {
         items.filter { item in
-            guard let occurrence = occurrence(of: item, on: day) else { return false }
+            guard let occurrence = occurrence(
+                of: item, on: day, shiftIncomeToBusinessDay: shiftIncomeToBusinessDay
+            ) else { return false }
             return !logged.contains(occurrence)
         }
     }

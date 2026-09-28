@@ -2,8 +2,7 @@ import SwiftUI
 import SwiftData
 
 /// "הקטגוריות שלי" — every category, grouped the way the menus group them
-/// (income, then צרכים / מותרות / אחר). Pushed from the profile tab until a
-/// Settings screen exists.
+/// (income, then צרכים / מותרות / אחר). Pushed from Settings → ניהול.
 ///
 /// **Only the user's own categories are editable.** The defaults are shown
 /// greyed, with no chevron and no swipe — they're the fixed vocabulary the

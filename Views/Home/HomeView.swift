@@ -682,7 +682,8 @@ struct HomeView: View {
         BudgetReminderService.dueItems(
             on: today,
             in: budgetItems,
-            logged: BudgetReminderService.loggedOccurrences(from: budgetLoggedTransactions)
+            logged: BudgetReminderService.loggedOccurrences(from: budgetLoggedTransactions),
+            shiftIncomeToBusinessDay: profiles.first?.shiftsIncomeToBusinessDay ?? true
         )
     }
 

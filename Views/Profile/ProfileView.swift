@@ -59,21 +59,14 @@ struct ProfileView: View {
         .scrollIndicators(.hidden)
         .navigationTitle(Text("הפרופיל שלי"))
         .navigationBarTitleDisplayMode(.large)
-        // The category manager's and the Apple Pay guide's home until a
-        // Settings screen exists.
+        // Settings holds the personal details' editor, the categories, the
+        // Apple Pay shortcut and the rest.
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 NavigationLink {
-                    ApplePaySetupView()
+                    SettingsView()
                 } label: {
-                    Label("רישום מ-Apple Pay", systemImage: "wave.3.right.circle")
-                }
-            }
-            ToolbarItem(placement: .primaryAction) {
-                NavigationLink {
-                    CategoriesView()
-                } label: {
-                    Label("הקטגוריות שלי", systemImage: "tag")
+                    Label("הגדרות", systemImage: "gearshape")
                 }
             }
         }

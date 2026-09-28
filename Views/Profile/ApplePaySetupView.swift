@@ -6,7 +6,7 @@ import SwiftUI
 /// iOS tells apps nothing about Apple Pay payments, so this can't be a
 /// switch: the user builds a Shortcuts automation once, and this screen walks
 /// them through it (see `LogPaymentIntent` for why this is the only route).
-/// Pushed from the profile tab's toolbar until a Settings screen exists.
+/// Pushed from Settings → רישום מ-Apple Pay.
 ///
 /// The limits are stated up front rather than discovered: it fires on
 /// in-store taps only, and what reaches the app depends on the card issuer.

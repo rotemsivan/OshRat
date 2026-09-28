@@ -7,9 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		5EONB00100000000000000B1 /* OnboardingProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EONB00100000000000000F1 /* OnboardingProgress.swift */; };
-		5EPAY00500000000000000B1 /* ApplePayTipPopup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00500000000000000F1 /* ApplePayTipPopup.swift */; };
-		5EPAY00200000000000000C1 /* IncomingPaymentRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00200000000000000F1 /* IncomingPaymentRouter.swift */; };
 		5E0A2E862FE04B62004441B5 /* BudgetEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0A2E852FE04B62004441B5 /* BudgetEditorSheet.swift */; };
 		5E13B18B2FD5ADF900C87118 /* Heebo-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B1882FD5ADF900C87118 /* Heebo-SemiBold.ttf */; };
 		5E13B18C2FD5ADF900C87118 /* Heebo-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5E13B1852FD5ADF900C87118 /* Heebo-Light.ttf */; };
@@ -156,13 +153,17 @@
 		5EINS00200000000000000C2 /* CategoryBudgetBreakdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */; };
 		5EINS00300000000000000B1 /* DriversStationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00300000000000000F1 /* DriversStationView.swift */; };
 		5EINS00400000000000000B1 /* BudgetStationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00400000000000000F1 /* BudgetStationView.swift */; };
+		5EONB00100000000000000B1 /* OnboardingProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EONB00100000000000000F1 /* OnboardingProgress.swift */; };
 		5EPAY00100000000000000B1 /* PaymentPrefill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00100000000000000F1 /* PaymentPrefill.swift */; };
 		5EPAY00100000000000000C1 /* PaymentPrefill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00100000000000000F1 /* PaymentPrefill.swift */; };
 		5EPAY00200000000000000B1 /* IncomingPaymentRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00200000000000000F1 /* IncomingPaymentRouter.swift */; };
+		5EPAY00200000000000000C1 /* IncomingPaymentRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00200000000000000F1 /* IncomingPaymentRouter.swift */; };
 		5EPAY00300000000000000B1 /* LogPaymentIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00300000000000000F1 /* LogPaymentIntent.swift */; };
 		5EPAY00400000000000000B1 /* ApplePaySetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00400000000000000F1 /* ApplePaySetupView.swift */; };
+		5EPAY00500000000000000B1 /* ApplePayTipPopup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00500000000000000F1 /* ApplePayTipPopup.swift */; };
 		5EPICK0100000000000000B1 /* PickerRowLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPICK0100000000000000F1 /* PickerRowLabel.swift */; };
 		5EPRF00100000000000000B1 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPRF00100000000000000F1 /* ProfileView.swift */; };
+		5ESET00100000000000000B1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ESET00100000000000000F1 /* SettingsView.swift */; };
 		5ETRSH0100000000000000C1 /* TrashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F2 /* TrashService.swift */; };
 		5ETRSH0100000000000000C2 /* TrashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F2 /* TrashService.swift */; };
 		5EWARD0100000000000000B1 /* WardrobeItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0100000000000000F1 /* WardrobeItem.swift */; };
@@ -217,8 +218,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		5EONB00100000000000000F1 /* OnboardingProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingProgress.swift; sourceTree = "<group>"; };
-		5EPAY00500000000000000F1 /* ApplePayTipPopup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplePayTipPopup.swift; sourceTree = "<group>"; };
 		5E0A2E852FE04B62004441B5 /* BudgetEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetEditorSheet.swift; sourceTree = "<group>"; };
 		5E13B1812FD5ADF900C87118 /* Heebo-Black.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-Black.ttf"; sourceTree = "<group>"; };
 		5E13B1822FD5ADF900C87118 /* Heebo-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Heebo-Bold.ttf"; sourceTree = "<group>"; };
@@ -320,12 +319,15 @@
 		5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryBudgetBreakdown.swift; sourceTree = "<group>"; };
 		5EINS00300000000000000F1 /* DriversStationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DriversStationView.swift; sourceTree = "<group>"; };
 		5EINS00400000000000000F1 /* BudgetStationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetStationView.swift; sourceTree = "<group>"; };
+		5EONB00100000000000000F1 /* OnboardingProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingProgress.swift; sourceTree = "<group>"; };
 		5EPAY00100000000000000F1 /* PaymentPrefill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentPrefill.swift; sourceTree = "<group>"; };
 		5EPAY00200000000000000F1 /* IncomingPaymentRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomingPaymentRouter.swift; sourceTree = "<group>"; };
 		5EPAY00300000000000000F1 /* LogPaymentIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogPaymentIntent.swift; sourceTree = "<group>"; };
 		5EPAY00400000000000000F1 /* ApplePaySetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplePaySetupView.swift; sourceTree = "<group>"; };
+		5EPAY00500000000000000F1 /* ApplePayTipPopup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplePayTipPopup.swift; sourceTree = "<group>"; };
 		5EPICK0100000000000000F1 /* PickerRowLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerRowLabel.swift; sourceTree = "<group>"; };
 		5EPRF00100000000000000F1 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		5ESET00100000000000000F1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		5EWARD0100000000000000F1 /* WardrobeItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeItem.swift; sourceTree = "<group>"; };
 		5EWARD0200000000000000F1 /* MascotConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotConfig.swift; sourceTree = "<group>"; };
 		5EWARD0300000000000000F1 /* WardrobeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeService.swift; sourceTree = "<group>"; };
@@ -438,6 +440,7 @@
 		5E2626C12FD1823B00180F49 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				5ESET00000000000000000A1 /* Settings */,
 				5E2626C22FD1823E00180F49 /* Onboarding */,
 				5ED3E0ED2FD1BE5C003083F0 /* Home */,
 				5E78E4D92FDA02B400867892 /* Transactions */,
@@ -675,6 +678,14 @@
 			path = Profile;
 			sourceTree = "<group>";
 		};
+		5ESET00000000000000000A1 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				5ESET00100000000000000F1 /* SettingsView.swift */,
+			);
+			path = Settings;
+			sourceTree = "<group>";
+		};
 		5EWARDGR00000000000000A1 /* Avatar */ = {
 			isa = PBXGroup;
 			children = (
@@ -886,6 +897,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5ESET00100000000000000B1 /* SettingsView.swift in Sources */,
 				5EONB00100000000000000B1 /* OnboardingProgress.swift in Sources */,
 				5EPAY00500000000000000B1 /* ApplePayTipPopup.swift in Sources */,
 				5EPAY00400000000000000B1 /* ApplePaySetupView.swift in Sources */,

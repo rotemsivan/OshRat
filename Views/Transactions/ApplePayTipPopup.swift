@@ -92,13 +92,14 @@ struct ApplePayTipPopup: View {
     }
 }
 
-/// When the tip may be offered. The permanent opt-out is the popup's toggle,
+/// When the tip may be offered. `enabledKey` is the switch — turned off by
+/// the popup's "אל תראה לי שוב" and back on from Settings → Apple Pay —
 /// stored in `UserDefaults` (a per-device display preference, like the
 /// dashboard's `acknowledgedOverrunMonth`); the per-launch flag keeps it to
 /// once per launch however often the sheet is opened.
 @MainActor
 enum ApplePayTip {
-    static let hiddenKey = "applePayTipHidden"
+    static let enabledKey = "applePayTipEnabled"
     static var shownThisLaunch = false
 }
 

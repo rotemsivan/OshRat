@@ -130,7 +130,7 @@ struct NewTransactionSheet: View {
     /// on the way back.
     @State private var isShowingApplePayTip = false
     @State private var isShowingApplePaySetup = false
-    @AppStorage(ApplePayTip.hiddenKey) private var isApplePayTipHidden = false
+    @AppStorage(ApplePayTip.enabledKey) private var isApplePayTipEnabled = true
 
     /// - Parameters:
     ///   - transaction: an existing row to edit, or `nil` to add a new
@@ -1118,7 +1118,7 @@ struct NewTransactionSheet: View {
     /// shortcut, since by then it's clearly set up.
     private func shouldOfferApplePayTip() -> Bool {
         guard editingTransaction == nil, budgetLink == nil, !isCopy, payment == nil,
-              !isApplePayTipHidden, !ApplePayTip.shownThisLaunch
+              isApplePayTipEnabled, !ApplePayTip.shownThisLaunch
         else { return false }
         let fromPayments = FetchDescriptor<Transaction>(
             predicate: #Predicate { $0.paymentMerchant != nil || $0.paymentCardName != nil }
@@ -1127,7 +1127,7 @@ struct NewTransactionSheet: View {
     }
 
     private func closeApplePayTip(dontShowAgain: Bool) {
-        if dontShowAgain { isApplePayTipHidden = true }
+        if dontShowAgain { isApplePayTipEnabled = false }
         withAnimation(.easeIn(duration: 0.2)) {
             isShowingApplePayTip = false
         }

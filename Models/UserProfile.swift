@@ -16,6 +16,13 @@ final class UserProfile {
     var preferredCurrencyCode: String = "ILS"
     var createdAt: Date = Date.now
 
+    /// Whether recurring *income* lands on the next business day when its
+    /// date falls on Shabbat or an Israeli rest-day holiday (see
+    /// `BudgetItem.occurrenceDate`). On by default — salaries reach the bank
+    /// on a working day. A plain defaulted `Bool`, so existing stores migrate
+    /// without a hitch. Set from the Settings screen.
+    var shiftsIncomeToBusinessDay: Bool = true
+
     init(
         name: String = "",
         profession: String = "",
