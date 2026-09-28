@@ -84,6 +84,14 @@ struct NewTransactionSheet: View {
     @State private var isCreatingCategory = false
     @State private var title: String = ""
     @State private var details: String = ""
+    /// Whether the optional "פרטים נוספים" editor is open. Collapsed by
+    /// default so the form stays short; opened from `init` when the row being
+    /// edited or copied already carries a note, so nothing is hidden from view.
+    @State private var isShowingDetails: Bool = false
+    /// The expense's category, this month, *before* the row being entered —
+    /// see `refreshBudgetBaseline`. The indicator under the date adds the
+    /// typed amount on top, so typing needs no refetch.
+    @State private var budgetBaseline: CategoryBudgetStatus?
     /// When the transaction happened. Defaults to "now" for a new entry,
     /// seeded from the row in edit mode. The picker is capped at the
     /// present (`...Date.now`) so a transaction can never be future-dated.
@@ -166,6 +174,7 @@ struct NewTransactionSheet: View {
             _category = State(initialValue: copySource.category)
             _title = State(initialValue: copySource.title)
             _details = State(initialValue: copySource.note)
+            _isShowingDetails = State(initialValue: !copySource.note.isEmpty)
             _amount = State(initialValue: copySource.amount)
             _amountCurrencyCode = State(initialValue: copySource.currencyCode)
         }
@@ -187,6 +196,7 @@ struct NewTransactionSheet: View {
             _date = State(initialValue: transaction.date)
             _amount = State(initialValue: transaction.amount)
             _amountCurrencyCode = State(initialValue: transaction.currencyCode)
+            _isShowingDetails = State(initialValue: !transaction.note.isEmpty)
             // Seed the staged attachments from the row's existing files
             // (oldest first for a stable strip order). Each carries its
             // backing row in `existing` so the save path can tell kept files
@@ -230,9 +240,6 @@ struct NewTransactionSheet: View {
                             titleSection
                                 .appearStagger(index: 3, visible: hasAppeared)
                                 .transition(kindTransition)
-                            detailsSection
-                                .appearStagger(index: 4, visible: hasAppeared)
-                                .transition(kindTransition)
                             amountSection
                                 .appearStagger(index: 5, visible: hasAppeared)
                                 .transition(kindTransition)
@@ -251,7 +258,10 @@ struct NewTransactionSheet: View {
                     .animation(reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.85), value: kind)
                     .padding(.horizontal, Theme.Spacing.lg)
                     .padding(.top, Theme.Spacing.md)
-                    .padding(.bottom, Theme.Spacing.xl + 80) // breathing room above the slide bar
+                    // The slide bar is a `safeAreaInset`, so the scroll content
+                    // already ends above it — this is only a small gap, not
+                    // clearance for the bar itself.
+                    .padding(.bottom, Theme.Spacing.lg)
                 }
                 .scrollIndicators(.hidden)
             }
@@ -322,6 +332,11 @@ struct NewTransactionSheet: View {
                     }
                 }
             }
+        }
+        // Only what moves the month's figures refetches — the amount is added
+        // on top of the baseline at render time.
+        .onChange(of: budgetBaselineKey, initial: true) {
+            refreshBudgetBaseline()
         }
         .onChange(of: sourceAccount) { old, new in
             // A budget line's amount arrives in the line's own currency, so
@@ -503,32 +518,74 @@ struct NewTransactionSheet: View {
         }
     }
 
+    /// The title, with the optional note tucked directly under it (income and
+    /// expense only — a transfer takes no note).
     private var titleSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             sectionLabel("שם התנועה")
-            HebrewTextField(titlePlaceholder, text: $title)
-                .padding(Theme.Spacing.md)
-                .background(Theme.Colors.surface)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                        .stroke(Theme.Colors.separator, lineWidth: 1)
-                )
+            VStack(alignment: .leading, spacing: 0) {
+                HebrewTextField(titlePlaceholder, text: $title)
+                    .padding(Theme.Spacing.md)
+                    .background(Theme.Colors.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                            .stroke(Theme.Colors.separator, lineWidth: 1)
+                    )
+                if kind != .transfer {
+                    detailsDisclosure
+                }
+            }
         }
     }
 
-    private var detailsSection: some View {
-        VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            sectionLabel("פרטים נוספים")
-            HebrewTextEditor("לא חובה — מקום לפירוט", text: $details, minHeight: 60)
-                .padding(Theme.Spacing.md)
-                .background(Theme.Colors.surface)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
-                        .stroke(Theme.Colors.separator, lineWidth: 1)
-                )
-                .frame(alignment: .leading)
+    /// The optional note, folded away behind a small row hugging the title
+    /// field — most rows never get one, and folded it costs so little height
+    /// that the amount stays on the first screen. Opening it pushes the rest
+    /// of the form down.
+    private var detailsDisclosure: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            Button {
+                withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.9)) {
+                    isShowingDetails.toggle()
+                }
+            } label: {
+                HStack(spacing: Theme.Spacing.xs) {
+                    Text("פרטים נוספים")
+                    // Shown folded so the user can tell a note is waiting.
+                    if !isShowingDetails, !details.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Image(systemName: "text.alignright")
+                            .accessibilityHidden(true)
+                    }
+                    // Up/down rather than a sideways chevron, so the glyph
+                    // needs no thought about which way RTL mirrors it.
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .rotationEffect(.degrees(isShowingDetails ? 180 : 0))
+                        .accessibilityHidden(true)
+                }
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .padding(.horizontal, Theme.Spacing.xs)
+                .padding(.vertical, Theme.Spacing.sm)
+                // Visually one caption line, but the tap area reaches out to
+                // roughly the HIG's 44pt without spending that height.
+                .contentShape(Rectangle().inset(by: -Theme.Spacing.sm))
+            }
+            .buttonStyle(.plain)
+            .accessibilityValue(Text(isShowingDetails ? "פתוח" : "סגור"))
+
+            if isShowingDetails {
+                HebrewTextEditor("לא חובה — מקום לפירוט", text: $details, minHeight: 60)
+                    .padding(Theme.Spacing.md)
+                    .background(Theme.Colors.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                            .stroke(Theme.Colors.separator, lineWidth: 1)
+                    )
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
+            }
         }
     }
 
@@ -562,18 +619,72 @@ struct NewTransactionSheet: View {
         }
     }
 
+    /// Where this expense leaves its category's budget for the month it's
+    /// dated in, pinned right under the amount it reacts to. Same colours as the transaction card's budget bar:
+    /// accent with room left, orange from 90%, red once over. Says nothing
+    /// when the category has no plan that month (or no rate to convert the
+    /// typed amount), rather than showing a bar against zero.
+    @ViewBuilder
+    private var budgetImpactIndicator: some View {
+        if let base = budgetBaseline, let category, let added = amountInPreferredCurrency {
+            let projected = base.actual + added
+            let fraction = base.planned > 0 ? NSDecimalNumber(decimal: projected / base.planned).doubleValue : 0
+            let code = base.currencyCode
+            let isOver = projected > base.planned
+            let color = isOver ? Theme.Colors.expense : (fraction >= 0.9 ? Theme.Colors.wants : Theme.Colors.accent)
+
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                HStack(alignment: .firstTextBaseline, spacing: Theme.Spacing.xs) {
+                    Image(systemName: isOver ? "exclamationmark.triangle.fill" : (fraction >= 0.9 ? "exclamationmark.circle.fill" : "checkmark.circle.fill"))
+                        .foregroundStyle(color)
+                        .accessibilityHidden(true)
+                    Group {
+                        if isOver {
+                            Text("חריגה של \((projected - base.planned).formattedCurrency(code)) מתקציב \(Text(category.name).bold())")
+                        } else {
+                            Text("נשארים \((base.planned - projected).formattedCurrency(code)) בתקציב \(Text(category.name).bold())")
+                        }
+                    }
+                    .foregroundStyle(isOver ? Theme.Colors.expense : Theme.Colors.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .font(Theme.Typography.caption)
+
+                BudgetProgressBar(
+                    fillFraction: min(fraction, 1),
+                    color: color,
+                    revealed: true,
+                    reduceMotion: reduceMotion,
+                    height: 6
+                )
+            }
+            .padding(.horizontal, Theme.Spacing.xs)
+            .monospacedDigit()
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: isOver)
+            .accessibilityElement(children: .combine)
+            .transition(.opacity)
+        }
+    }
+
     private var amountSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             sectionLabel(kind == .transfer ? "סכום להעברה" : "סכום")
-            BigAmountField(
-                value: $amount,
-                currencyCode: $amountCurrencyCode,
-                supportedCurrencies: supportedCurrencies,
-                // For a transfer the amount is what leaves the *source*, so
-                // its currency is pinned to the source account; the
-                // destination figure is derived below via FX.
-                isCurrencyLocked: kind == .transfer
-            )
+            // Tighter than the section spacing so the budget bar reads as
+            // part of the amount box rather than a section of its own.
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                BigAmountField(
+                    value: $amount,
+                    currencyCode: $amountCurrencyCode,
+                    supportedCurrencies: supportedCurrencies,
+                    // For a transfer the amount is what leaves the *source*, so
+                    // its currency is pinned to the source account; the
+                    // destination figure is derived below via FX.
+                    isCurrencyLocked: kind == .transfer
+                )
+                if kind == .expense {
+                    budgetImpactIndicator
+                }
+            }
             if let preview = conversionPreviewText {
                 Text(preview)
                     .font(Theme.Typography.caption)
@@ -631,6 +742,57 @@ struct NewTransactionSheet: View {
 
     private var preferredCurrencyCode: String {
         profiles.first?.preferredCurrencyCode ?? "ILS"
+    }
+
+    /// The typed amount in the preferred currency — the currency budgets are
+    /// counted in. `nil` when no rate bridges the two.
+    private var amountInPreferredCurrency: Decimal? {
+        if amountCurrencyCode == preferredCurrencyCode { return amount }
+        guard let snapshot = fxSnapshots.first else { return nil }
+        return CurrencyConverter.convert(amount, from: amountCurrencyCode, to: preferredCurrencyCode, using: snapshot)
+    }
+
+    /// Everything that changes *which* month of *which* category the budget
+    /// indicator reads.
+    private var budgetBaselineKey: BudgetBaselineKey {
+        BudgetBaselineKey(
+            categoryID: kind == .expense ? category?.persistentModelID : nil,
+            month: CategoryBudgetStatus.calendar.dateInterval(of: .month, for: date)?.start
+        )
+    }
+
+    /// Recompute the category's month without the row being entered.
+    ///
+    /// A fetch narrowed to the month, not a `@Query` of the whole ledger: the
+    /// sheet opens often, and this only has to run when the category or the
+    /// month changes. The row being edited is left out, since the typed
+    /// amount is added back on top — counting both would double it.
+    private func refreshBudgetBaseline() {
+        guard kind == .expense,
+              let category,
+              let window = CategoryBudgetStatus.calendar.dateInterval(of: .month, for: date)
+        else {
+            budgetBaseline = nil
+            return
+        }
+        let start = window.start
+        let end = window.end
+        let monthRows = FetchDescriptor<Transaction>(
+            predicate: #Predicate { $0.deletedAt == nil && $0.date >= start && $0.date < end },
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        let editingID = editingTransaction?.persistentModelID
+        let rows = ((try? modelContext.fetch(monthRows)) ?? []).filter { $0.persistentModelID != editingID }
+        let items = (try? modelContext.fetch(FetchDescriptor<BudgetItem>())) ?? []
+
+        budgetBaseline = CategoryBudgetStatus.make(
+            category: category,
+            containing: date,
+            budgetItems: items,
+            transactions: rows,
+            preferredCurrency: preferredCurrencyCode,
+            fxSnapshot: fxSnapshots.first
+        )
     }
 
     /// Returns the amount converted into the source account's currency,
@@ -1060,6 +1222,13 @@ private struct BudgetLink {
     let item: BudgetItem
     /// Start of the scheduled day.
     let occurrenceDay: Date
+}
+
+/// Identifies the month and category the budget indicator is reading; see
+/// `NewTransactionSheet.refreshBudgetBaseline`.
+private struct BudgetBaselineKey: Equatable {
+    let categoryID: PersistentIdentifier?
+    let month: Date?
 }
 
 // MARK: - Sheet-local kind
