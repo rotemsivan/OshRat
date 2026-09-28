@@ -21,8 +21,6 @@
 	</array>
 	<key>OshRatURLScheme</key>
 	<string>$(APP_URL_SCHEME)</string>
-	<key>NSCameraUsageDescription</key>
-	<string>כדי לצלם קבלות וחשבוניות ולצרף אותן לתנועות שלך. התמונות נשמרות במכשיר בלבד.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Heebo-Regular.ttf</string>
