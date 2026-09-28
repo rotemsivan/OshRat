@@ -206,11 +206,70 @@ struct XPRulesTests {
         #expect(streak == 5)
     }
 
+    /// Monday to Wednesday skips a working Tuesday.
     @Test func aMissedDayStartsOver() {
         let streak = XPRules.nextStreak(
             current: 30,
+            lastActivity: Self.date(2026, 9, 14),
+            now: Self.date(2026, 9, 16),
+            calendar: Self.calendar
+        )
+        #expect(streak == 1)
+    }
+
+    // MARK: - The weekend can't break a streak
+
+    // September 2026: Thu 10, Fri 11, Sat 12, Sun 13, Mon 14.
+
+    @Test func thursdayToSundayKeepsTheStreak() {
+        let streak = XPRules.nextStreak(
+            current: 6,
+            lastActivity: Self.date(2026, 9, 10),
+            now: Self.date(2026, 9, 13),
+            calendar: Self.calendar
+        )
+        #expect(streak == 7)
+    }
+
+    @Test func fridayToSundayKeepsTheStreak() {
+        let streak = XPRules.nextStreak(
+            current: 6,
             lastActivity: Self.date(2026, 9, 11),
             now: Self.date(2026, 9, 13),
+            calendar: Self.calendar
+        )
+        #expect(streak == 7)
+    }
+
+    /// The weekend only adds: logging on it counts like any other day.
+    @Test func loggingOnTheWeekendStillAddsADay() {
+        let friday = XPRules.nextStreak(
+            current: 3, lastActivity: Self.date(2026, 9, 10), now: Self.date(2026, 9, 11), calendar: Self.calendar
+        )
+        let saturday = XPRules.nextStreak(
+            current: friday, lastActivity: Self.date(2026, 9, 11), now: Self.date(2026, 9, 12), calendar: Self.calendar
+        )
+        #expect(friday == 4)
+        #expect(saturday == 5)
+    }
+
+    /// Wednesday to Sunday skips a working Thursday as well as the weekend.
+    @Test func aMissedThursdayBeforeTheWeekendStillBreaksIt() {
+        let streak = XPRules.nextStreak(
+            current: 6,
+            lastActivity: Self.date(2026, 9, 9),
+            now: Self.date(2026, 9, 13),
+            calendar: Self.calendar
+        )
+        #expect(streak == 1)
+    }
+
+    /// Thursday to Monday skips a working Sunday after the weekend.
+    @Test func aMissedSundayAfterTheWeekendStillBreaksIt() {
+        let streak = XPRules.nextStreak(
+            current: 6,
+            lastActivity: Self.date(2026, 9, 10),
+            now: Self.date(2026, 9, 14),
             calendar: Self.calendar
         )
         #expect(streak == 1)

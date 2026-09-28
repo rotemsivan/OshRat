@@ -121,6 +121,13 @@ enum XPRules {
     /// personal finance and still leaves the honest user never touching it.
     static let dailyUsageCap = 30
 
+    /// Days a streak may skip without breaking: Friday and Saturday
+    /// (`Calendar` weekdays 6 and 7), the Israeli weekend. Logging on them still
+    /// adds a day; *not* logging on them costs nothing. Most people don't touch
+    /// their finances over the weekend, and a streak that dies every Saturday
+    /// would punish that — exactly what GAMIFICATION.md rules out.
+    static let streakRestWeekdays: Set<Int> = [6, 7]
+
     /// Streak lengths that pay a bonus, and what each one pays. Rising steeply
     /// because the milestones are rare and getting to 100 days is the single
     /// hardest thing in the system.
@@ -155,8 +162,12 @@ enum XPRules {
     /// The streak after activity lands on `now`.
     ///
     /// Same day → unchanged (logging six things on Tuesday is one day of
-    /// consistency, not six). Yesterday → one longer. Anything older, or no
-    /// history at all → back to a streak of 1. Note that a lapse resets the
+    /// consistency, not six). Yesterday → one longer. A longer gap is still
+    /// one longer when every day skipped was a rest day
+    /// (`streakRestWeekdays`) — Thursday to Sunday keeps the streak going.
+    /// Any other gap, or no history at all → back to a streak of 1. The
+    /// weekend only ever *adds*: activity on it counts like any day, and its
+    /// absence doesn't break anything. Note that a lapse resets the
     /// *streak* and never the XP: GAMIFICATION.md is explicit that the system
     /// never punishes, and taking points away for a missed day would be
     /// exactly that.
@@ -177,7 +188,17 @@ enum XPRules {
         guard previous < today else { return max(current, 1) }
 
         let gap = calendar.dateComponents([.day], from: previous, to: today).day ?? 0
-        return gap == 1 ? current + 1 : 1
+        // More skipped days than there are rest days in a row means a
+        // working day was missed, without walking the whole gap.
+        guard gap >= 1, gap <= streakRestWeekdays.count + 1 else { return 1 }
+
+        var skipped = previous
+        for _ in 1..<gap {
+            guard let next = calendar.date(byAdding: .day, value: 1, to: skipped) else { return 1 }
+            skipped = next
+            guard streakRestWeekdays.contains(calendar.component(.weekday, from: skipped)) else { return 1 }
+        }
+        return current + 1
     }
 
     // MARK: - Levels
