@@ -33,6 +33,10 @@ PICKS = [
     ("celebration-achievement-gold", "jingles", "Audio/Steel jingles/jingles_STEEL08.ogg", 0.14),
     # Four plucked notes rising — the same voice, a bigger moment.
     ("celebration-levelup", "jingles", "Audio/Pizzicato jingles/jingles_PIZZI15.ogg", 0.14),
+    # XP earned — a short, low sweep rising about an octave, played as the
+    # level bar fills. Quieter than the transaction tone it usually follows,
+    # and low on purpose: the brighter "maximize" sweeps read as a hiss.
+    ("xp-gain", "interface", "Audio/maximize_006.ogg", 0.09),
     # The budget reminder — not a celebration, so not a phrase: one solid,
     # round bell strike that reads as "something to do", apart from the chimes.
     ("reminder-budget", "interface", "Audio/bong_001.ogg", 0.13),

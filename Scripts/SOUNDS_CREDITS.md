@@ -11,6 +11,7 @@ it's here because it's deserved.
 | `celebration-achievement.caf` (bronze & silver) | Music Jingles | `jingles_STEEL04.ogg` |
 | `celebration-achievement-gold.caf` | Music Jingles | `jingles_STEEL08.ogg` |
 | `celebration-levelup.caf` | Music Jingles | `jingles_PIZZI15.ogg` |
+| `xp-gain.caf` | Interface Sounds 1.0 | `maximize_006.ogg` |
 | `reminder-budget.caf` | Interface Sounds 1.0 | `bong_001.ogg` |
 
 Processing (fade in/out, level, CAF conversion) is done by

@@ -122,6 +122,8 @@ struct HomeView: View {
     /// The budget occurrence a reminder toast tap is logging. Presented from
     /// here (not the calendar) because the toast plays over every tab.
     @State private var budgetLogRequest: BudgetLogRequest?
+    /// XP earned and not yet shown — see the `totalXP` watcher in `body`.
+    @State private var xpGain: XPGain?
     /// Start of today, for the budget reminder. State rather than read from
     /// `.now` on each render so that a day rolling over while the app is open
     /// actually re-renders — nothing else would prompt one at midnight.
@@ -212,7 +214,11 @@ struct HomeView: View {
         // celebration, so the two banners never stack or talk over each other.
         .overlay(alignment: .top) {
             if !isPresentingModal {
-                if let celebration = progressRows.first?.nextCelebration {
+                // Points first: a level-up is the *result* of the points, so
+                // its toast reads best right after the bar has filled.
+                if let xpGain {
+                    XPGainToast(gain: xpGain, onDismiss: { self.xpGain = nil })
+                } else if let celebration = progressRows.first?.nextCelebration {
                     CelebrationToast(
                         celebration: celebration,
                         // An achievement's toast leads to the shelf it now sits on.
@@ -231,6 +237,14 @@ struct HomeView: View {
                     )
                 }
             }
+        }
+        // Every XP award, whatever earned it, raises the total — so watching
+        // the total catches them all without each write point announcing
+        // itself. `nil` on either side is a row appearing or being wiped (a
+        // first launch, a demo reset), not points earned.
+        .onChange(of: progressRows.first?.totalXP) { old, new in
+            guard let old, let new, new > old else { return }
+            xpGain = xpGain?.merging(upTo: new) ?? XPGain(fromXP: old, toXP: new)
         }
         .sheet(isPresented: $isAddingTransaction) {
             NewTransactionSheet()

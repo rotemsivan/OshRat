@@ -3,8 +3,8 @@ import CoreHaptics
 
 /// The app's celebration sounds and the haptic patterns that go with them.
 ///
-/// Four celebration moments, rising in size: a new transaction gets one warm
-/// tone, an achievement a two-note steel-drum phrase (a sibling phrase for
+/// Five celebration moments, rising in size: a new transaction gets one warm
+/// tone, the XP it earned a low rising sweep as the bar fills, an achievement a two-note steel-drum phrase (a sibling phrase for
 /// gold), a level-up four plucked-string notes. A fifth, the budget reminder,
 /// is a nudge rather than a reward and gets one solid bell strike. The sounds are CC0
 /// assets by Kenney, prepared by `Scripts/prepare_sounds.py` (credits in
@@ -31,6 +31,9 @@ final class CelebrationFeedback {
 
     enum Moment: CaseIterable {
         case transactionLogged
+        /// XP earned, as the level bar fills in `XPGainToast`. Smaller than
+        /// the transaction tone it usually follows a second later.
+        case xpGained
         /// Bronze and silver patches, and the batch toast.
         case achievement
         /// Gold patches — the rarest, so they get their own phrase.
@@ -43,6 +46,7 @@ final class CelebrationFeedback {
         fileprivate var soundName: String {
             switch self {
             case .transactionLogged: return "celebration-transaction"
+            case .xpGained:          return "xp-gain"
             case .achievement:       return "celebration-achievement"
             case .goldAchievement:   return "celebration-achievement-gold"
             case .levelUp:           return "celebration-levelup"
@@ -57,6 +61,10 @@ final class CelebrationFeedback {
             case .transactionLogged:
                 // One firm, clean tap — like pressing a good physical button.
                 return [(0.00, 0.80, 0.60)]
+            case .xpGained:
+                // Two light taps rising with the sweep — kept well under the
+                // transaction's tap, since this is the echo, not the moment.
+                return [(0.00, 0.30, 0.40), (0.13, 0.50, 0.55)]
             case .achievement:
                 // Light, then strong: the "success" rhythm.
                 return [(0.00, 0.55, 0.50), (0.13, 1.00, 0.70)]
