@@ -59,8 +59,16 @@ struct ProfileView: View {
         .scrollIndicators(.hidden)
         .navigationTitle(Text("הפרופיל שלי"))
         .navigationBarTitleDisplayMode(.large)
-        // The category manager's home until a Settings screen exists.
+        // The category manager's and the Apple Pay guide's home until a
+        // Settings screen exists.
         .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                NavigationLink {
+                    ApplePaySetupView()
+                } label: {
+                    Label("רישום מ-Apple Pay", systemImage: "wave.3.right.circle")
+                }
+            }
             ToolbarItem(placement: .primaryAction) {
                 NavigationLink {
                     CategoriesView()

@@ -124,6 +124,12 @@ struct HomeView: View {
     @State private var budgetLogRequest: BudgetLogRequest?
     /// XP earned and not yet shown — see the `totalXP` watcher in `body`.
     @State private var xpGain: XPGain?
+    /// A card payment from the Wallet automation, being logged in a
+    /// pre-filled sheet. Taken from `paymentRouter`, which only parks it.
+    @State private var paymentRequest: PaymentPrefill?
+    /// Where `LogPaymentIntent` leaves a payment. Read in `body`, so
+    /// Observation re-runs the `onChange` below the moment one arrives.
+    private let paymentRouter = IncomingPaymentRouter.shared
     /// Start of today, for the budget reminder. State rather than read from
     /// `.now` on each render so that a day rolling over while the app is open
     /// actually re-renders — nothing else would prompt one at midnight.
@@ -248,6 +254,30 @@ struct HomeView: View {
         }
         .sheet(isPresented: $isAddingTransaction) {
             NewTransactionSheet()
+        }
+        // Apple Pay → the Wallet automation → `LogPaymentIntent` → here.
+        // `initial: true` catches a payment that arrived on a cold launch,
+        // before this view existed. The payment is only taken once nothing
+        // else is up: presenting a sheet while another sheet or an alert is
+        // being presented is silently dropped, and the payment with it. So it
+        // waits in the router, and this fires again when the way clears.
+        .onChange(of: PaymentGate(pendingID: paymentRouter.pending?.id, isBlocked: isBlockingPayment), initial: true) {
+            guard !isBlockingPayment, let payment = paymentRouter.take() else { return }
+            guard isAddingTransaction else {
+                paymentRequest = payment
+                return
+            }
+            // A payment beats a blank sheet the user left open. Presenting
+            // while that one is still sliding away is silently dropped, so
+            // wait out its dismissal first.
+            isAddingTransaction = false
+            Task {
+                try? await Task.sleep(for: .milliseconds(600))
+                paymentRequest = payment
+            }
+        }
+        .sheet(item: $paymentRequest) { payment in
+            NewTransactionSheet(payment: payment)
         }
         .sheet(isPresented: $isEditingBudget) {
             BudgetEditorSheet()
@@ -477,6 +507,10 @@ struct HomeView: View {
         // neither trigger nor re-word it.
         .onChange(of: monthlyBudgetReport.hasOverrun, initial: true) { _, isOverBudget in
             guard isOverBudget, acknowledgedOverrunMonth != currentMonthKey else { return }
+            // Someone who just paid wants to log it, not to be told they're
+            // over budget — and two presentations at once drop one of them.
+            // Left unacknowledged, so the alert comes back another time.
+            guard paymentRouter.pending == nil, paymentRequest == nil else { return }
             overrunAlertPresented = true
             acknowledgedOverrunMonth = currentMonthKey
         }
@@ -667,10 +701,27 @@ struct HomeView: View {
         isShowingWardrobe = true
     }
 
+    /// Whether a sheet or alert is up that a card payment must wait for. The
+    /// blank new-transaction sheet doesn't count: a payment replaces it.
+    private var isBlockingPayment: Bool {
+        paymentRequest != nil
+            || budgetLogRequest != nil
+            || isEditingBudget
+            || isShowingRecentlyDeleted
+            || isShowingWardrobe
+            || isAddingAccount
+            || editingAccount != nil
+            || depositShowingInfo != nil
+            || depositAwaitingPayout != nil
+            || autoPaidDeposit != nil
+            || overrunAlertPresented
+    }
+
     /// Whether any sheet or alert presented from this view is up — every
     /// place a level-up can be earned is one of these, or a task of this view.
     private var isPresentingModal: Bool {
         isAddingTransaction
+            || paymentRequest != nil
             || budgetLogRequest != nil
             || isEditingBudget
             || isShowingRecentlyDeleted
@@ -895,4 +946,11 @@ private struct FloatingAddButton: View {
 #Preview {
     HomeView()
         .modelContainer(for: [UserProfile.self, Account.self, Holding.self, Category.self, Transaction.self, TransactionAttachment.self, BudgetItem.self, Goal.self, FXRateSnapshot.self], inMemory: true)
+}
+
+/// What decides whether a waiting card payment can be presented: a new one
+/// arriving, or the screen becoming free for it.
+private struct PaymentGate: Equatable {
+    let pendingID: UUID?
+    let isBlocked: Bool
 }

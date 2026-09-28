@@ -129,6 +129,19 @@ final class Transaction {
     /// mark next week, not today. See `BudgetOccurrence`.
     var budgetOccurrenceDate: Date?
 
+    // MARK: - Logged from a card payment
+
+    /// The merchant and card name exactly as the Wallet "Transaction"
+    /// automation reported them, when the row was logged from a payment (see
+    /// `PaymentPrefill`). `nil` for everything else.
+    ///
+    /// Kept apart from `title` on purpose: the user often renames
+    /// "SHUFERSAL DEAL TLV" to "סופר", and the next payment at the same shop
+    /// should still find this row — and borrow its title, category and
+    /// account — by the raw string the automation will send again.
+    var paymentMerchant: String?
+    var paymentCardName: String?
+
     init(
         amount: Decimal = 0,
         kind: TransactionKind = .expense,

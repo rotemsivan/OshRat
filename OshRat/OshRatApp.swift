@@ -46,7 +46,12 @@ struct OshRatApp: App {
     /// xcrun simctl launch booted com.oshrat.app.dev -resetStore
     /// xcrun simctl launch booted com.oshrat.app.dev -demoEquip item-hat-propeller-red
     /// xcrun simctl launch booted com.oshrat.app.dev -hideAdmin
+    /// xcrun simctl launch booted com.oshrat.app.dev -demoPayment "42.90,ILS,SHUFERSAL DEAL,Visa 1234"
     /// ```
+    ///
+    /// `-demoPayment` stands in for the Wallet automation calling
+    /// `LogPaymentIntent`: amount, currency, merchant, card, comma-separated,
+    /// any of them empty (`",,Cafe Nero,"` is a payment with no amount).
     ///
     /// (`-hideAdmin` is read by `AdminPanelButton` itself, not here.)
     ///
@@ -86,6 +91,22 @@ struct OshRatApp: App {
                 config.setEquippedID(item.id, for: item.slot)
             }
             try? context.save()
+        }
+
+        if let flagIndex = arguments.firstIndex(of: "-demoPayment"),
+           arguments.index(after: flagIndex) < arguments.endIndex {
+            let fields = arguments[arguments.index(after: flagIndex)]
+                .split(separator: ",", omittingEmptySubsequences: false)
+                .map { String($0).trimmingCharacters(in: .whitespaces) }
+            func field(_ index: Int) -> String? {
+                fields.indices.contains(index) && !fields[index].isEmpty ? fields[index] : nil
+            }
+            IncomingPaymentRouter.shared.receive(PaymentPrefill(
+                amount: field(0).flatMap { Decimal(string: $0, locale: Locale(identifier: "en_US_POSIX")) },
+                currencyCode: field(1),
+                merchant: field(2),
+                cardName: field(3)
+            ))
         }
     }
     #endif

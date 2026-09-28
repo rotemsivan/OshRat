@@ -69,6 +69,14 @@ struct NewTransactionSheet: View {
     /// handling care — see `init(copying:)`.
     private let isCopy: Bool
 
+    /// The card payment this new row logs, when the sheet was opened by the
+    /// Wallet automation (`LogPaymentIntent`). Amount and currency come from
+    /// it in `init`; title, category and account are worked out from the
+    /// user's history in `primeDefaults`, where the store is reachable. The
+    /// raw merchant and card are saved on the row so the next payment can
+    /// learn from it.
+    private let payment: PaymentPrefill?
+
     /// Optional ping for the parent ("a transaction was saved"). The
     /// sheet handles the SwiftData insert/update internally — this is
     /// just so callers can react (e.g. haptic, confetti) without
@@ -117,13 +125,20 @@ struct NewTransactionSheet: View {
     /// diff keep/delete/insert.
     @State private var attachmentDrafts: [AttachmentDraft] = []
 
+    /// The Apple Pay shortcut suggestion (`ApplePayTipPopup`) and the setup
+    /// guide it leads to, pushed inside this sheet so the form is still there
+    /// on the way back.
+    @State private var isShowingApplePayTip = false
+    @State private var isShowingApplePaySetup = false
+    @AppStorage(ApplePayTip.hiddenKey) private var isApplePayTipHidden = false
+
     /// - Parameters:
     ///   - transaction: an existing row to edit, or `nil` to add a new
     ///     one. In edit mode every form field is seeded from the row via
     ///     `State(initialValue:)` so the sheet opens pre-filled.
     ///   - onSaved: optional callback fired after the save lands.
     init(transaction: Transaction? = nil, onSaved: ((Transaction) -> Void)? = nil) {
-        self.init(transaction: transaction, budgetLink: nil, copying: nil, onSaved: onSaved)
+        self.init(transaction: transaction, budgetLink: nil, copying: nil, payment: nil, onSaved: onSaved)
     }
 
     /// A new row pre-filled from an existing one — the "copy transaction"
@@ -139,7 +154,14 @@ struct NewTransactionSheet: View {
     /// A soft-deleted account isn't copied either (it can't be picked), so
     /// `primeDefaults` fills that side in as it would for a blank sheet.
     init(copying source: Transaction, onSaved: ((Transaction) -> Void)? = nil) {
-        self.init(transaction: nil, budgetLink: nil, copying: source, onSaved: onSaved)
+        self.init(transaction: nil, budgetLink: nil, copying: source, payment: nil, onSaved: onSaved)
+    }
+
+    /// A new expense pre-filled from a card payment — what opens when the
+    /// user pays with Apple Pay and the Wallet automation runs. Only what the
+    /// card issuer sent is filled; the date is now.
+    init(payment: PaymentPrefill, onSaved: ((Transaction) -> Void)? = nil) {
+        self.init(transaction: nil, budgetLink: nil, copying: nil, payment: payment, onSaved: onSaved)
     }
 
     /// A new row logging one scheduled occurrence of a budget line: kind,
@@ -152,6 +174,7 @@ struct NewTransactionSheet: View {
             transaction: nil,
             budgetLink: BudgetLink(item: item, occurrenceDay: occurrenceDay),
             copying: nil,
+            payment: nil,
             onSaved: onSaved
         )
     }
@@ -160,12 +183,25 @@ struct NewTransactionSheet: View {
         transaction: Transaction?,
         budgetLink: BudgetLink?,
         copying copySource: Transaction?,
+        payment: PaymentPrefill?,
         onSaved: ((Transaction) -> Void)?
     ) {
         self.editingTransaction = transaction
         self.budgetLink = budgetLink
         self.isCopy = copySource != nil
+        self.payment = payment
         self.onSaved = onSaved
+
+        if let payment {
+            _kind = State(initialValue: .expense)
+            if let amount = payment.amount, amount > 0 {
+                _amount = State(initialValue: amount)
+            }
+            if let code = payment.currencyCode {
+                _amountCurrencyCode = State(initialValue: code)
+            }
+            _title = State(initialValue: payment.trimmedMerchant ?? "")
+        }
 
         if let copySource {
             _kind = State(initialValue: copySource.isTransfer ? .transfer : SheetKind(copySource.kind))
@@ -214,6 +250,10 @@ struct NewTransactionSheet: View {
 
                 ScrollView {
                     VStack(spacing: Theme.Spacing.lg) {
+                        if let payment {
+                            PaymentSourceBanner(payment: payment)
+                                .appearStagger(index: 0, visible: hasAppeared)
+                        }
                         kindPickerSection
                             .appearStagger(index: 0, visible: hasAppeared)
 
@@ -280,12 +320,31 @@ struct NewTransactionSheet: View {
                 .padding(.bottom, Theme.Spacing.md)
             }
             .font(Theme.Typography.body)
+            .navigationDestination(isPresented: $isShowingApplePaySetup) {
+                ApplePaySetupView()
+            }
             .navigationTitle(navigationTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("ביטול") { dismiss() }
                 }
+            }
+        }
+        // Over the whole stack, slide bar included, so nothing behind the
+        // card can be used while it's up.
+        .overlay {
+            if isShowingApplePayTip {
+                ApplePayTipPopup(
+                    onSetUp: { dontShowAgain in
+                        closeApplePayTip(dontShowAgain: dontShowAgain)
+                        isShowingApplePaySetup = true
+                    },
+                    onDismiss: { dontShowAgain in
+                        closeApplePayTip(dontShowAgain: dontShowAgain)
+                    }
+                )
+                .transition(.opacity)
             }
         }
         .tint(Theme.Colors.accent)
@@ -308,6 +367,16 @@ struct NewTransactionSheet: View {
             // then layers small offsets on top.
             withAnimation(.spring(response: 0.55, dampingFraction: 0.85).delay(0.05)) {
                 hasAppeared = true
+            }
+        }
+        .task {
+            guard shouldOfferApplePayTip() else { return }
+            ApplePayTip.shownThisLaunch = true
+            // After the form has staggered in, so the card arrives over a
+            // settled sheet rather than into the middle of its entrance.
+            try? await Task.sleep(for: .seconds(0.6))
+            withAnimation(.easeOut(duration: 0.25)) {
+                isShowingApplePayTip = true
             }
         }
         .onChange(of: kind) { _, new in
@@ -344,7 +413,9 @@ struct NewTransactionSheet: View {
             // "$1,000 salary" silently becoming "₪1,000" is exactly the
             // surprise the snap below exists to prevent.
             // The same holds for a copy whose account had to be re-picked.
-            if old == nil, budgetLink != nil || isCopy { return }
+            // And a card payment's amount is in whatever currency the card
+            // was charged in.
+            if old == nil, budgetLink != nil || isCopy || payment?.currencyCode != nil { return }
             // When the user switches accounts, snap the amount currency
             // to the new account's currency. Avoids the silent surprise
             // of typing 50 in "USD" while the new account is ILS.
@@ -959,6 +1030,9 @@ struct NewTransactionSheet: View {
     /// The amount currency is seeded from that account so the common
     /// case avoids any FX conversion.
     private func primeDefaults() {
+        if let payment {
+            primeFromPayment(payment)
+        }
         if sourceAccount == nil {
             // Only current accounts are valid for income/expense, so the
             // default lookup honours that — a favourite savings account
@@ -973,6 +1047,14 @@ struct NewTransactionSheet: View {
                 ?? matching.first
                 ?? pool.first(where: { $0.isFavorite })
                 ?? pool.first
+        }
+        if payment != nil {
+            // Currency: the payment's own when it sent one (seeded in
+            // `init`), otherwise the account's.
+            if payment?.currencyCode == nil, let account = sourceAccount {
+                amountCurrencyCode = account.currencyCode
+            }
+            return
         }
         if isCopy {
             // A copied transfer whose destination has since been deleted gets
@@ -998,6 +1080,56 @@ struct NewTransactionSheet: View {
             amountCurrencyCode = account.currencyCode
         } else {
             amountCurrencyCode = preferredCurrencyCode
+        }
+    }
+
+    /// Title, category and account for a card payment, borrowed from how the
+    /// user logged earlier payments at the same shop or with the same card
+    /// (`PaymentPrefill.resolve`). Two small fetches rather than the whole
+    /// ledger: rows that came from payments, and the most recent rows.
+    private func primeFromPayment(_ payment: PaymentPrefill) {
+        var history = FetchDescriptor<Transaction>(
+            predicate: #Predicate { $0.deletedAt == nil && ($0.paymentMerchant != nil || $0.paymentCardName != nil) },
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        history.relationshipKeyPathsForPrefetching = [\.category, \.account]
+        var recent = FetchDescriptor<Transaction>(
+            predicate: #Predicate { $0.deletedAt == nil },
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        recent.fetchLimit = PaymentPrefill.recentRowLimit
+        recent.relationshipKeyPathsForPrefetching = [\.category]
+
+        let resolved = PaymentPrefill.resolve(
+            payment,
+            paymentHistory: (try? modelContext.fetch(history)) ?? [],
+            recent: (try? modelContext.fetch(recent)) ?? [],
+            accounts: selectableAccounts
+        )
+        title = resolved.title
+        category = resolved.category
+        sourceAccount = resolved.account
+    }
+
+    /// Whether to suggest the Apple Pay shortcut on this opening: only on a
+    /// plain new transaction (not an edit, a copy, a budget line, or a sheet
+    /// the shortcut itself opened), at most once per launch, never after the
+    /// user said so — and never once a payment has come in through the
+    /// shortcut, since by then it's clearly set up.
+    private func shouldOfferApplePayTip() -> Bool {
+        guard editingTransaction == nil, budgetLink == nil, !isCopy, payment == nil,
+              !isApplePayTipHidden, !ApplePayTip.shownThisLaunch
+        else { return false }
+        let fromPayments = FetchDescriptor<Transaction>(
+            predicate: #Predicate { $0.paymentMerchant != nil || $0.paymentCardName != nil }
+        )
+        return ((try? modelContext.fetchCount(fromPayments)) ?? 0) == 0
+    }
+
+    private func closeApplePayTip(dontShowAgain: Bool) {
+        if dontShowAgain { isApplePayTipHidden = true }
+        withAnimation(.easeIn(duration: 0.2)) {
+            isShowingApplePayTip = false
         }
     }
 
@@ -1140,6 +1272,10 @@ struct NewTransactionSheet: View {
             transaction.budgetItem = budgetLink.item
             transaction.budgetOccurrenceDate = budgetLink.occurrenceDay
         }
+        if let payment {
+            transaction.paymentMerchant = payment.trimmedMerchant
+            transaction.paymentCardName = payment.trimmedCardName
+        }
         modelContext.insert(transaction)
         return transaction
     }
@@ -1211,6 +1347,41 @@ struct NewTransactionSheet: View {
             )
             modelContext.insert(attachment)
         }
+    }
+}
+
+// MARK: - Payment source
+
+/// One quiet line above the form of a sheet opened by a card payment, saying
+/// where the pre-filled values came from — so a merchant name the user didn't
+/// type doesn't look like a bug, and a missing amount reads as "the card
+/// didn't send one" rather than "the app lost it".
+private struct PaymentSourceBanner: View {
+    let payment: PaymentPrefill
+
+    var body: some View {
+        Label {
+            Text(message)
+        } icon: {
+            Image(systemName: "wave.3.right.circle.fill")
+                .foregroundStyle(Theme.Colors.accent)
+        }
+        .font(Theme.Typography.caption)
+        .foregroundStyle(Theme.Colors.textSecondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var message: String {
+        let base: String
+        if let card = payment.trimmedCardName {
+            // "בכרטיס" before the name: the prefix ב can't attach to a
+            // Latin card name ("בVisa").
+            base = String(localized: "מולא מתשלום בכרטיס \(card)")
+        } else {
+            base = String(localized: "מולא מתשלום בכרטיס")
+        }
+        guard payment.amount == nil || payment.amount == 0 else { return base }
+        return base + " · " + String(localized: "הסכום לא התקבל, יש להזין אותו")
     }
 }
 
