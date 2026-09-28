@@ -6,6 +6,8 @@
 	<array>
 		<string>he</string>
 	</array>
+	<key>OshRatURLScheme</key>
+	<string>$(APP_URL_SCHEME)</string>
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionPointIdentifier</key>

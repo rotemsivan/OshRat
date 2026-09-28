@@ -310,6 +310,7 @@ struct HomeView: View {
             )
         }
         // Deep link from the home-screen widget: `oshrat://new-transaction`
+        // (`oshrat-dev://` in a dev build)
         // opens the same sheet as the FAB. Handled here (not in
         // `OshRatApp`) because this view already owns the sheet's state.
         // If the user hasn't onboarded yet, `ContentView` never mounts
@@ -323,7 +324,10 @@ struct HomeView: View {
             today = BudgetReminderService.calendar.startOfDay(for: .now)
         }
         .onOpenURL { url in
-            guard url.scheme == "oshrat", url.host() == "new-transaction" else { return }
+            // `oshrat` in a release build, `oshrat-dev` in a dev build — see
+            // `APP_URL_SCHEME` in the build settings.
+            let scheme = Bundle.main.object(forInfoDictionaryKey: "OshRatURLScheme") as? String ?? "oshrat"
+            guard url.scheme == scheme, url.host() == "new-transaction" else { return }
             isAddingTransaction = true
         }
         // Refresh once per dashboard appearance. The service itself

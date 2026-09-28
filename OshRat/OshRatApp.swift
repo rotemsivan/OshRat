@@ -42,10 +42,10 @@ struct OshRatApp: App {
     /// without tapping through the admin panel:
     ///
     /// ```
-    /// xcrun simctl launch booted com.rotem.OshRat -demoScenario saver -demoMonths 24
-    /// xcrun simctl launch booted com.rotem.OshRat -resetStore
-    /// xcrun simctl launch booted com.rotem.OshRat -demoEquip item-hat-propeller-red
-    /// xcrun simctl launch booted com.rotem.OshRat -hideAdmin
+    /// xcrun simctl launch booted com.oshrat.app.dev -demoScenario saver -demoMonths 24
+    /// xcrun simctl launch booted com.oshrat.app.dev -resetStore
+    /// xcrun simctl launch booted com.oshrat.app.dev -demoEquip item-hat-propeller-red
+    /// xcrun simctl launch booted com.oshrat.app.dev -hideAdmin
     /// ```
     ///
     /// (`-hideAdmin` is read by `AdminPanelButton` itself, not here.)

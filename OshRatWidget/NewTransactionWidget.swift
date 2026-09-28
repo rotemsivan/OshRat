@@ -2,8 +2,9 @@ import WidgetKit
 import SwiftUI
 
 /// Home-screen shortcut for logging a transaction: tapping the widget
-/// deep-links into the app via `oshrat://new-transaction`, which `HomeView`
-/// answers by presenting `NewTransactionSheet`.
+/// deep-links into the app via `oshrat://new-transaction` (`oshrat-dev://`
+/// from a dev build), which `HomeView` answers by presenting
+/// `NewTransactionSheet`.
 ///
 /// The widget is deliberately *static* — it shows no live data, so there is
 /// no SwiftData / app-group plumbing here and the timeline never refreshes.
@@ -81,10 +82,16 @@ struct NewTransactionWidgetView: View {
         // The app is pinned to Hebrew/RTL; the widget follows suit so the
         // label renders the same regardless of the device language.
         .environment(\.layoutDirection, .rightToLeft)
-        .widgetURL(URL(string: "oshrat://new-transaction"))
+        // The scheme comes from the build (`APP_URL_SCHEME`, via Info.plist):
+        // the dev and release apps each own one, so a widget always opens the
+        // app it shipped with rather than whichever iOS picks for a shared one.
+        .widgetURL(URL(string: "\(Self.urlScheme)://new-transaction"))
         // Adaptive system background — white in light mode, dark in dark.
         .containerBackground(.background, for: .widget)
     }
+
+    private static let urlScheme =
+        Bundle.main.object(forInfoDictionaryKey: "OshRatURLScheme") as? String ?? "oshrat"
 }
 
 #Preview(as: .systemSmall) {
