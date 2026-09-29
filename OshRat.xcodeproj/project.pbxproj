@@ -162,6 +162,8 @@
 		5EPAY00500000000000000B1 /* ApplePayTipPopup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00500000000000000F1 /* ApplePayTipPopup.swift */; };
 		5EPICK0100000000000000B1 /* PickerRowLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPICK0100000000000000F1 /* PickerRowLabel.swift */; };
 		5EPRF00100000000000000B1 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPRF00100000000000000F1 /* ProfileView.swift */; };
+		5EPSTORE01000000000000B1 /* PersistentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPSTORE01000000000000F1 /* PersistentStore.swift */; };
+		5ESTREC001000000000000B1 /* StoreRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ESTREC001000000000000F1 /* StoreRecoveryView.swift */; };
 		5ESET00100000000000000B1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ESET00100000000000000F1 /* SettingsView.swift */; };
 		5ETRSH0100000000000000C1 /* TrashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F2 /* TrashService.swift */; };
 		5ETRSH0100000000000000C2 /* TrashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F2 /* TrashService.swift */; };
@@ -326,6 +328,8 @@
 		5EPAY00500000000000000F1 /* ApplePayTipPopup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplePayTipPopup.swift; sourceTree = "<group>"; };
 		5EPICK0100000000000000F1 /* PickerRowLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerRowLabel.swift; sourceTree = "<group>"; };
 		5EPRF00100000000000000F1 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		5EPSTORE01000000000000F1 /* PersistentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistentStore.swift; sourceTree = "<group>"; };
+		5ESTREC001000000000000F1 /* StoreRecoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreRecoveryView.swift; sourceTree = "<group>"; };
 		5ESET00100000000000000F1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		5EWARD0100000000000000F1 /* WardrobeItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeItem.swift; sourceTree = "<group>"; };
 		5EWARD0200000000000000F1 /* MascotConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotConfig.swift; sourceTree = "<group>"; };
@@ -440,6 +444,7 @@
 			isa = PBXGroup;
 			children = (
 				5ESET00000000000000000A1 /* Settings */,
+				5ESTREC000000000000000A1 /* StoreRecovery */,
 				5E2626C22FD1823E00180F49 /* Onboarding */,
 				5ED3E0ED2FD1BE5C003083F0 /* Home */,
 				5E78E4D92FDA02B400867892 /* Transactions */,
@@ -577,6 +582,7 @@
 				5EADM00200000000000000F1 /* DemoScenarioBlueprints.swift */,
 				5EGAM00300000000000000F1 /* ProgressService.swift */,
 				5ECELB0300000000000000F1 /* CelebrationFeedback.swift */,
+				5EPSTORE01000000000000F1 /* PersistentStore.swift */,
 				5EWARD0300000000000000F1 /* WardrobeService.swift */,
 				5EBREM0200000000000000F1 /* BudgetReminderService.swift */,
 			);
@@ -675,6 +681,14 @@
 				5EPRF00100000000000000F1 /* ProfileView.swift */,
 			);
 			path = Profile;
+			sourceTree = "<group>";
+		};
+		5ESTREC000000000000000A1 /* StoreRecovery */ = {
+			isa = PBXGroup;
+			children = (
+				5ESTREC001000000000000F1 /* StoreRecoveryView.swift */,
+			);
+			path = StoreRecovery;
 			sourceTree = "<group>";
 		};
 		5ESET00000000000000000A1 /* Settings */ = {
@@ -896,6 +910,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				5ESET00100000000000000B1 /* SettingsView.swift in Sources */,
+				5EPSTORE01000000000000B1 /* PersistentStore.swift in Sources */,
+				5ESTREC001000000000000B1 /* StoreRecoveryView.swift in Sources */,
 				5EONB00100000000000000B1 /* OnboardingProgress.swift in Sources */,
 				5EPAY00500000000000000B1 /* ApplePayTipPopup.swift in Sources */,
 				5EPAY00400000000000000B1 /* ApplePaySetupView.swift in Sources */,

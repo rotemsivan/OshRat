@@ -3,9 +3,9 @@ import SwiftData
 
 @main
 struct OshRatApp: App {
-    /// The SwiftData container — this is our on-device database.
-    /// Every @Model type the app uses must be listed here.
-    let container: ModelContainer
+    /// The on-device database. It either opened (`.ready`) or the app shows
+    /// `StoreRecoveryView` instead of crashing — see `PersistentStore`.
+    @State private var store: PersistentStore
 
     init() {
         // Push our Heebo font into the UIKit-backed UI chrome (nav bars,
@@ -13,28 +13,13 @@ struct OshRatApp: App {
         // are constructed, so we do it here in `init` rather than in `body`.
         Theme.applyGlobalAppearance()
 
-        do {
-            container = try ModelContainer(
-                for: UserProfile.self, Account.self, Holding.self, Category.self,
-                    Transaction.self, TransactionAttachment.self, BudgetItem.self,
-                    Goal.self, FXRateSnapshot.self, UserProgress.self,
-                    DepositTranche.self, MascotConfig.self
-            )
-            // Clean up any duplicate category rows left over from earlier
-            // dev resets BEFORE topping up the default set — otherwise
-            // the idempotent seed would see "name already present" and
-            // skip while a duplicate still lurked in the database.
-            SeedData.dedupeCategoriesIfNeeded(in: container.mainContext)
-            // Now safe to top up. Idempotent — renames legacy defaults in
-            // place and adds only the defaults the store doesn't have, so it
-            // runs every launch without growing the table.
-            SeedData.seedDefaultCategoriesIfNeeded(in: container.mainContext)
-            #if DEBUG
+        let store = PersistentStore()
+        #if DEBUG
+        if case .ready(let container) = store.state {
             Self.applyDemoLaunchArguments(in: container.mainContext)
-            #endif
-        } catch {
-            fatalError("Could not create the SwiftData container: \(error)")
         }
+        #endif
+        _store = State(initialValue: store)
     }
 
     #if DEBUG
@@ -113,11 +98,17 @@ struct OshRatApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                // App-wide default font. Any `Text(...)` that doesn't set
-                // an explicit `.font(...)` will inherit Heebo from here.
-                .font(Theme.Typography.body)
+            switch store.state {
+            case .ready(let container):
+                ContentView()
+                    // App-wide default font. Any `Text(...)` that doesn't set
+                    // an explicit `.font(...)` will inherit Heebo from here.
+                    .font(Theme.Typography.body)
+                    .modelContainer(container)
+            case .failed(let details):
+                StoreRecoveryView(store: store, details: details)
+                    .font(Theme.Typography.body)
+            }
         }
-        .modelContainer(container)
     }
 }

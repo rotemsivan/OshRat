@@ -77,7 +77,7 @@ Not a `@Model`, but part of the same layer:
 - **DepositLadder** (`Models/DepositLadder.swift`) — the pure, unit-tested sum of a deposit's sub-deposits: total principal, `value(asOf:)`, `projectedValue`, and a `maturityDate` that is the **latest** rung's (nil while any rung is open-ended, so a deposit still taking money never prompts). A one-time deposit is a one-rung ladder, so every screen reads the ladder and stops caring which kind it is. `make(balance:opening:additions:)` reconciles the rungs against the account balance: the **opening deposit is the plug** (`balance − Σ additions`, never stored, so it can't drift from the balance a hand-correction or a deleted transfer just moved), and when the additions exceed the balance the shortfall comes off the **newest** end. Also in the test targets.
 - **CategoryBudgetStatus** (in `Models/BudgetItem.swift`, so the test target already compiles it; tested in `OshRatTests/CategoryBudgetStatusTests.swift`) — one category's month, planned vs actual, for the bar in a transaction's expanded card. Counted by `BudgetVsActual`'s rules, narrowed to a category: every budget line of it adds `plannedAmount(inMonth:year:)`, every real row of it in the month adds its amount (transfers and manual balance edits out), both in the preferred currency with unconvertible rows skipped and flagged. `nil` when nothing is planned. `make` expects the ledger **newest first** and stops at the first row before the month, so opening a recent transaction reads a month of rows rather than the whole history — it runs on the card's opening frame. Months are Gregorian, as `BudgetItem`'s are.
 
-Register all models in the app's `.modelContainer(for: [...])` at launch (`OshRatApp`).
+Register every model in `OshRatSchemaV1.models` (`Services/PersistentStore.swift`) — the one list the app's container is built from. **The store is versioned**: `OshRatSchemaV1` is the baseline and `OshRatMigrationPlan` lists the versions. A model change SwiftData can't migrate on its own needs a `SchemaV2` plus a `MigrationStage`, with V1's models first copied into `OshRatSchemaV1` as they were. **A store that won't open never crashes the app**: `PersistentStore` turns the failure into a state, and `OshRatApp` shows `StoreRecoveryView` (retry / share a copy of the files / start fresh, which *moves* the old store into `Application Support/Recovered Stores/<date>` rather than deleting it). The configuration is explicitly `cloudKitDatabase: .none`, so an iCloud entitlement can't switch sync on by accident.
 
 ## Features (build order)
 
@@ -228,7 +228,7 @@ Onboarding, the dashboard (assets + budget-vs-actual cards), transactions (list,
 
 1. CloudKit sync (multi-Apple-device). For when multi-device is wanted — needs the paid Apple Developer Program:
 
-- Switch the container to ModelConfiguration(schema:, cloudKitDatabase: .automatic).
+- Switch `PersistentStore.configuration` to `cloudKitDatabase: .automatic` (it is pinned to `.none` until then).
 - Xcode capabilities: iCloud → CloudKit (container iCloud.com.oshrat.app) and Background Modes → Remote notifications.
 - Use the CloudSyncStatus helper to show a quiet "local-only" banner when iCloud is unavailable — never block the app; it must keep working offline / signed out.
 - Fix first-launch category seeding to run once per iCloud account using NSUbiquitousKeyValueStore, to avoid duplicate default categories across devices.
