@@ -225,10 +225,6 @@
 
     },
     "%lld תנועות בתקופה" : {
-
-    },
-    "%lld תנועות החודש" : {
-      "extractionState" : "stale",
       "localizations" : {
         "he" : {
           "variations" : {
@@ -236,25 +232,25 @@
               "many" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld תנועות החודש"
+                  "value" : "%lld תנועות בתקופה"
                 }
               },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "תנועה אחת החודש"
+                  "value" : "תנועה אחת בתקופה"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "%lld תנועות החודש"
+                  "value" : "%lld תנועות בתקופה"
                 }
               },
               "two" : {
                 "stringUnit" : {
                   "state" : "translated",
-                  "value" : "שתי תנועות החודש"
+                  "value" : "שתי תנועות בתקופה"
                 }
               }
             }
@@ -1343,7 +1339,38 @@
 
     },
     "נפדו גם %lld פיקדונות נוספים." : {
-
+      "localizations" : {
+        "he" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "נפדו גם %lld פיקדונות נוספים."
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "נפדה גם פיקדון נוסף."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "נפדו גם %lld פיקדונות נוספים."
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "נפדו גם שני פיקדונות נוספים."
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "נפתח ברמה %lld" : {
 
@@ -1464,7 +1491,38 @@
 
     },
     "עוד %lld ימים" : {
-
+      "localizations" : {
+        "he" : {
+          "variations" : {
+            "plural" : {
+              "many" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "עוד %lld ימים"
+                }
+              },
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "עוד יום אחד"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "עוד %lld ימים"
+                }
+              },
+              "two" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "עוד יומיים"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "עוד %lld נק׳ לרמה %lld" : {
 

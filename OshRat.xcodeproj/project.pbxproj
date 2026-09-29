@@ -32,7 +32,6 @@
 		5E2626CB2FD1846400180F49 /* OnboardingViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2626C02FD1821F00180F49 /* OnboardingViewModel.swift */; };
 		5E2626CC2FD1846400180F49 /* PersonalDetailsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2626C42FD1826600180F49 /* PersonalDetailsStepView.swift */; };
 		5E2626CD2FD1846400180F49 /* AccountEditorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E2626C52FD1828300180F49 /* AccountEditorSheet.swift */; };
-		5E31E5402FD16ABE00FF83C8 /* CLAUDE.md in Resources */ = {isa = PBXBuildFile; fileRef = 5E31E53F2FD16ABE00FF83C8 /* CLAUDE.md */; };
 		5E31E54B2FD16B6D00FF83C8 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E54A2FD16B6D00FF83C8 /* UserProfile.swift */; };
 		5E31E54C2FD16B6D00FF83C8 /* BudgetItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5432FD16B6D00FF83C8 /* BudgetItem.swift */; };
 		5E31E54D2FD16B6D00FF83C8 /* Goal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E31E5452FD16B6D00FF83C8 /* Goal.swift */; };
@@ -865,7 +864,6 @@
 				5E13B1922FD5ADF900C87118 /* Heebo-Bold.ttf in Resources */,
 				5E13B1932FD5ADF900C87118 /* Heebo-Black.ttf in Resources */,
 				5E13B1942FD5ADF900C87118 /* Heebo-Thin.ttf in Resources */,
-				5E31E5402FD16ABE00FF83C8 /* CLAUDE.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

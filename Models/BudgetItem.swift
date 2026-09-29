@@ -583,9 +583,9 @@ struct BudgetSchedule: Hashable, Codable {
     static func everyPhrase(count: Int, unit: RecurrenceUnit) -> String {
         let n = max(count, 1)
         switch unit {
-        case .day:   return n == 1 ? "כל יום"  : "כל \(n) ימים"
+        case .day:   return n == 1 ? "כל יום"  : n == 2 ? "כל יומיים"  : "כל \(n) ימים"
         case .week:  return n == 1 ? "כל שבוע" : n == 2 ? "כל שבועיים" : "כל \(n) שבועות"
-        case .month: return n == 1 ? "כל חודש" : "כל \(n) חודשים"
+        case .month: return n == 1 ? "כל חודש" : n == 2 ? "כל חודשיים" : "כל \(n) חודשים"
         case .year:  return n == 1 ? "כל שנה"  : n == 2 ? "כל שנתיים"  : "כל \(n) שנים"
         }
     }
