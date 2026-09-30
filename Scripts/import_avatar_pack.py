@@ -17,9 +17,13 @@ What it does, and why each step exists:
    the split tops (`-torso-`, `-sleeve-left-`, `-sleeve-right-`).
 3. **Adds pants and shoes** (full format only) in their own slot folders.
 
-Pack files are copied verbatim (their provenance metadata included, like the
-rest of the catalog), after checking each one parses; `SKIPPED_ITEMS` lists
-the ones left out and why. Rerunning is safe: every imageset it writes is replaced.
+Pack files are copied after checking each one parses, and slimmed on the way
+in (`slim`); `SKIPPED_ITEMS` lists the ones left out and why. Rerunning is
+safe: every imageset it writes is replaced.
+
+    python3 Scripts/import_avatar_pack.py --slim-catalog
+
+re-applies `slim` to every SVG already in the catalog, without a pack.
 """
 
 import json
@@ -41,12 +45,39 @@ IMAGESET_CONTENTS = {
 FOLDER_CONTENTS = {"info": {"author": "xcode", "version": 1}}
 
 
+# Nominal size = canvas / SLIM_FACTOR. actool pre-renders every SVG as a
+# bitmap at its nominal size ×3 next to the vector, and a full-canvas layer is
+# mostly transparent: at 360×660 that was ~7.6 MB of the 8.6 MB Assets.car.
+# Every layer is drawn `.resizable()`, so the art is still drawn from the
+# vector at whatever size it's shown; only the unused fallback shrinks. The
+# viewBox (the coordinates the rig's pivots are measured in) is untouched.
+SLIM_FACTOR = 4
+
+
+def slim(svg: str) -> str:
+    """Drop the pack's C2PA provenance block (~7.7 KB a file, never drawn)
+    and shrink the nominal width/height by `SLIM_FACTOR`."""
+    svg = re.sub(r"\s*<metadata>.*?</metadata>", "", svg, flags=re.S)
+    svg = re.sub(r'\s+xmlns:c2pa="[^"]*"', "", svg)
+
+    def shrink(match: re.Match) -> str:
+        tag = match.group(0)
+        view_box = re.search(r'viewBox="0 0 ([\d.]+) ([\d.]+)"', tag)
+        if not view_box:
+            return tag
+        w, h = (float(v) / SLIM_FACTOR for v in view_box.groups())
+        tag = re.sub(r'\swidth="[^"]*"', f' width="{w:g}"', tag, count=1)
+        return re.sub(r'\sheight="[^"]*"', f' height="{h:g}"', tag, count=1)
+
+    return re.sub(r"<svg\b[^>]*>", shrink, svg, count=1)
+
+
 def write_imageset(folder: Path, name: str, svg: str) -> None:
     imageset = folder / f"{name}.imageset"
     if imageset.exists():
         shutil.rmtree(imageset)
     imageset.mkdir(parents=True)
-    (imageset / f"{name}.svg").write_text(svg)
+    (imageset / f"{name}.svg").write_text(slim(svg))
     contents = json.loads(json.dumps(IMAGESET_CONTENTS))
     contents["images"][0]["filename"] = f"{name}.svg"
     (imageset / "Contents.json").write_text(json.dumps(contents, indent=2) + "\n")
@@ -153,7 +184,23 @@ def assert_parses(svg: Path) -> None:
 
 # MARK: - Import
 
+def slim_catalog() -> None:
+    """Apply `slim` to every SVG in the catalog. Idempotent: the new size is
+    derived from the viewBox, not from the current width/height."""
+    changed = 0
+    for svg in CATALOG.rglob("*.svg"):
+        text = svg.read_text()
+        slimmed = slim(text)
+        if slimmed != text:
+            svg.write_text(slimmed)
+            changed += 1
+    print(f"Slimmed {changed} SVGs in", CATALOG)
+
+
 def main() -> None:
+    if sys.argv[1:] == ["--slim-catalog"]:
+        slim_catalog()
+        return
     if len(sys.argv) != 2:
         sys.exit(__doc__)
     source = Path(sys.argv[1])
