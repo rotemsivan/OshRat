@@ -12,8 +12,16 @@ struct GreetingHeaderView: View {
     let wardrobeTransition: Namespace.ID
     /// Tapping the rat opens the wardrobe.
     var onAvatarTap: () -> Void = {}
+    /// How far above the row's bottom the greeting text must stop to clear
+    /// the level badge hovering over the card's top-left edge (`HomeView`
+    /// measures the badge). Only applied at the accessibility sizes: there
+    /// the text column outgrows the rat, reaches the row's bottom and ran
+    /// under the badge; at ordinary sizes it's centred beside the rat and
+    /// clears it on its own.
+    var badgeClearance: CGFloat = 0
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// Bumped on each appearance to replay the wave.
     @State private var waveTrigger = 0
 
@@ -46,6 +54,7 @@ struct GreetingHeaderView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.bottom, dynamicTypeSize.isAccessibilitySize ? badgeClearance : 0)
         }
         // Pull the row down past the parent VStack's `.lg` spacing so
         // the mascot visually *sits on* the AssetsSummaryCard — its

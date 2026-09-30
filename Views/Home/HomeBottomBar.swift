@@ -175,6 +175,13 @@ struct HomeBottomBar: View {
             )
             .offset(y: -Self.homeButtonDiameter / 2)
         }
+        // A tab bar keeps its size at every text size, as the system's own
+        // does: the bar is a fixed 60pt, and letting the icons follow the
+        // accessibility sizes pushed them out of it. Readability comes from
+        // the Large Content Viewer instead (each button's
+        // `accessibilityShowsLargeContentViewer`): with a large text size on,
+        // pressing and holding an icon shows it big with its name.
+        .dynamicTypeSize(.large)
     }
 }
 
@@ -206,6 +213,9 @@ private struct HomeCenterButton: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text("בית"))
+        .accessibilityShowsLargeContentViewer {
+            Label("בית", systemImage: "house.fill")
+        }
     }
 }
 
@@ -236,6 +246,9 @@ private struct HomeBarButton<Icon: View>: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(accessibilityLabel))
+        .accessibilityShowsLargeContentViewer {
+            Label { Text(accessibilityLabel) } icon: { icon() }
+        }
     }
 }
 

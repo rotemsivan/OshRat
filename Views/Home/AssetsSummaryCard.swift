@@ -163,24 +163,39 @@ struct AssetsSummaryCard: View {
 
     // MARK: - Header
 
+    /// Title and "add" button on one line — or, when both don't fit whole
+    /// (the accessibility text sizes), stacked, rather than squeezing the
+    /// button until it breaks mid-word.
     private var sectionHeader: some View {
-        HStack(spacing: Theme.Spacing.sm) {
-            Text("הנכסים שלי")
-                .font(Theme.Typography.caption)
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .textCase(.uppercase)
-
-            Spacer(minLength: Theme.Spacing.sm)
-
-            // Text + icon (not an icon-only button) so VoiceOver reads a
-            // real label and the action is discoverable in the empty state
-            // too — the header shows whether or not there are accounts yet.
-            Button("הוסף חשבון", systemImage: "plus.circle.fill", action: onAddAccount)
-                .font(Theme.Typography.caption)
-                .foregroundStyle(Theme.Colors.accent)
-                .buttonStyle(.plain)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: Theme.Spacing.sm) {
+                sectionTitle
+                Spacer(minLength: Theme.Spacing.sm)
+                addAccountButton
+            }
+            VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                sectionTitle
+                addAccountButton
+            }
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var sectionTitle: some View {
+        Text("הנכסים שלי")
+            .font(Theme.Typography.caption)
+            .foregroundStyle(Theme.Colors.textSecondary)
+            .textCase(.uppercase)
+    }
+
+    // Text + icon (not an icon-only button) so VoiceOver reads a
+    // real label and the action is discoverable in the empty state
+    // too — the header shows whether or not there are accounts yet.
+    private var addAccountButton: some View {
+        Button("הוסף חשבון", systemImage: "plus.circle.fill", action: onAddAccount)
+            .font(Theme.Typography.caption)
+            .foregroundStyle(Theme.Colors.accent)
+            .buttonStyle(.plain)
     }
 
     // MARK: - Hero

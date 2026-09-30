@@ -124,6 +124,9 @@ struct HomeView: View {
     @State private var budgetLogRequest: BudgetLogRequest?
     /// XP earned and not yet shown — see the `totalXP` watcher in `body`.
     @State private var xpGain: XPGain?
+    /// The level badge's measured height, so the greeting can keep its text
+    /// clear of it at the accessibility sizes (see `badgeClearance`).
+    @State private var levelBadgeHeight: CGFloat = 0
     /// A card payment from the Wallet automation, being logged in a
     /// pre-filled sheet. Taken from `paymentRouter`, which only parks it.
     @State private var paymentRequest: PaymentPrefill?
@@ -510,6 +513,7 @@ struct HomeView: View {
                 // would not.
                 .overlay(alignment: .topTrailing) {
                     XPLevelBadge(progress: progressRows.first)
+                        .onGeometryChange(for: CGFloat.self, of: \.size.height) { levelBadgeHeight = $0 }
                         .alignmentGuide(.top) { $0[.bottom] + Theme.Spacing.md }
                         .padding(.trailing, Theme.Spacing.md)
                 }
@@ -614,7 +618,12 @@ struct HomeView: View {
             GreetingHeaderView(
                 name: profiles.first?.name ?? "",
                 wardrobeTransition: wardrobeTransition,
-                onAvatarTap: { openWardrobe(from: .greeting) }
+                onAvatarTap: { openWardrobe(from: .greeting) },
+                // The greeting row's content ends `sm` below the card's top
+                // edge (its negative bottom padding, less the stack spacing);
+                // the badge's base hovers `md` above it. So the text has to
+                // stop `sm + md + badge` above the row's bottom, plus a breath.
+                badgeClearance: Theme.Spacing.sm + Theme.Spacing.md + levelBadgeHeight + Theme.Spacing.xs
             )
             #if DEBUG
             // Was a bare reset button; the wipe now lives inside the panel

@@ -1055,79 +1055,10 @@ private struct TransactionRow: View {
     /// under day headers (an amount sort), otherwise redundant.
     var showsDate: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        HStack(spacing: Theme.Spacing.sm) {
-            if isSelecting {
-                // Filled + accent when picked, hollow + grey when not: state
-                // is carried by the glyph itself, not by colour alone.
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 20))
-                    .foregroundStyle(isSelected ? Theme.Colors.accent : Theme.Colors.textSecondary)
-                    .transition(.scale.combined(with: .opacity))
-                    .accessibilityHidden(true)
-            }
-
-            categoryBadge
-
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: Theme.Spacing.xs) {
-                    Text(displayTitle)
-                        .font(Theme.Typography.body)
-                        .foregroundStyle(Theme.Colors.textPrimary)
-                        .lineLimit(1)
-                    // A small paperclip flags rows that carry a receipt /
-                    // invoice, so the user can spot them without expanding.
-                    if hasAttachments {
-                        Image(systemName: "paperclip")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Theme.Colors.textSecondary)
-                    }
-                }
-                Text(subtitle)
-                    .font(Theme.Typography.caption)
-                    .foregroundStyle(Theme.Colors.textSecondary)
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: Theme.Spacing.sm)
-
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(formattedAmount)
-                    .font(Theme.Typography.amount)
-                    .foregroundStyle(amountColor)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                // Running balance(s) the user saw at the time of entry —
-                // one line for an income/expense, both sides for a transfer.
-                // Greyed out so they read as metadata, not the row's primary
-                // value. `enumerated` keeps the id stable even if two lines
-                // ever format identically (duplicate account names).
-                ForEach(Array(balanceLines.enumerated()), id: \.offset) { _, line in
-                    Text(line)
-                        .font(Theme.Typography.caption)
-                        .foregroundStyle(Theme.Colors.textSecondary)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                }
-            }
-
-            // Disclosure chevron — points down when collapsed, flips up when
-            // the insights card is open. Hidden from VoiceOver since the whole
-            // row already exposes a button trait + hint. Its width is *always*
-            // reserved (a fixed frame + opacity, rather than removing the view)
-            // so the amount column lines up across every row — otherwise a
-            // non-expandable row like a manual balance edit, which has no
-            // chevron, would let its amount slide left out of alignment.
-            Image(systemName: "chevron.down")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Theme.Colors.textSecondary)
-                .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                .frame(width: 12)
-                .opacity(showsDisclosure ? 1 : 0)
-                .animation(reduceMotion ? nil : ExpansionMotion.animation, value: isExpanded)
-                .accessibilityHidden(true)
-        }
+        rowContent
         // Rows are full-bleed in the list (zero row insets) so the swipe
         // actions sit on the white surface; the content supplies its own
         // padding to match the screen's horizontal rhythm.
@@ -1140,6 +1071,113 @@ private struct TransactionRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(accessibilityTraits)
         .accessibilityHint(disclosureHint)
+    }
+
+    /// One line at ordinary text sizes: badge, title block, amount, chevron.
+    /// At the accessibility sizes there is no room for the amount beside the
+    /// title — both truncated to "-372...." — so the amount drops under the
+    /// title instead and the text may wrap, the way iOS's own lists reflow.
+    @ViewBuilder
+    private var rowContent: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            HStack(alignment: .top, spacing: Theme.Spacing.sm) {
+                selectionMark
+                categoryBadge
+                VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+                    titleBlock(lineLimit: 3)
+                    amountBlock(alignment: .leading, balanceLineLimit: 2)
+                }
+                Spacer(minLength: 0)
+                chevron
+            }
+        } else {
+            HStack(spacing: Theme.Spacing.sm) {
+                selectionMark
+                categoryBadge
+                titleBlock(lineLimit: 1)
+                Spacer(minLength: Theme.Spacing.sm)
+                amountBlock(alignment: .trailing, balanceLineLimit: 1)
+                chevron
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var selectionMark: some View {
+        if isSelecting {
+            // Filled + accent when picked, hollow + grey when not: state
+            // is carried by the glyph itself, not by colour alone.
+            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 20))
+                .foregroundStyle(isSelected ? Theme.Colors.accent : Theme.Colors.textSecondary)
+                .transition(.scale.combined(with: .opacity))
+                .accessibilityHidden(true)
+        }
+    }
+
+    private func titleBlock(lineLimit: Int) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: Theme.Spacing.xs) {
+                Text(displayTitle)
+                    .font(Theme.Typography.body)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .lineLimit(lineLimit)
+                // A small paperclip flags rows that carry a receipt /
+                // invoice, so the user can spot them without expanding.
+                if hasAttachments {
+                    Image(systemName: "paperclip")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Theme.Colors.textSecondary)
+                }
+            }
+            Text(subtitle)
+                .font(Theme.Typography.caption)
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .lineLimit(lineLimit)
+        }
+    }
+
+    private func amountBlock(alignment: HorizontalAlignment, balanceLineLimit: Int) -> some View {
+        VStack(alignment: alignment, spacing: 2) {
+            Text(formattedAmount)
+                .font(Theme.Typography.amount)
+                .foregroundStyle(amountColor)
+                .monospacedDigit()
+                .lineLimit(1)
+                // The amount is the one thing that must never be cut off;
+                // at the largest sizes it shrinks a little rather than "…".
+                .minimumScaleFactor(0.6)
+            // Running balance(s) the user saw at the time of entry —
+            // one line for an income/expense, both sides for a transfer.
+            // Greyed out so they read as metadata, not the row's primary
+            // value. `enumerated` keeps the id stable even if two lines
+            // ever format identically (duplicate account names).
+            ForEach(Array(balanceLines.enumerated()), id: \.offset) { _, line in
+                Text(line)
+                    .font(Theme.Typography.caption)
+                    .foregroundStyle(Theme.Colors.textSecondary)
+                    .monospacedDigit()
+                    .lineLimit(balanceLineLimit)
+            }
+        }
+    }
+
+    // Disclosure chevron — points down when collapsed, flips up when
+    // the insights card is open. Hidden from VoiceOver since the whole
+    // row already exposes a button trait + hint. Its width is *always*
+    // reserved (a fixed frame + opacity, rather than removing the view)
+    // so the amount column lines up across every row — otherwise a
+    // non-expandable row like a manual balance edit, which has no
+    // chevron, would let its amount slide left out of alignment.
+    private var chevron: some View {
+        Image(systemName: "chevron.down")
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(Theme.Colors.textSecondary)
+            .rotationEffect(.degrees(isExpanded ? 180 : 0))
+            .frame(width: 12)
+            .opacity(showsDisclosure ? 1 : 0)
+            .animation(reduceMotion ? nil : ExpansionMotion.animation, value: isExpanded)
+            .accessibilityHidden(true)
     }
 
     /// While selecting, the row *is* a toggle and reports whether it's picked;
