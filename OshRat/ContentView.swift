@@ -110,5 +110,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: OshRatSchemaV1.models, inMemory: true)
+        .modelContainer(for: OshRatSchema.models, inMemory: true)
 }

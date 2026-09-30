@@ -94,8 +94,13 @@ struct GoalFact {
 /// transaction facts, so the anti-farm floors are tested in one place.
 struct MonthFact {
     let month: YearMonth
-    /// A budget existed, nothing overran, and every figure converted.
+    /// A budget existed, nothing overran, and every figure converted — judged
+    /// against the month's own committed plan when it has one.
     let isUnderBudget: Bool
+    /// The month has a `BudgetMonthCommitment`: its plan was written down when
+    /// it began and could only be tightened since, so later budget changes
+    /// don't disqualify it (see `isBudgetQualifying`).
+    var hasCommittedPlan: Bool = false
     /// Income beat expenses (transfers and balance markers excluded).
     let isSurplus: Bool
     /// `.want` spend as a fraction of all spend; `nil` with no spend.
@@ -182,7 +187,7 @@ enum AchievementEvaluator {
         grant("under-budget-12", if: longestUnder >= 12)
         grant("wants-under-30", if: s.months.contains { fact in
             guard let share = fact.wantsShare else { return false }
-            return share < wantsShareCeiling && isBudgetQualifying(fact.month, in: s)
+            return share < wantsShareCeiling && isBudgetQualifying(fact, in: s)
         })
 
         // צמיחה
@@ -220,31 +225,36 @@ enum AchievementEvaluator {
 
     // MARK: Budget months
 
-    /// Whether `month` may be judged at all (ACHIEVEMENTS.md §6, בקרה):
-    /// closed, on or after the epoch, the budget untouched since before it
-    /// began, and enough real rows to mean something.
+    /// Whether a month may be judged at all (ACHIEVEMENTS.md §6, בקרה):
+    /// closed, on or after the epoch, judged against a plan that couldn't be
+    /// loosened after the fact, and enough real rows to mean something.
     ///
-    /// "Untouched" checks the budget as a *whole*, not only the lines that
-    /// apply to the month: a line re-scheduled away from the month no longer
-    /// "applies" to it, yet moving it changed that month's plan. And an edit
-    /// made *after* the month still disqualifies it, because `BudgetVsActual`
-    /// judges past months against the current plan — raising the budget in
-    /// March would otherwise rescue February.
-    static func isBudgetQualifying(_ month: YearMonth, in s: AchievementSnapshot) -> Bool {
-        guard let start = month.start(in: s.calendar),
-              let end = month.end(in: s.calendar),
+    /// A month with a **committed plan** (`hasCommittedPlan`) is judged against
+    /// that: written down when the month began, only ever tightened since, so
+    /// no budget change — during the month or after it — disqualifies it.
+    ///
+    /// A month **without** one (from before commitments existed, or one whose
+    /// plan couldn't be captured) keeps the old, strict rule: judged against
+    /// today's budget, it only counts if the budget *as a whole* is untouched
+    /// since before the month began. A whole-budget check, because a line
+    /// re-scheduled away from the month changed its plan too; and it reaches
+    /// back, because raising the budget in March would otherwise rescue
+    /// February.
+    static func isBudgetQualifying(_ fact: MonthFact, in s: AchievementSnapshot) -> Bool {
+        guard let start = fact.month.start(in: s.calendar),
+              let end = fact.month.end(in: s.calendar),
               end <= s.now,
               start >= s.achievementsEpoch,
-              (s.budgetLastChangedAt ?? .distantPast) < start
+              fact.hasCommittedPlan || (s.budgetLastChangedAt ?? .distantPast) < start
         else { return false }
-        return realRows(in: month, s).count >= budgetMonthMinimumRows
+        return realRows(in: fact.month, s).count >= budgetMonthMinimumRows
     }
 
     /// Qualifying months that finished under budget, oldest first. Also what
     /// `XPReason.budgetMonthMet` pays for, once per month.
     static func budgetMonthsMet(_ s: AchievementSnapshot) -> [YearMonth] {
         s.months
-            .filter { $0.isUnderBudget && isBudgetQualifying($0.month, in: s) }
+            .filter { $0.isUnderBudget && isBudgetQualifying($0, in: s) }
             .map(\.month)
             .sorted()
     }

@@ -1027,7 +1027,7 @@ private struct FloatingAddButton: View {
 
 #Preview {
     HomeView()
-        .modelContainer(for: OshRatSchemaV1.models, inMemory: true)
+        .modelContainer(for: OshRatSchema.models, inMemory: true)
 }
 
 /// What decides whether a waiting card payment can be presented: a new one

@@ -191,6 +191,10 @@ enum ProgressService {
         var changed = progress.achievementsEpoch == nil
         progress.achievementsEpoch = epoch
 
+        // Write down each month's plan while it's still the plan the month
+        // began with — before anything here could judge it.
+        BudgetCommitmentService.captureMissing(in: context, now: now, calendar: calendar)
+
         let snapshot = makeSnapshot(progress: progress, epoch: epoch, now: now, calendar: calendar, in: context)
 
         // Budget months first, so a month that also unlocks `under-budget-1`
@@ -342,6 +346,15 @@ enum ProgressService {
         fxDescriptor.fetchLimit = 1
         let fxSnapshot = try? context.fetch(fxDescriptor).first
 
+        // Each month's own plan, where one was written down; the months
+        // without one are judged the old way, against today's budget.
+        let commitments = Dictionary(
+            BudgetCommitmentService.commitments(in: context)
+                .filter { $0.currencyCode == preferredCurrency }
+                .map { ($0.yearMonth, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+
         var facts: [MonthFact] = []
         var month = first
         // Closed months only — the current one can still change.
@@ -360,10 +373,14 @@ enum ProgressService {
             // A month with a missing FX rate can't be judged either way.
             let complete = !report.fxUnavailable
             let spend = report.totalActualExpense
+            let committed = commitments[month]
+            let plan = committed.map { PlannedSpend(needs: $0.plannedNeeds, wants: $0.plannedWants) }
+                ?? PlannedSpend(needs: report.needs.planned, wants: report.wants.planned)
             facts.append(
                 MonthFact(
                     month: month,
-                    isUnderBudget: complete && report.totalPlannedExpense > 0 && !report.hasOverrun,
+                    isUnderBudget: complete && plan.isKept(actualNeeds: report.needs.actual, actualWants: report.wants.actual),
+                    hasCommittedPlan: committed != nil,
                     isSurplus: complete && report.actualNet > 0,
                     wantsShare: spend > 0
                         ? (report.wants.actual as NSDecimalNumber).doubleValue / (spend as NSDecimalNumber).doubleValue

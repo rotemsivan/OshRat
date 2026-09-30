@@ -265,9 +265,9 @@ struct AchievementEvaluatorTests {
         #expect(AchievementEvaluator.budgetMonthsMet(s) == [YearMonth(year: 2026, month: 3)])
     }
 
-    /// Raising the budget on the 15th is exactly the farm the rule exists
-    /// for — and an edit made *after* the month still counts, because past
-    /// months are judged against today's plan.
+    /// Without a committed plan a month is judged against today's budget, so
+    /// the old rule holds: raising the budget on the 15th is exactly the farm
+    /// it exists for, and an edit made *after* the month still counts.
     @Test func aBudgetEditedMidMonthDisqualifiesIt() {
         var s = Self.budgetSnapshot(months: [YearMonth(year: 2026, month: 3)])
         s.budgetLastChangedAt = Self.date(2026, 3, 15)
@@ -276,6 +276,32 @@ struct AchievementEvaluatorTests {
 
         s.budgetLastChangedAt = Self.date(2026, 4, 2)
         #expect(!Self.satisfied(s).contains("under-budget-1"))
+    }
+
+    /// A month with its own committed plan (written down when it began,
+    /// only ever tightened) isn't disqualified by a budget change — not
+    /// during the month, and not after it.
+    @Test func aCommittedMonthSurvivesLaterBudgetChanges() {
+        let march = YearMonth(year: 2026, month: 3)
+        var s = Self.budgetSnapshot(months: [march])
+        s.months = [MonthFact(month: march, isUnderBudget: true, hasCommittedPlan: true, isSurplus: false, wantsShare: 0.5)]
+
+        s.budgetLastChangedAt = Self.date(2026, 3, 15)
+        #expect(AchievementEvaluator.budgetMonthsMet(s) == [march])
+
+        s.budgetLastChangedAt = Self.date(2026, 6, 2)
+        #expect(Self.satisfied(s).contains("under-budget-1"))
+    }
+
+    /// Committed months keep a run going through budget edits: three
+    /// committed months in a row make "שלושה חודשים ברצף" even with the
+    /// budget changed in each of them.
+    @Test func committedMonthsKeepARunThroughEdits() {
+        let months = (3...5).map { YearMonth(year: 2026, month: $0) }
+        var s = Self.budgetSnapshot(months: months)
+        s.months = months.map { MonthFact(month: $0, isUnderBudget: true, hasCommittedPlan: true, isSurplus: false, wantsShare: 0.5) }
+        s.budgetLastChangedAt = Self.date(2026, 5, 20)
+        #expect(Self.satisfied(s).contains("under-budget-3"))
     }
 
     @Test func monthsBeforeTheEpochAreNeverJudged() {

@@ -261,6 +261,17 @@ a real history; 1,000 rows in an afternoon is not.
 All four require the month to be **closed** (we are past its last day) and
 the budget **untouched during it**:
 
+> **Superseded (2026-09-30) by committed plans.** Each month's planned
+> spending is now written down when it begins (`BudgetMonthCommitment`,
+> `BudgetCommitmentService`) and can only be *tightened* during it — a
+> change that lowers a bucket lowers the commitment, one that raises it
+> changes nothing. A month with a commitment is judged against it, so no
+> budget change disqualifies it, during the month or after. The strict rule
+> below still applies to months without one (before commitments existed, or
+> never captured). Why: the whole-budget "untouched" rule cost a month for
+> adding a forgotten income line or next year's bill, and reached back to
+> disqualify months already closed.
+
 ```
 monthQualifies(M) =
      M.start >= achievementsEpoch

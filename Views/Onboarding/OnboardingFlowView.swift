@@ -218,5 +218,5 @@ private struct StepProgressIndicator: View {
 
 #Preview {
     OnboardingFlowView()
-        .modelContainer(for: OshRatSchemaV1.models, inMemory: true)
+        .modelContainer(for: OshRatSchema.models, inMemory: true)
 }

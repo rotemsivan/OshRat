@@ -296,7 +296,7 @@ struct AdminPanelButton: View {
 
 #Preview {
     AdminPanelView()
-        .modelContainer(for: OshRatSchemaV1.models, inMemory: true)
+        .modelContainer(for: OshRatSchema.models, inMemory: true)
 }
 
 #endif

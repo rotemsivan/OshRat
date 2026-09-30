@@ -301,6 +301,6 @@ private struct InfoButton: View {
     NavigationStack {
         SettingsView()
     }
-    .modelContainer(for: OshRatSchemaV1.models, inMemory: true)
+    .modelContainer(for: OshRatSchema.models, inMemory: true)
     .environment(\.layoutDirection, .rightToLeft)
 }

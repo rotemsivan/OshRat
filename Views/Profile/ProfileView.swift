@@ -313,5 +313,5 @@ private struct ProfileAvatar: View {
             ProfileView(wardrobeTransition: wardrobeTransition)
         }
     }
-    .modelContainer(for: OshRatSchemaV1.models, inMemory: true)
+    .modelContainer(for: OshRatSchema.models, inMemory: true)
 }

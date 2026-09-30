@@ -170,47 +170,54 @@ struct BudgetEditorSheet: View {
 
     // MARK: - Persistence
 
+    /// Every budget change goes through `BudgetCommitmentService.change`, so
+    /// this month's plan is written down before it and can only tighten after
+    /// it — the budget achievements judge the month against that.
     private func saveIncome(_ draft: IncomeSourceDraft) {
-        if let existing = pendingIncomeItem {
-            draft.apply(to: existing)
-        } else {
-            let item = BudgetItem(kind: .income)
-            draft.apply(to: item)
-            modelContext.insert(item)
+        BudgetCommitmentService.change(in: modelContext) {
+            if let existing = pendingIncomeItem {
+                draft.apply(to: existing)
+            } else {
+                let item = BudgetItem(kind: .income)
+                draft.apply(to: item)
+                modelContext.insert(item)
+            }
         }
         pendingIncomeItem = nil
-        try? modelContext.save()
     }
 
     private func saveExpense(_ draft: PlannedExpenseDraft) {
-        if let existing = pendingExpenseItem {
-            draft.apply(to: existing)
-        } else {
-            let item = BudgetItem(kind: .expense)
-            draft.apply(to: item)
-            modelContext.insert(item)
+        BudgetCommitmentService.change(in: modelContext) {
+            if let existing = pendingExpenseItem {
+                draft.apply(to: existing)
+            } else {
+                let item = BudgetItem(kind: .expense)
+                draft.apply(to: item)
+                modelContext.insert(item)
+            }
         }
         pendingExpenseItem = nil
-        try? modelContext.save()
     }
 
     private func deleteIncome(_ item: BudgetItem) {
         withAnimation {
-            modelContext.delete(item)
-            // A deleted line changes the month's plan; the budget
-            // achievements need to know even though the row is gone.
-            ProgressService.recordBudgetLineDeleted(in: modelContext)
-            try? modelContext.save()
+            BudgetCommitmentService.change(in: modelContext) {
+                modelContext.delete(item)
+                // A deleted line changes the month's plan; the budget
+                // achievements need to know even though the row is gone.
+                ProgressService.recordBudgetLineDeleted(in: modelContext)
+            }
         }
     }
 
     private func deleteExpense(_ item: BudgetItem) {
         withAnimation {
-            modelContext.delete(item)
-            // A deleted line changes the month's plan; the budget
-            // achievements need to know even though the row is gone.
-            ProgressService.recordBudgetLineDeleted(in: modelContext)
-            try? modelContext.save()
+            BudgetCommitmentService.change(in: modelContext) {
+                modelContext.delete(item)
+                // A deleted line changes the month's plan; the budget
+                // achievements need to know even though the row is gone.
+                ProgressService.recordBudgetLineDeleted(in: modelContext)
+            }
         }
     }
 }

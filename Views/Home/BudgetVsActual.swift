@@ -74,7 +74,12 @@ struct BudgetVsActual {
 
     /// The user is over budget when either the total expense plan is blown or
     /// a single budgeted category is. (Per the chosen "both, with detail" rule.)
-    var hasOverrun: Bool { isTotalOverBudget || !individualOverruns.isEmpty }
+    /// The rule itself is `PlannedSpend`'s, shared with the budget
+    /// achievements, so the card and a month's verdict can't disagree.
+    var hasOverrun: Bool {
+        PlannedSpend(needs: needs.planned, wants: wants.planned)
+            .isOverrun(actualNeeds: needs.actual, actualWants: wants.actual)
+    }
 
     /// Everything the overrun pop-up / banner needs, or `nil` when on budget.
     var overrunSummary: OverrunSummary? {

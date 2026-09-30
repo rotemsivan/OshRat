@@ -12,7 +12,8 @@ import SwiftData
 ///
 /// When that day comes: V1 must keep describing the models *as they are now*,
 /// so copy today's `@Model` classes into this enum (as nested types) before
-/// changing the live ones, and point `models` at the copies.
+/// changing the live ones, and point `models` at the copies. (V2 only *added*
+/// a model and changed none of these, so V1 still lists the live types.)
 enum OshRatSchemaV1: VersionedSchema {
     static let versionIdentifier = Schema.Version(1, 0, 0)
 
@@ -26,11 +27,25 @@ enum OshRatSchemaV1: VersionedSchema {
     }
 }
 
-/// Every schema version, oldest first, and the steps between them. Empty
-/// while there is only one version.
+/// V1 plus `BudgetMonthCommitment`, the per-month budget the achievements
+/// judge against. A new model only, so the step from V1 is lightweight.
+enum OshRatSchemaV2: VersionedSchema {
+    static let versionIdentifier = Schema.Version(2, 0, 0)
+
+    static var models: [any PersistentModel.Type] {
+        OshRatSchemaV1.models + [BudgetMonthCommitment.self]
+    }
+}
+
+/// The schema the app runs on — what the container and every preview use.
+typealias OshRatSchema = OshRatSchemaV2
+
+/// Every schema version, oldest first, and the steps between them.
 enum OshRatMigrationPlan: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] { [OshRatSchemaV1.self] }
-    static var stages: [MigrationStage] { [] }
+    static var schemas: [any VersionedSchema.Type] { [OshRatSchemaV1.self, OshRatSchemaV2.self] }
+    static var stages: [MigrationStage] {
+        [.lightweight(fromVersion: OshRatSchemaV1.self, toVersion: OshRatSchemaV2.self)]
+    }
 }
 
 /// Opens the on-device database, and keeps the app alive when it can't.
@@ -62,7 +77,7 @@ final class PersistentStore {
     /// purpose (see *Planned* in CLAUDE.md). The name is the default one, so
     /// this is the same `default.store` file the app has always used.
     static let configuration = ModelConfiguration(
-        schema: Schema(versionedSchema: OshRatSchemaV1.self),
+        schema: Schema(versionedSchema: OshRatSchema.self),
         cloudKitDatabase: .none
     )
 
@@ -108,7 +123,7 @@ final class PersistentStore {
     private static func open() -> State {
         do {
             let container = try ModelContainer(
-                for: Schema(versionedSchema: OshRatSchemaV1.self),
+                for: Schema(versionedSchema: OshRatSchema.self),
                 migrationPlan: OshRatMigrationPlan.self,
                 configurations: configuration
             )
