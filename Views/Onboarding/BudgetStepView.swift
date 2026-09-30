@@ -255,5 +255,5 @@ private struct PlannedExpenseRow: View {
 
 #Preview {
     BudgetStepView(viewModel: OnboardingViewModel())
-        .modelContainer(for: [UserProfile.self, Account.self, Holding.self, Category.self, Transaction.self, TransactionAttachment.self, BudgetItem.self, Goal.self, FXRateSnapshot.self], inMemory: true)
+        .modelContainer(for: OshRatSchemaV1.models, inMemory: true)
 }

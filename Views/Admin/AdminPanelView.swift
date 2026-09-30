@@ -276,7 +276,7 @@ struct AdminPanelButton: View {
 
 #Preview {
     AdminPanelView()
-        .modelContainer(for: [UserProfile.self, Account.self, Holding.self, Category.self, Transaction.self, TransactionAttachment.self, BudgetItem.self, Goal.self, FXRateSnapshot.self, UserProgress.self, DepositTranche.self], inMemory: true)
+        .modelContainer(for: OshRatSchemaV1.models, inMemory: true)
 }
 
 #endif

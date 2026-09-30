@@ -258,7 +258,7 @@ struct WardrobeView: View {
 
 #Preview {
     WardrobeView()
-        .modelContainer(for: [UserProgress.self, MascotConfig.self], inMemory: true)
+        .modelContainer(for: OshRatSchemaV1.models, inMemory: true)
 }
 
 /// The wardrobe rat's idle loop, as the values `KeyframeAnimator` interpolates.
