@@ -18,7 +18,7 @@ import SwiftData
 struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
 
-    @Query private var profiles: [UserProfile]
+    @Query(sort: \UserProfile.createdAt) private var profiles: [UserProfile]
     // Live rows only — soft-deleted accounts/transactions sit in
     // "Recently Deleted" (see `TrashService`) until restored or purged,
     // so every dashboard total ignores them.

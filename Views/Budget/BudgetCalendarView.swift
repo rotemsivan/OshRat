@@ -41,7 +41,7 @@ struct BudgetCalendarView: View {
     @Query(filter: #Predicate<Transaction> { $0.deletedAt == nil && $0.budgetOccurrenceDate != nil })
     private var budgetLoggedTransactions: [Transaction]
     @Query(sort: \Category.name) private var categories: [Category]
-    @Query private var profiles: [UserProfile]
+    @Query(sort: \UserProfile.createdAt) private var profiles: [UserProfile]
     @Query(sort: \FXRateSnapshot.fetchedAt, order: .reverse) private var fxSnapshots: [FXRateSnapshot]
 
     /// First day of the month currently on screen. Mirrors the native

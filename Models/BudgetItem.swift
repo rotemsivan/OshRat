@@ -96,7 +96,7 @@ final class BudgetItem {
     /// money history. Which occurrence each one logs is on
     /// `Transaction.budgetOccurrenceDate`.
     @Relationship(deleteRule: .nullify, inverse: \Transaction.budgetItem)
-    var loggedTransactions: [Transaction] = []
+    var loggedTransactions: [Transaction]? = []
 
     /// Start of the day whose reminder toast has already played for this
     /// line, so it plays once per occurrence rather than on every launch.

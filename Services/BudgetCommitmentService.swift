@@ -116,7 +116,7 @@ enum BudgetCommitmentService {
     }
 
     private static func currencySetting(in context: ModelContext) -> (code: String, fx: FXRateSnapshot?) {
-        var profile = FetchDescriptor<UserProfile>()
+        var profile = FetchDescriptor<UserProfile>(sortBy: [SortDescriptor(\.createdAt)])
         profile.fetchLimit = 1
         var fx = FetchDescriptor<FXRateSnapshot>(sortBy: [SortDescriptor(\.fetchedAt, order: .reverse)])
         fx.fetchLimit = 1

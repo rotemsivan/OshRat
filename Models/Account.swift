@@ -33,7 +33,7 @@ final class Account {
     /// Transactions linked to this account. Deleting the account just nullifies
     /// the link on its transactions rather than deleting them.
     @Relationship(deleteRule: .nullify, inverse: \Transaction.account)
-    var transactions: [Transaction] = []
+    var transactions: [Transaction]? = []
 
     /// Transfers that *credit* this account (its role as the destination
     /// side of a money move). Declared explicitly so SwiftData can tell
@@ -42,7 +42,7 @@ final class Account {
     /// Nullify (not cascade): deleting the destination account shouldn't
     /// delete the transfer row, just orphan its destination link.
     @Relationship(deleteRule: .nullify, inverse: \Transaction.destinationAccount)
-    var incomingTransfers: [Transaction] = []
+    var incomingTransfers: [Transaction]? = []
 
     // MARK: - Deposit terms
     //
@@ -98,7 +98,7 @@ final class Account {
     /// not delete the deposit itself, only forget where it was headed (the
     /// prompt then asks the user to pick a target).
     @Relationship(deleteRule: .nullify, inverse: \Account.payoutAccount)
-    var incomingDepositPayouts: [Account] = []
+    var incomingDepositPayouts: [Account]? = []
 
     /// Where this deposit's money goes at maturity. `nil` means "not decided
     /// yet" — the maturity prompt asks rather than guessing.
@@ -109,7 +109,7 @@ final class Account {
     /// balance of a replenishable one, which `DepositLadder` derives rather
     /// than storing). Cascade: a rung has no meaning without its deposit.
     @Relationship(deleteRule: .cascade, inverse: \DepositTranche.account)
-    var depositTranches: [DepositTranche] = []
+    var depositTranches: [DepositTranche]? = []
 
     /// Holdings (stocks, ETFs, etc.) inside an investment-type account.
     /// Non-investment accounts simply leave this empty. Deleting the
@@ -118,7 +118,7 @@ final class Account {
     /// account; for investment accounts it's the liquid-cash component
     /// and the holdings are summed on top.
     @Relationship(deleteRule: .cascade, inverse: \Holding.account)
-    var holdings: [Holding] = []
+    var holdings: [Holding]? = []
 
     init(
         name: String = "",
@@ -193,7 +193,7 @@ extension Account {
     /// funding transfer is sitting in Recently Deleted is skipped — that
     /// delete already took the money back out of the balance.
     var liveDepositTranches: [DepositTranche] {
-        depositTranches
+        (depositTranches ?? [])
             .filter(\.isLive)
             .sorted { $0.startDate < $1.startDate }
     }

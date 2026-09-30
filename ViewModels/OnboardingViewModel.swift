@@ -498,7 +498,7 @@ extension AccountDraft {
             type: account.type,
             balance: account.balance,
             currencyCode: account.currencyCode,
-            holdings: account.holdings.map { HoldingDraft(from: $0) },
+            holdings: (account.holdings ?? []).map { HoldingDraft(from: $0) },
             isFavorite: account.isFavorite,
             depositKind: account.depositKind,
             interestRatePercent: account.interestRatePercent ?? 0,
@@ -579,7 +579,7 @@ extension AccountDraft {
             account.payoutAccount = nil
         }
 
-        for existing in account.holdings {
+        for existing in account.holdings ?? [] {
             context.delete(existing)
         }
 

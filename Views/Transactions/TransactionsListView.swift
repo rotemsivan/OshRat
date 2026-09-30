@@ -34,7 +34,7 @@ struct TransactionsListView: View {
     /// when its currency differs from its account's.
     @Query(sort: \FXRateSnapshot.fetchedAt, order: .reverse) private var fxSnapshots: [FXRateSnapshot]
     /// Only for the preferred currency, which an amount sort ranks every row in.
-    @Query private var profiles: [UserProfile]
+    @Query(sort: \UserProfile.createdAt) private var profiles: [UserProfile]
 
     /// Filter state + the filtering itself, owned by `HomeView` so it survives
     /// a trip to another tab — see `TransactionFilters`.
@@ -1373,7 +1373,7 @@ private struct ExpandedTransactionCard: View {
     /// Queried here rather than threaded down the list: only the one open
     /// card needs them, and a budget edit shouldn't re-render the list.
     @Query private var budgetItems: [BudgetItem]
-    @Query private var profiles: [UserProfile]
+    @Query(sort: \UserProfile.createdAt) private var profiles: [UserProfile]
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Flipped on appear, so the budget bar grows in as the card opens.
     @State private var revealed = false
@@ -1509,7 +1509,7 @@ private struct ExpandedTransactionCard: View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
             blockLabel("קבצים מצורפים")
             // Sorted oldest-first for a stable order matching the editor.
-            AttachmentStrip(attachments: transaction.attachments.sorted { $0.createdAt < $1.createdAt })
+            AttachmentStrip(attachments: (transaction.attachments ?? []).sorted { $0.createdAt < $1.createdAt })
         }
     }
 

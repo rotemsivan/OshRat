@@ -104,7 +104,7 @@ struct CategoriesView: View {
                     symbolName: category.symbolName,
                     colorHex: category.colorHex,
                     isUserCreated: category.isUserCreated,
-                    isInUse: !category.transactions.isEmpty || budgeted.contains(category.persistentModelID)
+                    isInUse: !(category.transactions ?? []).isEmpty || budgeted.contains(category.persistentModelID)
                 )
             })
         }

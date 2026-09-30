@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import CoreData
 
 /// Top-level router for the app.
 ///
@@ -23,8 +24,12 @@ import SwiftData
 /// widget's quick add, or an Apple Pay payment to log — since stopping at a
 /// front door on the way would only get in the way.
 struct ContentView: View {
-    @Query private var profiles: [UserProfile]
+    @Query(sort: \UserProfile.createdAt) private var profiles: [UserProfile]
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.modelContext) private var modelContext
+    /// The pending "merge what sync just brought in" pass — see
+    /// `scheduleDeduplication`.
+    @State private var dedupeTask: Task<Void, Never>?
 
     @State private var hasEntered = Self.skipsLoginAtLaunch
 
@@ -55,7 +60,17 @@ struct ContentView: View {
         // Coming back from a payment notification: the payment was saved by
         // the action while the app sat in the background.
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { refreshPayments() }
+            if phase == .active {
+                refreshPayments()
+                SyncDeduplicator.run(in: modelContext, includingCategories: false)
+            }
+        }
+        // iCloud sync imported another device's changes: fold together any
+        // rows both devices created (`SyncDeduplicator`). Imports come in
+        // bursts, so this waits for a quiet moment rather than running per
+        // batch.
+        .onReceive(NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)) { _ in
+            scheduleDeduplication()
         }
         // Finishing the wizard (or a DEBUG demo deploy from the onboarding
         // screen) lands on the dashboard — the user is already in.
@@ -72,6 +87,15 @@ struct ContentView: View {
     private func enter() {
         withAnimation(.easeInOut(duration: 0.4)) {
             hasEntered = true
+        }
+    }
+
+    private func scheduleDeduplication() {
+        dedupeTask?.cancel()
+        dedupeTask = Task {
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            SyncDeduplicator.run(in: modelContext, includingCategories: false)
         }
     }
 

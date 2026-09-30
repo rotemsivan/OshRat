@@ -489,7 +489,7 @@ struct AssetsSummaryCard: View {
         var total = Decimal(0)
         for account in accounts {
             total += convertToPreferred(account.balance, from: account.currencyCode)
-            for holding in account.holdings {
+            for holding in account.holdings ?? [] {
                 total += convertToPreferred(holding.marketValue, from: holding.currencyCode)
             }
         }
@@ -517,7 +517,7 @@ struct AssetsSummaryCard: View {
     private var hasCrossCurrencyHoldings: Bool {
         for account in accounts {
             if account.currencyCode != preferredCurrencyCode { return true }
-            for holding in account.holdings where holding.currencyCode != preferredCurrencyCode {
+            for holding in account.holdings ?? [] where holding.currencyCode != preferredCurrencyCode {
                 return true
             }
         }
@@ -627,7 +627,7 @@ private struct AccountSummaryRow: View {
     private var displayTotal: Decimal {
         var total = account.balance
         if account.type == .investment {
-            for holding in account.holdings where holding.currencyCode == account.currencyCode {
+            for holding in account.holdings ?? [] where holding.currencyCode == account.currencyCode {
                 total += holding.marketValue
             }
         }
@@ -635,10 +635,10 @@ private struct AccountSummaryRow: View {
     }
 
     private var subtitle: String {
-        if account.type == .investment, !account.holdings.isEmpty {
+        if account.type == .investment, !(account.holdings ?? []).isEmpty {
             // `String(localized:)` so the count gets proper Hebrew plurals
             // (נכס אחד / שני נכסים / N נכסים) from the catalog.
-            let holdings = String(localized: "\(account.holdings.count) נכסים")
+            let holdings = String(localized: "\((account.holdings ?? []).count) נכסים")
             return "\(account.type.hebrewLabel) • \(holdings)"
         }
         if let depositDetail {

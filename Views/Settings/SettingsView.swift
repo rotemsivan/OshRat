@@ -5,14 +5,14 @@ import SwiftData
 ///
 /// Everything the app used to hard-code or scatter across toolbars, in one
 /// place: the personal details from onboarding (now editable), the budget's
-/// business-day rule, the Apple Pay shortcut, sounds, exchange rates, and the
-/// management screens (categories, Recently Deleted).
+/// business-day rule, the Apple Pay shortcut, sounds, exchange rates, iCloud
+/// sync's status, and the management screens (categories, Recently Deleted).
 ///
 /// A system `Form` on purpose: settings are the one screen where people
 /// expect iOS's own look, and it brings grouped rows, switches and pickers
 /// that read correctly under RTL and every text size for free.
 struct SettingsView: View {
-    @Query private var profiles: [UserProfile]
+    @Query(sort: \UserProfile.createdAt) private var profiles: [UserProfile]
 
     var body: some View {
         Group {
@@ -39,6 +39,8 @@ private struct SettingsForm: View {
 
     @State private var isShowingRecentlyDeleted = false
     @State private var fxRefresh: FXRefreshState = .idle
+    /// Whether the device is signed into iCloud — `nil` while it's asked.
+    @State private var cloudStatus: CloudAccountService.Status?
     /// The name as the screen opened with it — put back if the user leaves
     /// with the field emptied, since a blank name breaks the greeting and the
     /// profile header.
@@ -56,6 +58,7 @@ private struct SettingsForm: View {
             applePaySection
             feedbackSection
             ratesSection
+            syncSection
             managementSection
             aboutSection
         }
@@ -69,6 +72,7 @@ private struct SettingsForm: View {
             RecentlyDeletedView()
         }
         .onAppear { nameOnOpen = profile.name }
+        .task { cloudStatus = await CloudAccountService.status() }
         .onDisappear {
             if profile.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 profile.name = nameOnOpen
@@ -204,8 +208,35 @@ private struct SettingsForm: View {
         } header: {
             HStack(spacing: Theme.Spacing.xs) {
                 Text("שערי חליפין")
-                InfoButton("השערים היציגים של הבנק המרכזי האירופי, מתעדכנים פעם ביום. זו הפנייה היחידה של האפליקציה לאינטרנט, ובלי שום פרט אישי.")
+                InfoButton("השערים היציגים של הבנק המרכזי האירופי, מתעדכנים פעם ביום, בלי שום פרט אישי. מלבד הסנכרון עם ה-iCloud שלך, זו הפנייה היחידה של האפליקציה לאינטרנט.")
             }
+        }
+    }
+
+    /// Sync is always on when the device is signed into iCloud; this only
+    /// says whether it is, and never blocks anything — signed out, the app
+    /// works the same, on the device alone.
+    private var syncSection: some View {
+        Section {
+            Label {
+                Text(syncStatusText)
+            } icon: {
+                Image(systemName: cloudStatus == .available ? "checkmark.icloud" : "icloud.slash")
+            }
+        } header: {
+            HStack(spacing: Theme.Spacing.xs) {
+                Text("iCloud")
+                InfoButton("החשבונות, התנועות, התקציב וההתקדמות נשמרים גם ב-iCloud הפרטי שלך ומסתנכרנים בין המכשירים עם אותו Apple ID. רק לך יש אליהם גישה. תשלומים שממתינים לרישום והעדפות כמו צלילים נשארים במכשיר.")
+            }
+        }
+    }
+
+    private var syncStatusText: LocalizedStringKey {
+        switch cloudStatus {
+        case .available:   "מסונכרן עם iCloud"
+        case .unavailable: "לא מחובר ל-iCloud — הנתונים נשמרים רק במכשיר"
+        case .unknown:     "לא ניתן לבדוק את iCloud כרגע"
+        case nil:          "בודק…"
         }
     }
 

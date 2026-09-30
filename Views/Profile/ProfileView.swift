@@ -23,7 +23,7 @@ struct ProfileView: View {
     let wardrobeTransition: Namespace.ID
     var onOpenWardrobe: () -> Void = {}
 
-    @Query private var profiles: [UserProfile]
+    @Query(sort: \UserProfile.createdAt) private var profiles: [UserProfile]
     /// Sorted oldest-first to match the row `ProgressService` resolves to —
     /// the same ordering `HomeView` uses, so the card here and the battery on
     /// the dashboard always read the same row.

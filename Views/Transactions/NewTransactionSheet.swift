@@ -41,7 +41,7 @@ struct NewTransactionSheet: View {
     @Query(filter: #Predicate<Account> { $0.deletedAt == nil }, sort: \Account.name)
     private var accounts: [Account]
     @Query(sort: \Category.name) private var categories: [Category]
-    @Query private var profiles: [UserProfile]
+    @Query(sort: \UserProfile.createdAt) private var profiles: [UserProfile]
     /// Newest snapshot first; the head of the array is the freshest FX
     /// snapshot we have. Used to convert when the transaction's currency
     /// differs from the account's currency.
@@ -262,7 +262,7 @@ struct NewTransactionSheet: View {
             // (oldest first for a stable strip order). Each carries its
             // backing row in `existing` so the save path can tell kept files
             // from removed ones.
-            _attachmentDrafts = State(initialValue: transaction.attachments
+            _attachmentDrafts = State(initialValue: (transaction.attachments ?? [])
                 .sorted { $0.createdAt < $1.createdAt }
                 .compactMap { AttachmentDraft(existing: $0) })
         }
@@ -1427,7 +1427,7 @@ struct NewTransactionSheet: View {
     /// collapses to "insert every draft".
     private func applyAttachments(to transaction: Transaction) {
         let keptIDs = Set(attachmentDrafts.compactMap { $0.existing?.persistentModelID })
-        for attachment in transaction.attachments where !keptIDs.contains(attachment.persistentModelID) {
+        for attachment in transaction.attachments ?? [] where !keptIDs.contains(attachment.persistentModelID) {
             modelContext.delete(attachment)
         }
         for draft in attachmentDrafts where draft.existing == nil {

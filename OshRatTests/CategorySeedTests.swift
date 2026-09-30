@@ -56,6 +56,29 @@ struct CategorySeedTests {
         #expect(all.filter { $0.name == "דיור" }.count == 1)
     }
 
+    /// Two synced devices each seeded "דיור" and used their own copy: the
+    /// merge keeps one and moves both sides' transactions and budget lines
+    /// onto it, through the inverse relationships.
+    @Test func mergingTwinsKeepsEverythingFiledUnderEither() throws {
+        let context = try Self.makeContext()
+        let rent = try #require(SeedData.defaults.first { $0.name == "דיור" })
+        let mine = rent.makeCategory()
+        let theirs = rent.makeCategory()
+        [mine, theirs].forEach(context.insert)
+        let paid = Transaction(amount: 4200, kind: .expense, category: theirs)
+        let planned = BudgetItem(plannedAmount: 4200, kind: .expense, category: theirs)
+        context.insert(paid)
+        context.insert(planned)
+        try context.save()
+
+        SeedData.prepareCategories(in: context)
+
+        let kept = try #require(try context.fetch(FetchDescriptor<Category>()).first { $0.name == "דיור" })
+        #expect(paid.category === kept)
+        #expect(planned.category === kept)
+        #expect(try context.fetch(FetchDescriptor<Category>()).filter { $0.name == "דיור" }.count == 1)
+    }
+
     /// An existing user's rent keeps its transactions — it's renamed, not
     /// replaced — and the new defaults are added beside it.
     @Test func anOldStoreIsRenamedInPlaceAndGetsTheNewCategories() throws {

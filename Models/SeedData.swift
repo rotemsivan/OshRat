@@ -104,25 +104,17 @@ enum SeedData {
         }
         guard !duplicates.isEmpty else { return existing }
 
-        // Re-point transactions whose category link points at one of
-        // the duplicates. The inverse relationship on `Category` gives
-        // us the transactions directly — no fetch needed.
+        // Re-point transactions and budget lines whose category is one of
+        // the duplicates, through the inverse relationships — no fetch
+        // needed. Snapshotted with `Array(...)` because re-pointing each row
+        // removes it from the very relationship being walked.
         for duplicate in duplicates {
             let canonicalForThis = canonical[Self.key(for: duplicate)]
-            for tx in duplicate.transactions {
+            for tx in duplicate.transactions ?? [] {
                 tx.category = canonicalForThis
             }
-        }
-
-        // BudgetItem has no inverse on Category, so we have to fetch
-        // the full set and rewrite any links pointing at duplicates.
-        let duplicateIDs = Set(duplicates.map { $0.persistentModelID })
-        if let budgetItems = try? context.fetch(FetchDescriptor<BudgetItem>()) {
-            for item in budgetItems {
-                guard let linked = item.category,
-                      duplicateIDs.contains(linked.persistentModelID)
-                else { continue }
-                item.category = canonical[Self.key(for: linked)]
+            for item in duplicate.budgetItems ?? [] {
+                item.category = canonicalForThis
             }
         }
 

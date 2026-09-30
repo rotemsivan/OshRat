@@ -19,6 +19,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>OshRatCloudKitContainer</key>
+	<string>$(CLOUDKIT_CONTAINER)</string>
 	<key>OshRatURLScheme</key>
 	<string>$(APP_URL_SCHEME)</string>
 	<key>UIAppFonts</key>
@@ -27,6 +29,10 @@
 		<string>Heebo-Medium.ttf</string>
 		<string>Heebo-SemiBold.ttf</string>
 		<string>Heebo-Bold.ttf</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
 	</array>
 </dict>
 </plist>

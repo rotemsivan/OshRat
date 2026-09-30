@@ -236,7 +236,7 @@ extension AnalyticsReport {
             if let value = convert(account.balance, account.currencyCode) {
                 accountTotal += value
             }
-            for holding in account.holdings {
+            for holding in account.holdings ?? [] {
                 if let value = convert(holding.marketValue, holding.currencyCode) {
                     accountTotal += value
                 }

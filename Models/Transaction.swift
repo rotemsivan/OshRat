@@ -38,7 +38,7 @@ final class Transaction {
     /// its transaction, so deleting the row deletes its blobs too (no
     /// orphaned external-storage files left behind).
     @Relationship(deleteRule: .cascade, inverse: \TransactionAttachment.transaction)
-    var attachments: [TransactionAttachment] = []
+    var attachments: [TransactionAttachment]? = []
 
     // MARK: - Transfer support
     //
@@ -88,7 +88,7 @@ final class Transaction {
     /// back on restore); only the hard delete at the end of the retention
     /// window takes it with the row.
     @Relationship(deleteRule: .cascade, inverse: \DepositTranche.fundingTransaction)
-    var fundedDepositTranches: [DepositTranche] = []
+    var fundedDepositTranches: [DepositTranche]? = []
 
     /// When this row was soft-deleted, or `nil` while it's live. Deleting
     /// a transaction reverses its balance effect and hides the row (every
@@ -180,7 +180,7 @@ final class Transaction {
 
     /// Whether this row carries any attached files. Lets the list show a
     /// small paperclip affordance without materializing the blobs.
-    var hasAttachments: Bool { !attachments.isEmpty }
+    var hasAttachments: Bool { !(attachments ?? []).isEmpty }
 
     // MARK: - Manual balance-edit marker
 

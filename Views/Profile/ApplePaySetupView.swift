@@ -93,7 +93,7 @@ struct ApplePaySetupView: View {
                 .foregroundStyle(Theme.Colors.textSecondary)
             limitLine("creditcard", "עובד בתשלום בהצמדת הטלפון או השעון בקופה — לא בקניות אונליין או בתוך אפליקציות.")
             limitLine("building.columns", "אילו פרטים מגיעים תלוי בחברת האשראי. מה שלא הגיע יישאר ריק ותוכלו להשלים.")
-            limitLine("lock.shield", "הכול נשאר במכשיר: הפרטים עוברים מהארנק לאפליקציה בלי אינטרנט ובלי חיבור לבנק, וההתראה היא התראה מקומית.")
+            limitLine("lock.shield", "בלי חיבור לבנק: הפרטים עוברים מהארנק לאפליקציה בתוך המכשיר, וההתראה היא התראה מקומית. התנועה שנרשמת נשמרת גם ב-iCloud שלך, כמו כל השאר.")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardStyle()

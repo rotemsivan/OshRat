@@ -25,6 +25,17 @@ struct OnboardingFlowView: View {
     @State private var savedProgress: OnboardingProgress? =
         OnboardingProgressStore.load().flatMap { $0.isWorthResuming ? $0 : nil }
 
+    /// This iCloud account already has data from another device, syncing in
+    /// — the welcome screen waits for it instead of offering setup, so the
+    /// user doesn't end up with a second profile and duplicate accounts.
+    @State private var isWaitingForCloud = false
+    /// The wait has gone on long enough to say so.
+    @State private var isCloudWaitSlow = false
+
+    /// How often the wait re-checks iCloud, and when it calls itself slow.
+    private static let cloudRecheckInterval: Duration = .seconds(5)
+    private static let cloudSlowAfter: Duration = .seconds(45)
+
     var body: some View {
         Group {
             if hasStarted {
@@ -42,9 +53,13 @@ struct OnboardingFlowView: View {
                     onStartOver: {
                         OnboardingProgressStore.clear()
                         savedProgress = nil
-                    }
+                    },
+                    isWaitingForCloud: isWaitingForCloud,
+                    isCloudWaitSlow: isCloudWaitSlow,
+                    onSkipCloudWait: stopWaitingForCloud
                 )
                 .transition(.opacity)
+                .task(checkForCloudData)
             }
         }
         // Brand-tint everything below this point.
@@ -111,6 +126,46 @@ struct OnboardingFlowView: View {
         // model yet, so that one sheet's typing isn't covered.)
         .onChange(of: viewModel.progress) { _, progress in
             OnboardingProgressStore.save(progress)
+        }
+    }
+
+    /// Only on a genuine first launch — a half-finished setup on this device
+    /// means the user is already setting it up here.
+    private func checkForCloudData() async {
+        guard savedProgress == nil else { return }
+        #if DEBUG
+        if LaunchArguments.contains("-demoCloudWait") {
+            isWaitingForCloud = true
+            return
+        }
+        #endif
+        guard await CloudAccountService.hasExistingData() else { return }
+        withAnimation { isWaitingForCloud = true }
+
+        // Keep checking while waiting. The profile arriving ends this by
+        // itself (`ContentView` swaps onboarding out, cancelling the task).
+        // But the data can also *leave*: after a reset on this device, its
+        // deletions are still on their way up to iCloud when the first check
+        // runs, so it sees a profile that is about to disappear — and a wait
+        // that never re-checked would spin forever.
+        let clock = ContinuousClock()
+        let started = clock.now
+        while isWaitingForCloud {
+            do { try await Task.sleep(for: Self.cloudRecheckInterval) } catch { return }
+            guard await CloudAccountService.hasExistingData() else {
+                stopWaitingForCloud()
+                return
+            }
+            if !isCloudWaitSlow, clock.now - started >= Self.cloudSlowAfter {
+                withAnimation { isCloudWaitSlow = true }
+            }
+        }
+    }
+
+    private func stopWaitingForCloud() {
+        withAnimation {
+            isWaitingForCloud = false
+            isCloudWaitSlow = false
         }
     }
 

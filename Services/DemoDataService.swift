@@ -356,6 +356,7 @@ enum DemoDataService {
         // their level, with the setup milestones already marked as paid.
         deleteAll(UserProgress.self, in: context)
         deleteAll(MascotConfig.self, in: context)
+        deleteAll(BudgetMonthCommitment.self, in: context)
         try? context.save()
 
         if reseedCategories {

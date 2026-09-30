@@ -138,8 +138,8 @@ struct TrashServiceTests {
 
         #expect(try context.fetchCount(FetchDescriptor<Transaction>()) == 0)
         #expect(try context.fetchCount(FetchDescriptor<Account>()) == 2)
-        #expect(source.transactions.isEmpty)
-        #expect(destination.incomingTransfers.isEmpty)
+        #expect((source.transactions ?? []).isEmpty)
+        #expect((destination.incomingTransfers ?? []).isEmpty)
     }
 
     // MARK: - Purge

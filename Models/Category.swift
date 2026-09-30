@@ -32,7 +32,14 @@ final class Category {
     var isUserCreated: Bool = false
 
     @Relationship(deleteRule: .nullify, inverse: \Transaction.category)
-    var transactions: [Transaction] = []
+    var transactions: [Transaction]? = []
+
+    /// Budget lines filed under this category. The inverse of
+    /// `BudgetItem.category`, which had none — and CloudKit sync requires
+    /// every relationship to have one. Nullify: deleting a category leaves
+    /// its budget lines uncategorised rather than taking them with it.
+    @Relationship(deleteRule: .nullify, inverse: \BudgetItem.category)
+    var budgetItems: [BudgetItem]? = []
 
     init(
         name: String = "",

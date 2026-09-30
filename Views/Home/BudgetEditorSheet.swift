@@ -23,7 +23,7 @@ struct BudgetEditorSheet: View {
 
     @Query(sort: \BudgetItem.name) private var budgetItems: [BudgetItem]
     @Query(sort: \Category.name) private var categories: [Category]
-    @Query private var profiles: [UserProfile]
+    @Query(sort: \UserProfile.createdAt) private var profiles: [UserProfile]
 
     /// Selected income line being edited (or a fresh draft when adding).
     /// `pendingIncomeItem` tracks the SwiftData row the draft maps back

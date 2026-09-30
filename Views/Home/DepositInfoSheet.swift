@@ -538,7 +538,7 @@ struct DepositHistoryEntry: Identifiable {
         var rows: [DepositHistoryEntry] = []
 
         // Money leaving, or logged against, the deposit.
-        for transaction in deposit.transactions where transaction.deletedAt == nil {
+        for transaction in deposit.transactions ?? [] where transaction.deletedAt == nil {
             let outgoing = transaction.isTransfer || transaction.kind == .expense
             rows.append(
                 DepositHistoryEntry(
@@ -553,7 +553,7 @@ struct DepositHistoryEntry: Identifiable {
 
         // Money arriving as a transfer — credited in the deposit's own
         // currency, which is what `destinationAmount` already holds.
-        for transaction in deposit.incomingTransfers where transaction.deletedAt == nil {
+        for transaction in deposit.incomingTransfers ?? [] where transaction.deletedAt == nil {
             rows.append(
                 DepositHistoryEntry(
                     id: transaction.persistentModelID,

@@ -339,7 +339,7 @@ enum ProgressService {
         let byMonth = Dictionary(grouping: transactions) { YearMonth($0.date, calendar: calendar) }
         guard let first = byMonth.keys.min() else { return [] }
 
-        var profileDescriptor = FetchDescriptor<UserProfile>()
+        var profileDescriptor = FetchDescriptor<UserProfile>(sortBy: [SortDescriptor(\.createdAt)])
         profileDescriptor.fetchLimit = 1
         let preferredCurrency = (try? context.fetch(profileDescriptor).first?.preferredCurrencyCode) ?? "ILS"
         var fxDescriptor = FetchDescriptor<FXRateSnapshot>(sortBy: [SortDescriptor(\.fetchedAt, order: .reverse)])

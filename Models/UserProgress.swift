@@ -116,3 +116,49 @@ final class UserProgress {
         awardedKeys.contains(key)
     }
 }
+
+extension UserProgress {
+    /// Folds another progress row into this one — two devices each made one
+    /// before sync met them (`SyncDeduplicator`), and this one is kept.
+    ///
+    /// Nothing earned is lost and nothing can pay twice:
+    /// - points and the best streak take the **higher** of the two;
+    /// - the current streak comes from whichever row saw activity **last**;
+    /// - one-time awards and unlocked achievements are the **union**, so a
+    ///   milestone paid on either device stays paid;
+    /// - waiting celebrations are merged without repeats;
+    /// - the achievements epoch is the **earlier** (the longer judged history)
+    ///   and the last budget deletion the **later**.
+    func absorb(_ other: UserProgress) {
+        totalXP = max(totalXP, other.totalXP)
+        longestStreak = max(longestStreak, other.longestStreak)
+        if let theirs = other.lastActivityDate, theirs > (lastActivityDate ?? .distantPast) {
+            lastActivityDate = theirs
+            currentStreak = other.currentStreak
+        }
+        if let theirs = other.dailyCapDate, theirs > (dailyCapDate ?? .distantPast) {
+            dailyCapDate = theirs
+            dailyCappedXP = other.dailyCappedXP
+        } else if other.dailyCapDate == dailyCapDate {
+            dailyCappedXP = max(dailyCappedXP, other.dailyCappedXP)
+        }
+        awardedKeys = Self.union(awardedKeys, other.awardedKeys)
+        unlockedAchievements = Self.union(unlockedAchievements, other.unlockedAchievements)
+        pendingCelebrations = Self.union(pendingCelebrations, other.pendingCelebrations)
+        if let theirs = other.pendingLevelUpLevel {
+            pendingLevelUpLevel = max(pendingLevelUpLevel ?? theirs, theirs)
+        }
+        achievementsEpoch = [achievementsEpoch, other.achievementsEpoch].compactMap { $0 }.min()
+        budgetLastTouchedAt = [budgetLastTouchedAt, other.budgetLastTouchedAt].compactMap { $0 }.max()
+        if lastAwardReasonRaw == nil {
+            lastAwardReasonRaw = other.lastAwardReasonRaw
+            lastAwardXP = other.lastAwardXP
+        }
+    }
+
+    /// `first`, then whatever of `second` it doesn't already have, in order.
+    private static func union(_ first: [String], _ second: [String]) -> [String] {
+        var seen = Set(first)
+        return first + second.filter { seen.insert($0).inserted }
+    }
+}

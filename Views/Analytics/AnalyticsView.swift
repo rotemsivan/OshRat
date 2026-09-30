@@ -30,7 +30,7 @@ struct AnalyticsView: View {
     private var accounts: [Account]
     // Budget lines hard-delete (no trash), so every row here is live.
     @Query private var budgetItems: [BudgetItem]
-    @Query private var profiles: [UserProfile]
+    @Query(sort: \UserProfile.createdAt) private var profiles: [UserProfile]
     @Query(sort: \FXRateSnapshot.fetchedAt, order: .reverse) private var fxSnapshots: [FXRateSnapshot]
 
     /// The month/year the roadmap is scoped to. Defaults to the current
