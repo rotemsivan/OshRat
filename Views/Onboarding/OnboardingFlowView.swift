@@ -151,9 +151,8 @@ struct OnboardingFlowView: View {
                     }
                 } label: {
                     Text("חזרה")
-                        .font(Theme.Typography.sectionTitle)
+                        .font(Theme.Typography.amount)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, Theme.Spacing.xs)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.large)
@@ -163,9 +162,10 @@ struct OnboardingFlowView: View {
                 primaryAction()
             } label: {
                 Text(primaryButtonTitle)
-                    .font(Theme.Typography.sectionTitle)
+                    // `amount` (bold 18) like the welcome screen's button:
+                    // the step's content is the focus, not the buttons.
+                    .font(Theme.Typography.amount)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, Theme.Spacing.xs)
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)

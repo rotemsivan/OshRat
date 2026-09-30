@@ -159,6 +159,10 @@
 		5ELAUNCH01000000000000B1 /* LaunchArguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ELAUNCH01000000000000F1 /* LaunchArguments.swift */; };
 		5EDEEPLK01000000000000B1 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEEPLK01000000000000F1 /* DeepLink.swift */; };
 		5EDEEPLK01000000000000B2 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEEPLK01000000000000F1 /* DeepLink.swift */; };
+		5EBRANDH01000000000000B1 /* BrandHeroLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBRANDH01000000000000F1 /* BrandHeroLayout.swift */; };
+		5EHEROBT01000000000000B1 /* HeroPrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EHEROBT01000000000000F1 /* HeroPrimaryButton.swift */; };
+		5ELOGINV01000000000000B1 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ELOGINV01000000000000F1 /* LoginView.swift */; };
+		5EDLROUT01000000000000B1 /* DeepLinkRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDLROUT01000000000000F1 /* DeepLinkRouter.swift */; };
 		5EPSTORE01000000000000B1 /* PersistentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPSTORE01000000000000F1 /* PersistentStore.swift */; };
 		5ESTREC001000000000000B1 /* StoreRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ESTREC001000000000000F1 /* StoreRecoveryView.swift */; };
 		5ESET00100000000000000B1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ESET00100000000000000F1 /* SettingsView.swift */; };
@@ -327,6 +331,10 @@
 		5EPRF00100000000000000F1 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		5ELAUNCH01000000000000F1 /* LaunchArguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchArguments.swift; sourceTree = "<group>"; };
 		5EDEEPLK01000000000000F1 /* DeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLink.swift; sourceTree = "<group>"; };
+		5EBRANDH01000000000000F1 /* BrandHeroLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandHeroLayout.swift; sourceTree = "<group>"; };
+		5EHEROBT01000000000000F1 /* HeroPrimaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeroPrimaryButton.swift; sourceTree = "<group>"; };
+		5ELOGINV01000000000000F1 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		5EDLROUT01000000000000F1 /* DeepLinkRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkRouter.swift; sourceTree = "<group>"; };
 		5EPSTORE01000000000000F1 /* PersistentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistentStore.swift; sourceTree = "<group>"; };
 		5ESTREC001000000000000F1 /* StoreRecoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreRecoveryView.swift; sourceTree = "<group>"; };
 		5ESET00100000000000000F1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -443,6 +451,7 @@
 			isa = PBXGroup;
 			children = (
 				5ESET00000000000000000A1 /* Settings */,
+				5ELOGINGR0000000000000A1 /* Login */,
 				5ESTREC000000000000000A1 /* StoreRecovery */,
 				5E2626C22FD1823E00180F49 /* Onboarding */,
 				5ED3E0ED2FD1BE5C003083F0 /* Home */,
@@ -465,6 +474,8 @@
 			children = (
 				5E2626C32FD1824A00180F49 /* WelcomeView.swift */,
 				5EA1C0012FDA200000000001 /* WelcomeMascotView.swift */,
+				5EBRANDH01000000000000F1 /* BrandHeroLayout.swift */,
+				5EHEROBT01000000000000F1 /* HeroPrimaryButton.swift */,
 				5E2626C42FD1826600180F49 /* PersonalDetailsStepView.swift */,
 				5E2626C52FD1828300180F49 /* AccountEditorSheet.swift */,
 				5E2626C62FD1829C00180F49 /* AccountsStepView.swift */,
@@ -582,6 +593,7 @@
 				5EGAM00300000000000000F1 /* ProgressService.swift */,
 				5ECELB0300000000000000F1 /* CelebrationFeedback.swift */,
 				5EPSTORE01000000000000F1 /* PersistentStore.swift */,
+				5EDLROUT01000000000000F1 /* DeepLinkRouter.swift */,
 				5ELAUNCH01000000000000F1 /* LaunchArguments.swift */,
 				5EDEEPLK01000000000000F1 /* DeepLink.swift */,
 				5EWARD0300000000000000F1 /* WardrobeService.swift */,
@@ -682,6 +694,14 @@
 				5EPRF00100000000000000F1 /* ProfileView.swift */,
 			);
 			path = Profile;
+			sourceTree = "<group>";
+		};
+		5ELOGINGR0000000000000A1 /* Login */ = {
+			isa = PBXGroup;
+			children = (
+				5ELOGINV01000000000000F1 /* LoginView.swift */,
+			);
+			path = Login;
 			sourceTree = "<group>";
 		};
 		5ESTREC000000000000000A1 /* StoreRecovery */ = {
@@ -906,6 +926,10 @@
 			files = (
 				5ESET00100000000000000B1 /* SettingsView.swift in Sources */,
 				5EPSTORE01000000000000B1 /* PersistentStore.swift in Sources */,
+				5EBRANDH01000000000000B1 /* BrandHeroLayout.swift in Sources */,
+				5EHEROBT01000000000000B1 /* HeroPrimaryButton.swift in Sources */,
+				5ELOGINV01000000000000B1 /* LoginView.swift in Sources */,
+				5EDLROUT01000000000000B1 /* DeepLinkRouter.swift in Sources */,
 				5ELAUNCH01000000000000B1 /* LaunchArguments.swift in Sources */,
 				5EDEEPLK01000000000000B1 /* DeepLink.swift in Sources */,
 				5ESTREC001000000000000B1 /* StoreRecoveryView.swift in Sources */,

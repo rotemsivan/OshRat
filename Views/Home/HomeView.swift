@@ -133,10 +133,11 @@ struct HomeView: View {
     /// Where `LogPaymentIntent` leaves a payment. Read in `body`, so
     /// Observation re-runs the `onChange` below the moment one arrives.
     private let paymentRouter = IncomingPaymentRouter.shared
-    /// A widget "new transaction" link waiting for the screen to be free.
-    /// Opening the sheet the moment the URL arrives collided with launch-time
-    /// alerts (overrun, auto payout), and one of the two was silently dropped.
-    @State private var isNewTransactionLinkPending = false
+    /// Where `ContentView` parks the widget's "new transaction" link. Opening
+    /// the sheet the moment the URL arrives collided with launch-time alerts
+    /// (overrun, auto payout), and one of the two was silently dropped — so
+    /// it waits there until the screen is free.
+    private let linkRouter = DeepLinkRouter.shared
     /// The deposit settle pass found the screen busy and should run again
     /// once it clears. See `settleMaturedDeposits`.
     @State private var isDepositSettleDeferred = false
@@ -365,13 +366,6 @@ struct HomeView: View {
                 onCancel: {}
             )
         }
-        // Deep link from the home-screen widget: `oshrat://new-transaction`
-        // (`oshrat-dev://` in a dev build)
-        // opens the same sheet as the FAB. Handled here (not in
-        // `OshRatApp`) because this view already owns the sheet's state.
-        // If the user hasn't onboarded yet, `ContentView` never mounts
-        // `HomeView`, so the URL is quietly ignored — correct, since
-        // there's no account to log a transaction against.
         // A day rolling over while the app is open (or while it sat in the
         // background) moves the budget reminder on to the new day's lines.
         // `significantTimeChangeNotification` is posted on the main thread at
@@ -379,17 +373,15 @@ struct HomeView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
             today = BudgetReminderService.calendar.startOfDay(for: .now)
         }
-        .onOpenURL { url in
-            guard DeepLink.isNewTransaction(url) else { return }
-            isNewTransactionLinkPending = true
-        }
-        // Opened once nothing else is up — the same wait a card payment gets,
-        // so a cold launch from the widget can't collide with a launch-time
-        // alert or sheet.
-        .task(id: LinkGate(isPending: isNewTransactionLinkPending, isBlocked: isBlockingPayment)) {
-            guard isNewTransactionLinkPending, !isBlockingPayment else { return }
+        // The widget's quick add (`DeepLink.newTransaction`): `ContentView`
+        // receives the URL and parks it in `linkRouter`, and it opens the same
+        // sheet as the FAB once nothing else is up — the same wait a card
+        // payment gets, so a cold launch from the widget can't collide with a
+        // launch-time alert or sheet.
+        .task(id: LinkGate(isPending: linkRouter.isNewTransactionPending, isBlocked: isBlockingPayment)) {
+            guard linkRouter.isNewTransactionPending, !isBlockingPayment else { return }
             guard !isAddingTransaction else {
-                isNewTransactionLinkPending = false
+                linkRouter.isNewTransactionPending = false
                 return
             }
             while ModalPresentation.isActive {
@@ -397,7 +389,7 @@ struct HomeView: View {
                 if Task.isCancelled { return }
             }
             guard !isBlockingPayment else { return }
-            isNewTransactionLinkPending = false
+            linkRouter.isNewTransactionPending = false
             isAddingTransaction = true
         }
         // Refresh once per dashboard appearance. The service itself
@@ -561,7 +553,7 @@ struct HomeView: View {
         // the way clears, so a held-back alert still arrives this launch.
         .onChange(of: OverrunGate(
             isOverBudget: monthlyBudgetReport.hasOverrun,
-            isBlocked: isPresentingModal || paymentRouter.pending != nil || isNewTransactionLinkPending
+            isBlocked: isPresentingModal || paymentRouter.pending != nil || linkRouter.isNewTransactionPending
         ), initial: true) { _, gate in
             guard gate.isOverBudget, !gate.isBlocked, acknowledgedOverrunMonth != currentMonthKey else { return }
             overrunAlertPresented = true
