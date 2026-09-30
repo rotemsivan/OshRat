@@ -141,8 +141,12 @@ enum Theme {
         navAppearance.titleTextAttributes = [
             .font: Fonts.uiBold(17)
         ]
+        // Scaled against `.largeTitle` like the system font it replaces;
+        // a fixed 34pt title ended up smaller than the body text at the
+        // accessibility sizes. Appearance is read once, so a text-size
+        // change reaches the title on the next launch.
         navAppearance.largeTitleTextAttributes = [
-            .font: Fonts.uiBold(34)
+            .font: Fonts.uiBoldScaled(34, style: .largeTitle)
         ]
         let navBar = UINavigationBar.appearance()
         navBar.standardAppearance   = navAppearance
@@ -191,7 +195,7 @@ enum Theme {
 // SwiftUI doesn't ship a built-in "tap outside to close the keyboard"
 // behaviour, but Hebrew users coming in from the iOS norm expect it on
 // every input (transaction title, account name, amount, etc.). We
-// install a single `UITapGestureRecognizer` on the app's key window so
+// install one `UITapGestureRecognizer` on each of the app's windows so
 // any tap that isn't on a text input ends editing — no per-screen
 // boilerplate, no fragile background `.onTapGesture` overlays.
 //
@@ -211,22 +215,22 @@ enum Theme {
 // the gesture would silently stop firing.
 final class KeyboardDismissTapInstaller: NSObject, UIGestureRecognizerDelegate {
     static let shared = KeyboardDismissTapInstaller()
-    private var installed = false
 
-    /// Idempotent. Safe to call from `.onAppear` — it will look up the
-    /// current key window and attach the gesture once.
+    /// Idempotent. Safe to call from `.onAppear` — it attaches the gesture
+    /// to every app window that doesn't have it yet. Per window rather than
+    /// once per process: a second iPad window, or a scene iOS disconnected
+    /// and rebuilt, is a new `UIWindow` that needs its own.
     func install() {
-        guard !installed else { return }
-        guard let window = UIApplication.shared.connectedScenes
-            .compactMap({ $0 as? UIWindowScene })
+        let windows = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
             .flatMap(\.windows)
-            .first(where: { $0.isKeyWindow }) else { return }
-
-        let tap = UITapGestureRecognizer(target: window, action: #selector(UIView.endEditing(_:)))
-        tap.cancelsTouchesInView = false
-        tap.delegate = self
-        window.addGestureRecognizer(tap)
-        installed = true
+        for window in windows
+        where !(window.gestureRecognizers ?? []).contains(where: { $0.delegate === self }) {
+            let tap = UITapGestureRecognizer(target: window, action: #selector(UIView.endEditing(_:)))
+            tap.cancelsTouchesInView = false
+            tap.delegate = self
+            window.addGestureRecognizer(tap)
+        }
     }
 
     // Walk up the view tree so a tap on the inner scroll view / label

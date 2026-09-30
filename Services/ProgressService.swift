@@ -140,17 +140,17 @@ enum ProgressService {
     /// ten at once; a toast each would be most of a minute of interruptions.
     static let celebrationBatchThreshold = 3
 
-    /// The dashboard has shown the head of the queue; pop it (and any
-    /// unreadable entries in front of it) so the next one can play.
-    static func dismissCelebration(in context: ModelContext) {
+    /// The dashboard has shown `shown`; pop it (and any unreadable entries
+    /// in front of it) so the next one can play.
+    ///
+    /// Only if it is still the head: on iPad two windows each show the same
+    /// toast and each dismiss it, and popping blindly would take the *next*
+    /// celebration off the queue unseen.
+    static func dismissCelebration(_ shown: Celebration, in context: ModelContext) {
         let progress = progress(in: context)
-        guard let index = progress.pendingCelebrations.firstIndex(where: { Celebration(rawValue: $0) != nil })
-        else {
-            guard !progress.pendingCelebrations.isEmpty else { return }
-            progress.pendingCelebrations.removeAll()
-            try? context.save()
-            return
-        }
+        guard let index = progress.pendingCelebrations.firstIndex(where: { Celebration(rawValue: $0) != nil }),
+              Celebration(rawValue: progress.pendingCelebrations[index]) == shown
+        else { return }
         progress.pendingCelebrations.removeSubrange(...index)
         try? context.save()
     }

@@ -178,4 +178,21 @@ struct PaymentPrefillTests {
         router.receive(PaymentPrefill(amount: 10, merchant: "B", receivedAt: now))
         #expect(router.take(now: now.addingTimeInterval(PaymentPrefill.freshness + 1)) == nil)
     }
+
+    /// A second payment arriving while the first still waits must queue
+    /// behind it, not replace it — and a stale one in front is skipped.
+    @Test func paymentsWaitingTogetherAreHandedOverInOrder() {
+        let router = IncomingPaymentRouter.shared
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        while router.take(now: now) != nil {}
+
+        router.receive(PaymentPrefill(amount: 10, merchant: "Stale", receivedAt: now.addingTimeInterval(-PaymentPrefill.freshness - 1)))
+        router.receive(PaymentPrefill(amount: 10, merchant: "A", receivedAt: now))
+        router.receive(PaymentPrefill(amount: 20, merchant: "B", receivedAt: now))
+        #expect(router.pending?.merchant == "Stale")
+        #expect(router.take(now: now)?.merchant == "A")
+        #expect(router.pending?.merchant == "B")
+        #expect(router.take(now: now)?.merchant == "B")
+        #expect(router.pending == nil)
+    }
 }

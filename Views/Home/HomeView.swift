@@ -130,6 +130,13 @@ struct HomeView: View {
     /// Where `LogPaymentIntent` leaves a payment. Read in `body`, so
     /// Observation re-runs the `onChange` below the moment one arrives.
     private let paymentRouter = IncomingPaymentRouter.shared
+    /// A widget "new transaction" link waiting for the screen to be free.
+    /// Opening the sheet the moment the URL arrives collided with launch-time
+    /// alerts (overrun, auto payout), and one of the two was silently dropped.
+    @State private var isNewTransactionLinkPending = false
+    /// The deposit settle pass found the screen busy and should run again
+    /// once it clears. See `settleMaturedDeposits`.
+    @State private var isDepositSettleDeferred = false
     /// Start of today, for the budget reminder. State rather than read from
     /// `.now` on each render so that a day rolling over while the app is open
     /// actually re-renders — nothing else would prompt one at midnight.
@@ -230,7 +237,7 @@ struct HomeView: View {
                         // An achievement's toast leads to the shelf it now sits on.
                         onOpenAchievements: { selectedTab = .profile },
                         onOpenWardrobe: { openWardrobe(from: .toast) },
-                        onDismiss: { ProgressService.dismissCelebration(in: modelContext) }
+                        onDismiss: { ProgressService.dismissCelebration(celebration, in: modelContext) }
                     )
                 } else if let reminder = BudgetReminderService.nextReminder(budgetDueToday, on: today) {
                     BudgetReminderToast(
@@ -261,7 +268,23 @@ struct HomeView: View {
         // else is up: presenting a sheet while another sheet or an alert is
         // being presented is silently dropped, and the payment with it. So it
         // waits in the router, and this fires again when the way clears.
-        .onChange(of: PaymentGate(pendingID: paymentRouter.pending?.id, isBlocked: isBlockingPayment), initial: true) {
+        //
+        // `isBlockingPayment` only knows this view's own modals; an alert or
+        // confirmation raised by a child screen (the calendar's delete, the
+        // categories editor) is invisible to it. So the payment also waits
+        // until UIKit has nothing presented — polled, since a child's alert
+        // closing changes nothing this view observes. Taken from the router
+        // only then, so a payment is never lost to a dropped presentation.
+        .task(id: PaymentGate(pendingID: paymentRouter.pending?.id, isBlocked: isBlockingPayment)) {
+            guard !isBlockingPayment, paymentRouter.pending != nil else { return }
+            // The blank new-transaction sheet is the one presentation a
+            // payment replaces, so it isn't waited out.
+            if !isAddingTransaction {
+                while ModalPresentation.isActive {
+                    try? await Task.sleep(for: .milliseconds(500))
+                    if Task.isCancelled { return }
+                }
+            }
             guard !isBlockingPayment, let payment = paymentRouter.take() else { return }
             guard isAddingTransaction else {
                 paymentRequest = payment
@@ -358,6 +381,23 @@ struct HomeView: View {
             // `APP_URL_SCHEME` in the build settings.
             let scheme = Bundle.main.object(forInfoDictionaryKey: "OshRatURLScheme") as? String ?? "oshrat"
             guard url.scheme == scheme, url.host() == "new-transaction" else { return }
+            isNewTransactionLinkPending = true
+        }
+        // Opened once nothing else is up — the same wait a card payment gets,
+        // so a cold launch from the widget can't collide with a launch-time
+        // alert or sheet.
+        .task(id: LinkGate(isPending: isNewTransactionLinkPending, isBlocked: isBlockingPayment)) {
+            guard isNewTransactionLinkPending, !isBlockingPayment else { return }
+            guard !isAddingTransaction else {
+                isNewTransactionLinkPending = false
+                return
+            }
+            while ModalPresentation.isActive {
+                try? await Task.sleep(for: .milliseconds(500))
+                if Task.isCancelled { return }
+            }
+            guard !isBlockingPayment else { return }
+            isNewTransactionLinkPending = false
             isAddingTransaction = true
         }
         // Refresh once per dashboard appearance. The service itself
@@ -505,12 +545,18 @@ struct HomeView: View {
         // Keyed to the *monthly* report on purpose: the alert warns about
         // this month's budget, so toggling the card to the year view must
         // neither trigger nor re-word it.
-        .onChange(of: monthlyBudgetReport.hasOverrun, initial: true) { _, isOverBudget in
-            guard isOverBudget, acknowledgedOverrunMonth != currentMonthKey else { return }
-            // Someone who just paid wants to log it, not to be told they're
-            // over budget — and two presentations at once drop one of them.
-            // Left unacknowledged, so the alert comes back another time.
-            guard paymentRouter.pending == nil, paymentRequest == nil else { return }
+        //
+        // It waits for a clear screen, and is only latched once it's actually
+        // raised: two presentations at once drop one of them, and a latch set
+        // for an alert that never appeared lost the month's warning. Someone
+        // who just paid (or tapped the widget) wants to log it first, so a
+        // waiting payment or link holds it back too. The gate re-fires when
+        // the way clears, so a held-back alert still arrives this launch.
+        .onChange(of: OverrunGate(
+            isOverBudget: monthlyBudgetReport.hasOverrun,
+            isBlocked: isPresentingModal || paymentRouter.pending != nil || isNewTransactionLinkPending
+        ), initial: true) { _, gate in
+            guard gate.isOverBudget, !gate.isBlocked, acknowledgedOverrunMonth != currentMonthKey else { return }
             overrunAlertPresented = true
             acknowledgedOverrunMonth = currentMonthKey
         }
@@ -529,6 +575,11 @@ struct HomeView: View {
         // the app sits open overnight, and coming back to the dashboard is
         // the moment the user is looking at their money anyway.
         .task(id: maturedDepositIDs) {
+            settleMaturedDeposits()
+        }
+        .onChange(of: isPresentingModal) { _, isPresenting in
+            guard !isPresenting, isDepositSettleDeferred else { return }
+            isDepositSettleDeferred = false
             settleMaturedDeposits()
         }
         .sheet(item: $depositShowingInfo) { deposit in
@@ -751,9 +802,17 @@ struct HomeView: View {
     /// automatically" whose payout account was never chosen (or was since
     /// deleted) has nowhere to send the money, so it falls through to the
     /// prompt rather than guessing an account on the user's behalf.
+    ///
+    /// Both outcomes present something (a confirmation alert, a prompt
+    /// sheet), so the pass waits while anything else is up — a widget sheet
+    /// opened on the same cold launch, say — and runs again once it closes.
     private func settleMaturedDeposits() {
         let due = DepositPayoutService.depositsAwaitingPayout(in: accounts)
         guard !due.isEmpty else { return }
+        guard !isPresentingModal, !ModalPresentation.isActive else {
+            isDepositSettleDeferred = true
+            return
+        }
 
         var needsPrompt: [Account] = []
         for deposit in due {
@@ -946,7 +1005,7 @@ private struct FloatingAddButton: View {
 
 #Preview {
     HomeView()
-        .modelContainer(for: [UserProfile.self, Account.self, Holding.self, Category.self, Transaction.self, TransactionAttachment.self, BudgetItem.self, Goal.self, FXRateSnapshot.self], inMemory: true)
+        .modelContainer(for: OshRatSchemaV1.models, inMemory: true)
 }
 
 /// What decides whether a waiting card payment can be presented: a new one
@@ -954,4 +1013,33 @@ private struct FloatingAddButton: View {
 private struct PaymentGate: Equatable {
     let pendingID: UUID?
     let isBlocked: Bool
+}
+
+/// Same idea for the widget's new-transaction link.
+private struct LinkGate: Equatable {
+    let isPending: Bool
+    let isBlocked: Bool
+}
+
+/// The overrun alert fires on going over budget *or* on the screen clearing
+/// while it's still owed.
+private struct OverrunGate: Equatable {
+    let isOverBudget: Bool
+    let isBlocked: Bool
+}
+
+/// Whether UIKit is presenting anything over the key window — an alert,
+/// confirmation dialog, sheet or popover, including ones raised by child
+/// screens that `HomeView`'s own flags can't see. Presenting a sheet on top
+/// of one of those is silently dropped.
+@MainActor
+enum ModalPresentation {
+    static var isActive: Bool {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)?
+            .rootViewController?
+            .presentedViewController != nil
+    }
 }

@@ -95,7 +95,24 @@ final class CelebrationFeedback {
     private var hapticEngine: CHHapticEngine?
     private var isPrepared = false
 
-    private init() {}
+    private init() {
+        // When the system's media services restart (rare, but it happens in
+        // the field, and Settings › Developer › Reset Media Services forces
+        // it), every player and the session category are dead: `play()` keeps
+        // succeeding silently. Apple's answer is to rebuild them, so drop
+        // everything and let the next `play` set it up from scratch.
+        NotificationCenter.default.addObserver(
+            forName: AVAudioSession.mediaServicesWereResetNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.players = [:]
+                self?.hapticEngine = nil
+                self?.isPrepared = false
+            }
+        }
+    }
 
     /// Play a moment's sound and haptic together. Cheap to call; the first
     /// call sets things up.
