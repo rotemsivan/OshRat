@@ -19,6 +19,8 @@
 			</array>
 		</dict>
 	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>OshRatCloudKitContainer</key>
 	<string>$(CLOUDKIT_CONTAINER)</string>
 	<key>OshRatURLScheme</key>
