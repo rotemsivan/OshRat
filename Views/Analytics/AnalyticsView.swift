@@ -17,7 +17,7 @@ extension EnvironmentValues {
 /// user scrolls down. It reads *gradually*, from the basics at the top
 /// (this month, this year) toward richer insight further down
 /// (month-over-month comparison, what drove it, the budget category by
-/// category, personal records, and finally the asset mix).
+/// category, income and spending over time, and finally the asset mix).
 ///
 /// All the number-crunching lives in `AnalyticsReport`; this view just
 /// feeds the right slice of it into each station and animates them in.
@@ -134,19 +134,20 @@ struct AnalyticsView: View {
             RoadmapStationView(index: 3, total: Self.stationCount, symbol: "arrow.left.arrow.right") {
                 ComparisonStationView(report: report)
             }
-            // The two deep-dive stations run full width (no swing): their rows
-            // carry a name, a signed amount and a bar, which need the room.
             // "What drove it" sits straight under the comparison it explains.
-            RoadmapStationView(index: 4, total: Self.stationCount, symbol: "magnifyingglass", swing: 0) {
+            RoadmapStationView(index: 4, total: Self.stationCount, symbol: "magnifyingglass") {
                 DriversStationView(report: report)
             }
-            RoadmapStationView(index: 5, total: Self.stationCount, symbol: "target", swing: 0) {
+            RoadmapStationView(index: 5, total: Self.stationCount, symbol: "target") {
                 BudgetStationView(report: report)
             }
-            // Full width (no swing): record rows carry a title *and* an amount
-            // side by side, so they need the extra room to both stay legible.
-            RoadmapStationView(index: 6, total: Self.stationCount, symbol: "trophy.fill", swing: 0) {
-                RecordsStationView(report: report)
+            RoadmapStationView(index: 6, total: Self.stationCount, symbol: "chart.bar.xaxis") {
+                MoneyFlowStationView(
+                    monthly: report.monthlyFlow,
+                    yearly: report.yearlyFlow,
+                    period: period,
+                    currencyCode: report.currencyCode
+                )
             }
             RoadmapStationView(index: 7, total: Self.stationCount, symbol: "building.columns.fill") {
                 AssetsStationView(report: report)
@@ -179,11 +180,6 @@ private struct RoadmapStationView<Content: View>: View {
     let index: Int
     let total: Int
     let symbol: String
-    /// Override for how far the card swings off-centre. `nil` uses the default
-    /// alternating swing; pass `0` for a station whose content needs the full
-    /// width (e.g. the records list, where each row carries a title *and* an
-    /// amount side by side).
-    var swing: CGFloat? = nil
     @ViewBuilder var content: () -> Content
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -219,7 +215,7 @@ private struct RoadmapStationView<Content: View>: View {
                 // swing padding, so it's the real card surface) keyed by index,
                 // so the mascot overlay can perch on this card.
                 .anchorPreference(key: StationBoundsKey.self, value: .bounds) { [index: $0] }
-                .padding(isLeading ? .trailing : .leading, swing ?? Self.cardSwing)
+                .padding(isLeading ? .trailing : .leading, Self.cardSwing)
                 // Let bars/figures inside the card grow in step with the
                 // station's reveal rather than the moment the ScrollView
                 // eagerly built them off-screen.

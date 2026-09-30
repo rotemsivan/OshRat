@@ -80,6 +80,7 @@
 		5EADM00300000000000000B1 /* AdminPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EADM00300000000000000F1 /* AdminPanelView.swift */; };
 		5EBD610100000000000000B1 /* BudgetScheduleSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBD610100000000000000F1 /* BudgetScheduleSection.swift */; };
 		5EBD610100000000000000B2 /* BudgetCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBD610100000000000000F2 /* BudgetCalendarView.swift */; };
+		5EBRANDH01000000000000B1 /* BrandHeroLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBRANDH01000000000000F1 /* BrandHeroLayout.swift */; };
 		5EBREM0100000000000000B1 /* BudgetReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBREM0100000000000000F1 /* BudgetReminder.swift */; };
 		5EBREM0200000000000000B1 /* BudgetReminderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBREM0200000000000000F1 /* BudgetReminderService.swift */; };
 		5EBREM0300000000000000B1 /* BudgetReminderToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBREM0300000000000000F1 /* BudgetReminderToast.swift */; };
@@ -103,6 +104,8 @@
 		5ED3E0F32FD1BEB4003083F0 /* BudgetVsActual.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0F22FD1BEB4003083F0 /* BudgetVsActual.swift */; };
 		5ED3E0F52FD1BECE003083F0 /* HomeBottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0F42FD1BECE003083F0 /* HomeBottomBar.swift */; };
 		5ED3E0F72FD1BEE2003083F0 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0F62FD1BEE2003083F0 /* HomeView.swift */; };
+		5EDEEPLK01000000000000B1 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEEPLK01000000000000F1 /* DeepLink.swift */; };
+		5EDEEPLK01000000000000B2 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEEPLK01000000000000F1 /* DeepLink.swift */; };
 		5EDEP00100000000000000B1 /* DepositTerms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00100000000000000F1 /* DepositTerms.swift */; };
 		5EDEP00100000000000000C1 /* DepositTerms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00100000000000000F1 /* DepositTerms.swift */; };
 		5EDEP00100000000000000C2 /* DepositTerms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00100000000000000F1 /* DepositTerms.swift */; };
@@ -116,6 +119,7 @@
 		5EDEP00700000000000000B1 /* DepositLadder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00700000000000000F1 /* DepositLadder.swift */; };
 		5EDEP00700000000000000C1 /* DepositLadder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00700000000000000F1 /* DepositLadder.swift */; };
 		5EDEP00700000000000000C2 /* DepositLadder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00700000000000000F1 /* DepositLadder.swift */; };
+		5EDLROUT01000000000000B1 /* DeepLinkRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDLROUT01000000000000F1 /* DeepLinkRouter.swift */; };
 		5EFACE0100000000000000A1 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
 		5EFACE0100000000000000A2 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
 		5EFACE0100000000000000A3 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
@@ -134,6 +138,7 @@
 		5EGAM00700000000000000B1 /* XPGainToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EGAM00700000000000000F1 /* XPGainToast.swift */; };
 		5EGAMUP0100000000000C1 /* UserProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EGAM00200000000000000F1 /* UserProgress.swift */; };
 		5EGAMUP0100000000000C2 /* UserProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EGAM00200000000000000F1 /* UserProgress.swift */; };
+		5EHEROBT01000000000000B1 /* HeroPrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EHEROBT01000000000000F1 /* HeroPrimaryButton.swift */; };
 		5EHSRC0100000000000000B1 /* HebrewSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EHSRC0100000000000000F1 /* HebrewSearch.swift */; };
 		5EHSRC0100000000000000C1 /* HebrewSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EHSRC0100000000000000F1 /* HebrewSearch.swift */; };
 		5EHSRC0200000000000000B1 /* TransactionSearchIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EHSRC0200000000000000F1 /* TransactionSearchIndex.swift */; };
@@ -146,6 +151,14 @@
 		5EINS00200000000000000C2 /* CategoryBudgetBreakdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */; };
 		5EINS00300000000000000B1 /* DriversStationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00300000000000000F1 /* DriversStationView.swift */; };
 		5EINS00400000000000000B1 /* BudgetStationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00400000000000000F1 /* BudgetStationView.swift */; };
+		5ELAUNCH01000000000000B1 /* LaunchArguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ELAUNCH01000000000000F1 /* LaunchArguments.swift */; };
+		5ELOGINV01000000000000B1 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ELOGINV01000000000000F1 /* LoginView.swift */; };
+		5EMFLOWC01000000000000B1 /* MoneyFlowChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EMFLOWC01000000000000F1 /* MoneyFlowChart.swift */; };
+		5EMFLOWM01000000000000B1 /* MoneyFlowSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EMFLOWM01000000000000F1 /* MoneyFlowSummary.swift */; };
+		5EMFLOWS01000000000000B1 /* MoneyFlowSeries.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EMFLOWS01000000000000F1 /* MoneyFlowSeries.swift */; };
+		5EMFLOWS01000000000000C1 /* MoneyFlowSeries.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EMFLOWS01000000000000F1 /* MoneyFlowSeries.swift */; };
+		5EMFLOWS01000000000000C2 /* MoneyFlowSeries.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EMFLOWS01000000000000F1 /* MoneyFlowSeries.swift */; };
+		5EMFLOWV01000000000000B1 /* MoneyFlowStationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EMFLOWV01000000000000F1 /* MoneyFlowStationView.swift */; };
 		5EONB00100000000000000B1 /* OnboardingProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EONB00100000000000000F1 /* OnboardingProgress.swift */; };
 		5EPAY00100000000000000B1 /* PaymentPrefill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00100000000000000F1 /* PaymentPrefill.swift */; };
 		5EPAY00100000000000000C1 /* PaymentPrefill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00100000000000000F1 /* PaymentPrefill.swift */; };
@@ -156,16 +169,10 @@
 		5EPAY00500000000000000B1 /* ApplePayTipPopup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00500000000000000F1 /* ApplePayTipPopup.swift */; };
 		5EPICK0100000000000000B1 /* PickerRowLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPICK0100000000000000F1 /* PickerRowLabel.swift */; };
 		5EPRF00100000000000000B1 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPRF00100000000000000F1 /* ProfileView.swift */; };
-		5ELAUNCH01000000000000B1 /* LaunchArguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ELAUNCH01000000000000F1 /* LaunchArguments.swift */; };
-		5EDEEPLK01000000000000B1 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEEPLK01000000000000F1 /* DeepLink.swift */; };
-		5EDEEPLK01000000000000B2 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEEPLK01000000000000F1 /* DeepLink.swift */; };
-		5EBRANDH01000000000000B1 /* BrandHeroLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBRANDH01000000000000F1 /* BrandHeroLayout.swift */; };
-		5EHEROBT01000000000000B1 /* HeroPrimaryButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EHEROBT01000000000000F1 /* HeroPrimaryButton.swift */; };
-		5ELOGINV01000000000000B1 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ELOGINV01000000000000F1 /* LoginView.swift */; };
-		5EDLROUT01000000000000B1 /* DeepLinkRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDLROUT01000000000000F1 /* DeepLinkRouter.swift */; };
 		5EPSTORE01000000000000B1 /* PersistentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPSTORE01000000000000F1 /* PersistentStore.swift */; };
-		5ESTREC001000000000000B1 /* StoreRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ESTREC001000000000000F1 /* StoreRecoveryView.swift */; };
+		5ERECCRD01000000000000B1 /* RecordsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ERECCRD01000000000000F1 /* RecordsCard.swift */; };
 		5ESET00100000000000000B1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ESET00100000000000000F1 /* SettingsView.swift */; };
+		5ESTREC001000000000000B1 /* StoreRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ESTREC001000000000000F1 /* StoreRecoveryView.swift */; };
 		5ETRSH0100000000000000C1 /* TrashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F2 /* TrashService.swift */; };
 		5ETRSH0100000000000000C2 /* TrashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F2 /* TrashService.swift */; };
 		5EWARD0100000000000000B1 /* WardrobeItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0100000000000000F1 /* WardrobeItem.swift */; };
@@ -278,6 +285,7 @@
 		5EADM00300000000000000F1 /* AdminPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminPanelView.swift; sourceTree = "<group>"; };
 		5EBD610100000000000000F1 /* BudgetScheduleSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetScheduleSection.swift; sourceTree = "<group>"; };
 		5EBD610100000000000000F2 /* BudgetCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetCalendarView.swift; sourceTree = "<group>"; };
+		5EBRANDH01000000000000F1 /* BrandHeroLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandHeroLayout.swift; sourceTree = "<group>"; };
 		5EBREM0100000000000000F1 /* BudgetReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetReminder.swift; sourceTree = "<group>"; };
 		5EBREM0200000000000000F1 /* BudgetReminderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetReminderService.swift; sourceTree = "<group>"; };
 		5EBREM0300000000000000F1 /* BudgetReminderToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetReminderToast.swift; sourceTree = "<group>"; };
@@ -297,6 +305,7 @@
 		5ED3E0F22FD1BEB4003083F0 /* BudgetVsActual.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetVsActual.swift; sourceTree = "<group>"; };
 		5ED3E0F42FD1BECE003083F0 /* HomeBottomBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeBottomBar.swift; sourceTree = "<group>"; };
 		5ED3E0F62FD1BEE2003083F0 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		5EDEEPLK01000000000000F1 /* DeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLink.swift; sourceTree = "<group>"; };
 		5EDEP00100000000000000F1 /* DepositTerms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositTerms.swift; sourceTree = "<group>"; };
 		5EDEP00200000000000000F1 /* DepositPayoutService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositPayoutService.swift; sourceTree = "<group>"; };
 		5EDEP00300000000000000F1 /* DepositMaturitySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositMaturitySheet.swift; sourceTree = "<group>"; };
@@ -304,6 +313,7 @@
 		5EDEP00500000000000000F1 /* DepositLadderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositLadderService.swift; sourceTree = "<group>"; };
 		5EDEP00600000000000000F1 /* DepositTranche.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositTranche.swift; sourceTree = "<group>"; };
 		5EDEP00700000000000000F1 /* DepositLadder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositLadder.swift; sourceTree = "<group>"; };
+		5EDLROUT01000000000000F1 /* DeepLinkRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkRouter.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F1 /* TransactionAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionAttachment.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F2 /* TransactionInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionInsights.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F3 /* TransactionAttachments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionAttachments.swift; sourceTree = "<group>"; };
@@ -315,12 +325,19 @@
 		5EGAM00500000000000000F1 /* CelebrationToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CelebrationToast.swift; sourceTree = "<group>"; };
 		5EGAM00600000000000000F1 /* XPLevelBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPLevelBadge.swift; sourceTree = "<group>"; };
 		5EGAM00700000000000000F1 /* XPGainToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPGainToast.swift; sourceTree = "<group>"; };
+		5EHEROBT01000000000000F1 /* HeroPrimaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeroPrimaryButton.swift; sourceTree = "<group>"; };
 		5EHSRC0100000000000000F1 /* HebrewSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HebrewSearch.swift; sourceTree = "<group>"; };
 		5EHSRC0200000000000000F1 /* TransactionSearchIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionSearchIndex.swift; sourceTree = "<group>"; };
 		5EINS00100000000000000F1 /* PeriodDrivers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeriodDrivers.swift; sourceTree = "<group>"; };
 		5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryBudgetBreakdown.swift; sourceTree = "<group>"; };
 		5EINS00300000000000000F1 /* DriversStationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DriversStationView.swift; sourceTree = "<group>"; };
 		5EINS00400000000000000F1 /* BudgetStationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetStationView.swift; sourceTree = "<group>"; };
+		5ELAUNCH01000000000000F1 /* LaunchArguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchArguments.swift; sourceTree = "<group>"; };
+		5ELOGINV01000000000000F1 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		5EMFLOWC01000000000000F1 /* MoneyFlowChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoneyFlowChart.swift; sourceTree = "<group>"; };
+		5EMFLOWM01000000000000F1 /* MoneyFlowSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoneyFlowSummary.swift; sourceTree = "<group>"; };
+		5EMFLOWS01000000000000F1 /* MoneyFlowSeries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoneyFlowSeries.swift; sourceTree = "<group>"; };
+		5EMFLOWV01000000000000F1 /* MoneyFlowStationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoneyFlowStationView.swift; sourceTree = "<group>"; };
 		5EONB00100000000000000F1 /* OnboardingProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingProgress.swift; sourceTree = "<group>"; };
 		5EPAY00100000000000000F1 /* PaymentPrefill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentPrefill.swift; sourceTree = "<group>"; };
 		5EPAY00200000000000000F1 /* IncomingPaymentRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IncomingPaymentRouter.swift; sourceTree = "<group>"; };
@@ -329,15 +346,10 @@
 		5EPAY00500000000000000F1 /* ApplePayTipPopup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplePayTipPopup.swift; sourceTree = "<group>"; };
 		5EPICK0100000000000000F1 /* PickerRowLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerRowLabel.swift; sourceTree = "<group>"; };
 		5EPRF00100000000000000F1 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
-		5ELAUNCH01000000000000F1 /* LaunchArguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchArguments.swift; sourceTree = "<group>"; };
-		5EDEEPLK01000000000000F1 /* DeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLink.swift; sourceTree = "<group>"; };
-		5EBRANDH01000000000000F1 /* BrandHeroLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandHeroLayout.swift; sourceTree = "<group>"; };
-		5EHEROBT01000000000000F1 /* HeroPrimaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeroPrimaryButton.swift; sourceTree = "<group>"; };
-		5ELOGINV01000000000000F1 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
-		5EDLROUT01000000000000F1 /* DeepLinkRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkRouter.swift; sourceTree = "<group>"; };
 		5EPSTORE01000000000000F1 /* PersistentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistentStore.swift; sourceTree = "<group>"; };
-		5ESTREC001000000000000F1 /* StoreRecoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreRecoveryView.swift; sourceTree = "<group>"; };
+		5ERECCRD01000000000000F1 /* RecordsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordsCard.swift; sourceTree = "<group>"; };
 		5ESET00100000000000000F1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		5ESTREC001000000000000F1 /* StoreRecoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreRecoveryView.swift; sourceTree = "<group>"; };
 		5EWARD0100000000000000F1 /* WardrobeItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeItem.swift; sourceTree = "<group>"; };
 		5EWARD0200000000000000F1 /* MascotConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotConfig.swift; sourceTree = "<group>"; };
 		5EWARD0300000000000000F1 /* WardrobeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeService.swift; sourceTree = "<group>"; };
@@ -527,6 +539,7 @@
 				5EDEP00600000000000000F1 /* DepositTranche.swift */,
 				5EDEP00700000000000000F1 /* DepositLadder.swift */,
 				5EINS00100000000000000F1 /* PeriodDrivers.swift */,
+				5EMFLOWS01000000000000F1 /* MoneyFlowSeries.swift */,
 				5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */,
 				5E31E5432FD16B6D00FF83C8 /* BudgetItem.swift */,
 				5E31E5442FD16B6D00FF83C8 /* Category.swift */,
@@ -608,6 +621,9 @@
 				5EAA170100000000000000F1 /* AnalyticsReport.swift */,
 				5EAA170100000000000000F2 /* AnalyticsView.swift */,
 				5EAA170100000000000000F3 /* AnalyticsStations.swift */,
+				5EMFLOWV01000000000000F1 /* MoneyFlowStationView.swift */,
+				5EMFLOWC01000000000000F1 /* MoneyFlowChart.swift */,
+				5EMFLOWM01000000000000F1 /* MoneyFlowSummary.swift */,
 				5EINS00300000000000000F1 /* DriversStationView.swift */,
 				5EINS00400000000000000F1 /* BudgetStationView.swift */,
 			);
@@ -687,15 +703,6 @@
 			path = Gamification;
 			sourceTree = "<group>";
 		};
-		5EPRF00000000000000000A1 /* Profile */ = {
-			isa = PBXGroup;
-			children = (
-				5EPAY00400000000000000F1 /* ApplePaySetupView.swift */,
-				5EPRF00100000000000000F1 /* ProfileView.swift */,
-			);
-			path = Profile;
-			sourceTree = "<group>";
-		};
 		5ELOGINGR0000000000000A1 /* Login */ = {
 			isa = PBXGroup;
 			children = (
@@ -704,12 +711,14 @@
 			path = Login;
 			sourceTree = "<group>";
 		};
-		5ESTREC000000000000000A1 /* StoreRecovery */ = {
+		5EPRF00000000000000000A1 /* Profile */ = {
 			isa = PBXGroup;
 			children = (
-				5ESTREC001000000000000F1 /* StoreRecoveryView.swift */,
+				5EPAY00400000000000000F1 /* ApplePaySetupView.swift */,
+				5EPRF00100000000000000F1 /* ProfileView.swift */,
+				5ERECCRD01000000000000F1 /* RecordsCard.swift */,
 			);
-			path = StoreRecovery;
+			path = Profile;
 			sourceTree = "<group>";
 		};
 		5ESET00000000000000000A1 /* Settings */ = {
@@ -718,6 +727,14 @@
 				5ESET00100000000000000F1 /* SettingsView.swift */,
 			);
 			path = Settings;
+			sourceTree = "<group>";
+		};
+		5ESTREC000000000000000A1 /* StoreRecovery */ = {
+			isa = PBXGroup;
+			children = (
+				5ESTREC001000000000000F1 /* StoreRecoveryView.swift */,
+			);
+			path = StoreRecovery;
 			sourceTree = "<group>";
 		};
 		5EWARDGR00000000000000A1 /* Avatar */ = {
@@ -952,6 +969,11 @@
 				5EAA170100000000000000B2 /* AnalyticsView.swift in Sources */,
 				5EAA170100000000000000B3 /* AnalyticsStations.swift in Sources */,
 				5EINS00100000000000000B1 /* PeriodDrivers.swift in Sources */,
+				5EMFLOWS01000000000000B1 /* MoneyFlowSeries.swift in Sources */,
+				5EMFLOWV01000000000000B1 /* MoneyFlowStationView.swift in Sources */,
+				5EMFLOWC01000000000000B1 /* MoneyFlowChart.swift in Sources */,
+				5EMFLOWM01000000000000B1 /* MoneyFlowSummary.swift in Sources */,
+				5ERECCRD01000000000000B1 /* RecordsCard.swift in Sources */,
 				5EINS00200000000000000B1 /* CategoryBudgetBreakdown.swift in Sources */,
 				5EINS00300000000000000B1 /* DriversStationView.swift in Sources */,
 				5EINS00400000000000000B1 /* BudgetStationView.swift in Sources */,
@@ -1061,6 +1083,7 @@
 				5EDEP00600000000000000C1 /* DepositTranche.swift in Sources */,
 				5EDEP00700000000000000C1 /* DepositLadder.swift in Sources */,
 				5EINS00100000000000000C1 /* PeriodDrivers.swift in Sources */,
+				5EMFLOWS01000000000000C1 /* MoneyFlowSeries.swift in Sources */,
 				5EINS00200000000000000C1 /* CategoryBudgetBreakdown.swift in Sources */,
 				5EGAM00100000000000000C1 /* XPRules.swift in Sources */,
 				5EACHV0100000000000000C1 /* Achievement.swift in Sources */,
@@ -1094,6 +1117,7 @@
 				5EDEP00600000000000000C2 /* DepositTranche.swift in Sources */,
 				5EDEP00700000000000000C2 /* DepositLadder.swift in Sources */,
 				5EINS00100000000000000C2 /* PeriodDrivers.swift in Sources */,
+				5EMFLOWS01000000000000C2 /* MoneyFlowSeries.swift in Sources */,
 				5EINS00200000000000000C2 /* CategoryBudgetBreakdown.swift in Sources */,
 				5EGAM00100000000000000C2 /* XPRules.swift in Sources */,
 				5EACHV0100000000000000C2 /* Achievement.swift in Sources */,

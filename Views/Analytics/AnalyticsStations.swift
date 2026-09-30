@@ -172,29 +172,7 @@ struct NeedsWantsStationView: View {
     }
 }
 
-// MARK: - Station 6 · Records
-
-/// The gamified "trophy cabinet": biggest expense, biggest income, top
-/// category, busiest and best-saving months — the personal bests.
-struct RecordsStationView: View {
-    let report: AnalyticsReport
-
-    var body: some View {
-        StationCard(title: "השיאים שלי") {
-            if report.records.isEmpty {
-                StationEmptyText("עדיין אין שיאים — הם יופיעו ככל שתתעדו יותר.")
-            } else {
-                VStack(spacing: Theme.Spacing.md) {
-                    ForEach(report.records) { record in
-                        RecordRow(record: record, code: report.currencyCode)
-                    }
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Station 7 · Assets
+// MARK: - Station · Assets
 
 /// The journey's destination: total net worth and how it's split across
 /// account types (cash, savings, investments…).

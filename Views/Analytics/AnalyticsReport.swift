@@ -11,8 +11,9 @@ import Foundation
 /// Most stations are scoped to a **selected period** — a single month or a
 /// single year the user picks at the top of the screen (`AnalyticsPeriod`).
 /// "Where the money goes", "needs vs wants", "income & expenses" and the
-/// period-over-period comparison all reslice to that window. Records stay
-/// all-time and assets stay "right now", since neither is a per-period idea.
+/// period-over-period comparison all reslice to that window. Assets stay
+/// "right now", since that isn't a per-period idea. The all-time records
+/// (`records(transactions:…)`) are built on their own for the profile tab.
 struct AnalyticsReport {
 
     // MARK: Currency / FX
@@ -62,8 +63,11 @@ struct AnalyticsReport {
     let needsTotal: Decimal
     let wantsTotal: Decimal
 
-    // All-time achievements.
-    let records: [FinancialRecord]
+    // Income, needs and wants over time — every month and every year, not
+    // just the selected period; the chart station has its own month/year
+    // switch and scrolls through the history.
+    let monthlyFlow: MoneyFlowSeries
+    let yearlyFlow: MoneyFlowSeries
 
     // Assets
     let netWorth: Decimal
@@ -223,14 +227,6 @@ extension AnalyticsReport {
             }
             .sorted { $0.amount > $1.amount }
 
-        // MARK: All-time records
-
-        let records = Self.buildRecords(
-            real: real,
-            calendar: calendar,
-            convert: convert
-        )
-
         // MARK: Assets
 
         var worth = Decimal(0)
@@ -294,6 +290,17 @@ extension AnalyticsReport {
             now: now
         )
 
+        // MARK: Trends
+
+        let monthlyFlow = MoneyFlowSeries(
+            transactions: real, granularity: .month,
+            preferredCurrency: preferredCurrency, fxSnapshot: fxSnapshot, now: now
+        )
+        let yearlyFlow = MoneyFlowSeries(
+            transactions: real, granularity: .year,
+            preferredCurrency: preferredCurrency, fxSnapshot: fxSnapshot, now: now
+        )
+
         // MARK: Assign
 
         self.currencyCode = preferredCurrency
@@ -312,12 +319,14 @@ extension AnalyticsReport {
         self.categoryBreakdown = categorySlices
         self.needsTotal = needs
         self.wantsTotal = wants
-        self.records = records
+        self.monthlyFlow = monthlyFlow
+        self.yearlyFlow = yearlyFlow
         self.netWorth = worth
         self.assetAllocation = allocation
         // Set last so every `convert` call above has had its chance to
         // flip the flag.
         self.fxUnavailable = fxMissing || drivers.fxUnavailable || budget.fxUnavailable
+            || monthlyFlow.fxUnavailable
     }
 
     /// "1.9–27.9": a half-open interval's first and last day as day.month,
@@ -335,6 +344,24 @@ extension AnalyticsReport {
     }
 
     // MARK: - Records
+
+    /// The all-time personal bests ("השיאים שלי"), for the profile tab.
+    /// Same rules as the rest of the report: manual balance edits and
+    /// transfers aren't income or expense, and amounts are converted into
+    /// the preferred currency — a row without a rate is left out.
+    static func records(
+        transactions: [Transaction],
+        preferredCurrency: String,
+        fxSnapshot: FXRateSnapshot?,
+        calendar: Calendar = .current
+    ) -> [FinancialRecord] {
+        let real = transactions.filter { !$0.isManualBalanceEdit && !$0.isTransfer }
+        return buildRecords(real: real, calendar: calendar) { amount, code in
+            if code == preferredCurrency { return amount }
+            guard let fxSnapshot else { return nil }
+            return CurrencyConverter.convert(amount, from: code, to: preferredCurrency, using: fxSnapshot)
+        }
+    }
 
     /// Scans the whole (real) ledger once per record type to surface the
     /// gamified "personal bests". Kept static and parameterised by the

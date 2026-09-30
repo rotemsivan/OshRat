@@ -8,7 +8,8 @@ import SwiftData
 /// this* (joined date and streak), *what am I aiming at* (the free-text goal
 /// onboarding collected), and *how am I doing* — the level card that used to
 /// sit on the dashboard, now that the dashboard carries only `XPLevelBadge`
-/// — and, last, the achievements shelf.
+/// — then the achievements shelf and, last, the all-time records
+/// (`RecordsCard`, moved here from the analytics roadmap).
 ///
 /// **Read-only on purpose.** The personal details are captured by onboarding
 /// and belong to the (still unbuilt) Settings screen, which also owns the
@@ -28,6 +29,11 @@ struct ProfileView: View {
     /// the dashboard always read the same row.
     @Query(sort: \UserProgress.createdAt, order: .forward)
     private var progressRows: [UserProgress]
+    /// For the personal records — live rows only, like the analytics.
+    @Query(filter: #Predicate<Transaction> { $0.deletedAt == nil })
+    private var transactions: [Transaction]
+    @Query(sort: \FXRateSnapshot.fetchedAt, order: .reverse)
+    private var fxSnapshots: [FXRateSnapshot]
 
     var body: some View {
         ScrollView {
@@ -45,6 +51,8 @@ struct ProfileView: View {
                 LevelProgressCard(progress: progressRows.first)
 
                 AchievementsShelf(unlockedIDs: progressRows.first?.unlockedAchievements ?? [])
+
+                RecordsCard(records: records, currencyCode: preferredCurrencyCode)
             }
             .padding(.horizontal, Theme.Spacing.lg)
             // A large navigation title brings its own vertical space, so the
@@ -70,6 +78,18 @@ struct ProfileView: View {
                 }
             }
         }
+    }
+
+    private var preferredCurrencyCode: String {
+        profiles.first?.preferredCurrencyCode ?? "ILS"
+    }
+
+    private var records: [FinancialRecord] {
+        AnalyticsReport.records(
+            transactions: transactions,
+            preferredCurrency: preferredCurrencyCode,
+            fxSnapshot: fxSnapshots.first
+        )
     }
 
     // MARK: - Identity
