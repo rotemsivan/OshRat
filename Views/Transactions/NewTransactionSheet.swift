@@ -129,6 +129,18 @@ struct NewTransactionSheet: View {
     /// guide it leads to, pushed inside this sheet so the form is still there
     /// on the way back.
     @State private var isShowingApplePayTip = false
+    /// How many waiting payments "רישום כולם" logged, when the one on
+    /// screen was left for the user to finish (`logAllPayments`).
+    @State private var batchLoggedCount: Int?
+    /// Where the other waiting payments are, for the "N ממתינים" banner.
+    private let paymentRouter = IncomingPaymentRouter.shared
+    /// Set when this sheet is one step of `PaymentQueueSheet`.
+    private let queueStep: PaymentQueueStep?
+    /// "תשלום N מתוך M" as it stood when this payment came up, held in state
+    /// so it stays put. The queue hands over the next payment a moment before
+    /// this sheet slides away, and reading the live counts made the outgoing
+    /// banner flash "1 מתוך 4" on its way out.
+    @State private var queueCounts: QueueCounts?
     @State private var isShowingApplePaySetup = false
     @AppStorage(ApplePayTip.enabledKey) private var isApplePayTipEnabled = true
 
@@ -164,6 +176,13 @@ struct NewTransactionSheet: View {
         self.init(transaction: nil, budgetLink: nil, copying: nil, payment: payment, onSaved: onSaved)
     }
 
+    /// One payment of several waiting, inside `PaymentQueueSheet`: saving or
+    /// cancelling hands over to the next payment (`queueStep.onFinish`)
+    /// instead of closing, and the banner says where in the line this is.
+    init(payment: PaymentPrefill, queueStep: PaymentQueueStep) {
+        self.init(transaction: nil, budgetLink: nil, copying: nil, payment: payment, queueStep: queueStep, onSaved: nil)
+    }
+
     /// A new row logging one scheduled occurrence of a budget line: kind,
     /// amount, currency, category and title come from the line. The date
     /// stays **today** — the row records when the money actually moved, while
@@ -184,8 +203,11 @@ struct NewTransactionSheet: View {
         budgetLink: BudgetLink?,
         copying copySource: Transaction?,
         payment: PaymentPrefill?,
+        queueStep: PaymentQueueStep? = nil,
         onSaved: ((Transaction) -> Void)?
     ) {
+        self.queueStep = queueStep
+        _queueCounts = State(initialValue: queueStep.map { QueueCounts(position: $0.position, total: $0.total) })
         self.editingTransaction = transaction
         self.budgetLink = budgetLink
         self.isCopy = copySource != nil
@@ -201,6 +223,9 @@ struct NewTransactionSheet: View {
                 _amountCurrencyCode = State(initialValue: code)
             }
             _title = State(initialValue: payment.trimmedMerchant ?? "")
+            // When the card was tapped: the payment may have waited hours
+            // for its notification to be tapped.
+            _date = State(initialValue: min(payment.receivedAt, .now))
         }
 
         if let copySource {
@@ -253,6 +278,16 @@ struct NewTransactionSheet: View {
                         if let payment {
                             PaymentSourceBanner(payment: payment)
                                 .appearStagger(index: 0, visible: hasAppeared)
+                            if let queueCounts, queueCounts.total > 1 || batchLoggedCount != nil {
+                                PendingPaymentsBanner(
+                                    position: queueCounts.position,
+                                    total: queueCounts.total,
+                                    canLogAll: paymentRouter.waitingCount > 0,
+                                    loggedCount: batchLoggedCount,
+                                    onLogAll: logAllPayments
+                                )
+                                .appearStagger(index: 0, visible: hasAppeared)
+                            }
                         }
                         kindPickerSection
                             .appearStagger(index: 0, visible: hasAppeared)
@@ -327,7 +362,14 @@ struct NewTransactionSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("ביטול") { dismiss() }
+                    Button("ביטול", action: finish)
+                }
+                // A payment can also be kept for later rather than logged or
+                // thrown away; it waits, counted, in the transactions list.
+                if let queueStep {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button("דילוג", action: queueStep.onSkip)
+                    }
                 }
             }
         }
@@ -1088,6 +1130,15 @@ struct NewTransactionSheet: View {
     /// (`PaymentPrefill.resolve`). Two small fetches rather than the whole
     /// ledger: rows that came from payments, and the most recent rows.
     private func primeFromPayment(_ payment: PaymentPrefill) {
+        let resolved = resolve(payment)
+        title = resolved.title
+        category = resolved.category
+        sourceAccount = resolved.account
+    }
+
+    /// `PaymentPrefill.resolve` against the ledger — shared by this sheet's
+    /// own payment and the ones "רישום כולם" logs without a sheet.
+    private func resolve(_ payment: PaymentPrefill) -> PaymentPrefill.Resolved {
         var history = FetchDescriptor<Transaction>(
             predicate: #Predicate { $0.deletedAt == nil && ($0.paymentMerchant != nil || $0.paymentCardName != nil) },
             sortBy: [SortDescriptor(\.date, order: .reverse)]
@@ -1100,15 +1151,58 @@ struct NewTransactionSheet: View {
         recent.fetchLimit = PaymentPrefill.recentRowLimit
         recent.relationshipKeyPathsForPrefetching = [\.category]
 
-        let resolved = PaymentPrefill.resolve(
+        return PaymentPrefill.resolve(
             payment,
             paymentHistory: (try? modelContext.fetch(history)) ?? [],
             recent: (try? modelContext.fetch(recent)) ?? [],
-            accounts: selectableAccounts
+            accounts: selectableAccounts,
+            categories: (try? modelContext.fetch(FetchDescriptor<Category>())) ?? []
         )
-        title = resolved.title
-        category = resolved.category
-        sourceAccount = resolved.account
+    }
+
+    /// Done with this sheet: in a queue of payments, on to the next one;
+    /// otherwise close.
+    private func finish() {
+        if let queueStep {
+            queueStep.onFinish()
+        } else {
+            dismiss()
+        }
+    }
+
+    /// "רישום כולם": log every waiting payment that already has what it
+    /// needs, put the rest back in line, then finish this one — saved like a
+    /// normal confirm if it's complete, otherwise left open with a note, as
+    /// the first one needing the user. The payments put back follow in the
+    /// same `PaymentQueueSheet`, one at a time.
+    private func logAllPayments() {
+        let fx = fxSnapshots.first
+        var logged: [PaymentPrefill] = []
+        var incomplete: [PaymentPrefill] = []
+        for waiting in paymentRouter.takeAll() {
+            // One at a time, so a payment logged a moment ago counts as
+            // history for the next one at the same shop.
+            if PaymentLogger.log(waiting, resolve(waiting), fxSnapshot: fx, in: modelContext) != nil {
+                logged.append(waiting)
+            } else {
+                incomplete.append(waiting)
+            }
+        }
+        paymentRouter.putBack(incomplete)
+        logged.forEach(PaymentNotifier.clear)
+        try? modelContext.save()
+        queueStep?.onLoggedOthers(logged.count)
+        for _ in logged {
+            ProgressService.recordTransactionLogged(in: modelContext)
+        }
+
+        if canConfirm {
+            // The sound and the glow come with this one's confirm.
+            handleConfirm()
+        } else {
+            if !logged.isEmpty { CelebrationFeedback.shared.play(.transactionLogged) }
+            withAnimation { batchLoggedCount = logged.count }
+        }
     }
 
     /// Whether to suggest the Apple Pay shortcut on this opening: only on a
@@ -1197,7 +1291,7 @@ struct NewTransactionSheet: View {
         // checkmark snap in before the sheet slides away.
         hasConfirmed = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-            dismiss()
+            finish()
         }
     }
 
@@ -1356,15 +1450,37 @@ struct NewTransactionSheet: View {
 /// where the pre-filled values came from — so a merchant name the user didn't
 /// type doesn't look like a bug, and a missing amount reads as "the card
 /// didn't send one" rather than "the app lost it".
+///
+/// When a detail is missing it also offers what the shortcut actually sent,
+/// field by field. An empty field is almost always the automation's action
+/// not being connected to the payment (see `ApplePaySetupView`), and this is
+/// how that shows up on the phone instead of as a silent blank.
 private struct PaymentSourceBanner: View {
     let payment: PaymentPrefill
 
+    private var isMissingSomething: Bool {
+        (payment.amount ?? 0) <= 0 || payment.trimmedMerchant == nil
+    }
+
     var body: some View {
-        Label {
-            Text(message)
-        } icon: {
-            Image(systemName: "wave.3.right.circle.fill")
-                .foregroundStyle(Theme.Colors.accent)
+        VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
+            Label {
+                Text(message)
+            } icon: {
+                Image(systemName: "wave.3.right.circle.fill")
+                    .foregroundStyle(Theme.Colors.accent)
+            }
+
+            if isMissingSomething {
+                DisclosureGroup("מה התקבל מהקיצור") {
+                    VStack(alignment: .leading, spacing: 2) {
+                        ReceivedField(label: "סכום", value: payment.rawAmount)
+                        ReceivedField(label: "בית עסק", value: payment.merchant)
+                        ReceivedField(label: "כרטיס", value: payment.cardName)
+                    }
+                    .padding(.top, Theme.Spacing.xs)
+                }
+            }
         }
         .font(Theme.Typography.caption)
         .foregroundStyle(Theme.Colors.textSecondary)
@@ -1372,6 +1488,9 @@ private struct PaymentSourceBanner: View {
     }
 
     private var message: String {
+        guard payment.receivedAnything else {
+            return String(localized: "התשלום הגיע בלי פרטים — ודאו שכל שדה בפעולה ״רישום תשלום״ מחובר לקלט הקיצור.")
+        }
         let base: String
         if let card = payment.trimmedCardName {
             // "בכרטיס" before the name: the prefix ב can't attach to a
@@ -1383,6 +1502,38 @@ private struct PaymentSourceBanner: View {
         guard payment.amount == nil || payment.amount == 0 else { return base }
         return base + " · " + String(localized: "הסכום לא התקבל, יש להזין אותו")
     }
+}
+
+/// One line of "what the shortcut sent": the field's name and its raw value,
+/// or "ריק" when nothing came through.
+private struct ReceivedField: View {
+    let label: LocalizedStringKey
+    let value: String?
+
+    private var trimmed: String? {
+        guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
+        return value
+    }
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.xs) {
+            Text(label)
+            Text(verbatim: "·")
+            if let trimmed {
+                Text(verbatim: trimmed)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .textSelection(.enabled)
+            } else {
+                Text("ריק")
+            }
+        }
+    }
+}
+
+/// The frozen "N מתוך M" of a payment in a queue — see `queueCounts`.
+private struct QueueCounts {
+    let position: Int
+    let total: Int
 }
 
 // MARK: - Budget link

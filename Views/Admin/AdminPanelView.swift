@@ -40,6 +40,7 @@ struct AdminPanelView: View {
                 storeSection
                 lengthSection
                 scenariosSection
+                paymentsSection
                 resetSection
             }
             .scrollContentBackground(.hidden)
@@ -156,6 +157,18 @@ struct AdminPanelView: View {
         }
     }
 
+    private var paymentsSection: some View {
+        Section {
+            Button(action: queuePayments) {
+                Label("5 תשלומים ממתינים", systemImage: "creditcard")
+            }
+        } header: {
+            Text("Apple Pay")
+        } footer: {
+            Text("כאילו שולם חמש פעמים בארנק: שלושה בבתי עסק מוכרים (ירשמו ב״רישום כולם״), אחד בחנות לא מוכרת בלי קטגוריה ואחד בלי סכום. דורש נתונים — טענו תרחיש קודם.")
+        }
+    }
+
     private var resetSection: some View {
         Section {
             Button(role: .destructive) {
@@ -194,6 +207,13 @@ struct AdminPanelView: View {
             DemoDataService.deploy(scenario, monthsOverride: months, in: context)
             notify?()
         }
+    }
+
+    /// Closes the panel first: the payments' sheet can only come up once
+    /// nothing is presented over the dashboard.
+    private func queuePayments() {
+        dismiss()
+        DemoDataService.queueSamplePayments()
     }
 
     private func wipe() {

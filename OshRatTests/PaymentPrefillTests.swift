@@ -169,6 +169,9 @@ struct PaymentPrefillTests {
 
     @Test func thePendingPaymentIsHandedOverOnceAndOnlyWhileFresh() {
         let router = IncomingPaymentRouter.shared
+        // The tests run inside the dev app and share its stored queue: leave
+        // it empty, or a simulator run would find test payments waiting.
+        defer { router.removeExpired(now: .distantFuture) }
         let now = Date(timeIntervalSince1970: 1_800_000_000)
 
         router.receive(PaymentPrefill(amount: 10, merchant: "A", receivedAt: now))
@@ -183,6 +186,9 @@ struct PaymentPrefillTests {
     /// behind it, not replace it — and a stale one in front is skipped.
     @Test func paymentsWaitingTogetherAreHandedOverInOrder() {
         let router = IncomingPaymentRouter.shared
+        // The tests run inside the dev app and share its stored queue: leave
+        // it empty, or a simulator run would find test payments waiting.
+        defer { router.removeExpired(now: .distantFuture) }
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         while router.take(now: now) != nil {}
 
@@ -194,5 +200,95 @@ struct PaymentPrefillTests {
         #expect(router.pending?.merchant == "B")
         #expect(router.take(now: now)?.merchant == "B")
         #expect(router.pending == nil)
+    }
+
+    // MARK: Reading the amount
+
+    /// The Wallet automation sends the amount as text formatted for the
+    /// device; every shape of it reads to the same number and currency.
+    @Test(arguments: [
+        ("42.90", Decimal(string: "42.90")!, nil),
+        ("\u{200F}42.90\u{00A0}\u{200F}₪", Decimal(string: "42.90")!, "ILS"),
+        ("₪1,234.50", Decimal(string: "1234.50")!, "ILS"),
+        ("1.234,50 €", Decimal(string: "1234.50")!, "EUR"),
+        ("42,90 ש״ח", Decimal(string: "42.90")!, "ILS"),
+        ("USD 12.00", Decimal(12), "USD"),
+        ("$1,200", Decimal(1200), "USD"),
+        ("-18.5 ILS", Decimal(string: "18.5")!, "ILS"),
+    ] as [(String, Decimal, String?)])
+    func amountsAreReadFromShortcutText(text: String, amount: Decimal, code: String?) {
+        let parsed = PaymentPrefill.parseAmount(text)
+        #expect(parsed?.amount == amount)
+        #expect(parsed?.currencyCode == code)
+    }
+
+    @Test func textWithoutANumberIsNoAmount() {
+        #expect(PaymentPrefill.parseAmount(nil) == nil)
+        #expect(PaymentPrefill.parseAmount("") == nil)
+        #expect(PaymentPrefill.parseAmount("עסקה") == nil)
+    }
+
+    /// Nothing at all arriving is how a disconnected automation shows up.
+    @Test func anEmptyPaymentReportsThatNothingArrived() {
+        #expect(!PaymentPrefill(amount: nil, merchant: " ", cardName: "").receivedAnything)
+        #expect(PaymentPrefill(amount: nil, merchant: "Cafe", cardName: nil).receivedAnything)
+    }
+
+    /// A payment waits on disk between the till and the notification tap;
+    /// it has to come back exactly as it went in, id included (the id is how
+    /// its notification is taken down).
+    @Test func aWaitingPaymentSurvivesBeingStored() throws {
+        let payment = PaymentPrefill(amount: Decimal(string: "42.90"), currencyCode: "ILS",
+                                     merchant: "Cafe Nero", cardName: "Visa 1234", rawAmount: "‏42.90 ‏₪")
+        let data = try JSONEncoder().encode([payment])
+        let restored = try JSONDecoder().decode([PaymentPrefill].self, from: data)
+        #expect(restored == [payment])
+    }
+
+    // MARK: Guessing a first visit's category
+
+    /// Chains and plain words, in the Latin spelling issuers send and in
+    /// Hebrew; the more specific entry wins ("SUPER-PHARM" isn't groceries).
+    @Test(arguments: [
+        ("SHUFERSAL DEAL TLV", "כלכלת בית"),
+        ("רמי לוי שיווק השקמה", "כלכלת בית"),
+        ("SUPER-PHARM RAMAT AVIV", "בריאות"),
+        ("AROMA ESPRESSO BAR", "מסעדות ובתי קפה"),
+        ("PAZ YELLOW 123", "הוצאות רכב"),
+        ("H&M DIZENGOFF", "אופנה וביגוד"),
+        ("RAV KAV ONLINE", "תחבורה ציבורית"),
+    ])
+    func aShopsNameSuggestsItsCategory(merchant: String, category: String) {
+        #expect(MerchantCategoryHints.categoryName(forMerchant: merchant) == category)
+    }
+
+    @Test func anUnknownShopSuggestsNothing() {
+        #expect(MerchantCategoryHints.categoryName(forMerchant: "ACME HOLDINGS") == nil)
+        #expect(MerchantCategoryHints.categoryName(forMerchant: "") == nil)
+    }
+
+    /// The guess only fills a gap: a shop the user already logged keeps the
+    /// category they chose, even when its name suggests another.
+    @Test func historyBeatsTheNameGuess() throws {
+        let context = try Self.makeContext()
+        let account = Account(name: "עו״ש", type: .current)
+        let groceries = Category(name: "כלכלת בית", kind: .expense, nature: .need)
+        let gifts = Category(name: "מתנות", kind: .expense, nature: .want)
+        [groceries, gifts].forEach(context.insert)
+        context.insert(account)
+        let earlier = Self.paid("שופרסל", merchant: "SHUFERSAL DEAL", card: nil, category: gifts, account: account, day: 1)
+        context.insert(earlier)
+
+        let seen = PaymentPrefill.resolve(
+            PaymentPrefill(amount: 10, merchant: "SHUFERSAL DEAL", cardName: nil),
+            paymentHistory: [earlier], recent: [earlier], accounts: [account], categories: [groceries, gifts]
+        )
+        #expect(seen.category?.name == "מתנות")
+
+        let firstVisit = PaymentPrefill.resolve(
+            PaymentPrefill(amount: 10, merchant: "SHUFERSAL EXPRESS", cardName: nil),
+            paymentHistory: [earlier], recent: [earlier], accounts: [account], categories: [groceries, gifts]
+        )
+        #expect(firstVisit.category?.name == "כלכלת בית")
     }
 }

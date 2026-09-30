@@ -143,6 +143,8 @@
 		5EHSRC0100000000000000C1 /* HebrewSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EHSRC0100000000000000F1 /* HebrewSearch.swift */; };
 		5EHSRC0200000000000000B1 /* TransactionSearchIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EHSRC0200000000000000F1 /* TransactionSearchIndex.swift */; };
 		5EHSRC0200000000000000C1 /* TransactionSearchIndex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EHSRC0200000000000000F1 /* TransactionSearchIndex.swift */; };
+		5EMRCHNT01000000000000B1 /* MerchantCategoryHints.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EMRCHNT01000000000000F1 /* MerchantCategoryHints.swift */; };
+		5EMRCHNT01000000000000C1 /* MerchantCategoryHints.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EMRCHNT01000000000000F1 /* MerchantCategoryHints.swift */; };
 		5EINS00100000000000000B1 /* PeriodDrivers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00100000000000000F1 /* PeriodDrivers.swift */; };
 		5EINS00100000000000000C1 /* PeriodDrivers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00100000000000000F1 /* PeriodDrivers.swift */; };
 		5EINS00100000000000000C2 /* PeriodDrivers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EINS00100000000000000F1 /* PeriodDrivers.swift */; };
@@ -167,6 +169,13 @@
 		5EPAY00300000000000000B1 /* LogPaymentIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00300000000000000F1 /* LogPaymentIntent.swift */; };
 		5EPAY00400000000000000B1 /* ApplePaySetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00400000000000000F1 /* ApplePaySetupView.swift */; };
 		5EPAY00500000000000000B1 /* ApplePayTipPopup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00500000000000000F1 /* ApplePayTipPopup.swift */; };
+		5EPAYLOG01000000000000B1 /* PaymentLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAYLOG01000000000000F1 /* PaymentLogger.swift */; };
+		5EPAYLOG01000000000000C1 /* PaymentLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAYLOG01000000000000F1 /* PaymentLogger.swift */; };
+		5EPAYNTF01000000000000B1 /* PaymentNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAYNTF01000000000000F1 /* PaymentNotifier.swift */; };
+		5EPAYROW01000000000000B1 /* PaymentNotificationsRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAYROW01000000000000F1 /* PaymentNotificationsRow.swift */; };
+		5EPAYQUE01000000000000B1 /* PaymentQueueSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAYQUE01000000000000F1 /* PaymentQueueSheet.swift */; };
+		5EPENDLR01000000000000B1 /* PendingPaymentsListRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPENDLR01000000000000F1 /* PendingPaymentsListRow.swift */; };
+		5EPENDBN01000000000000B1 /* PendingPaymentsBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPENDBN01000000000000F1 /* PendingPaymentsBanner.swift */; };
 		5EPICK0100000000000000B1 /* PickerRowLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPICK0100000000000000F1 /* PickerRowLabel.swift */; };
 		5EPRF00100000000000000B1 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPRF00100000000000000F1 /* ProfileView.swift */; };
 		5EPSTORE01000000000000B1 /* PersistentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPSTORE01000000000000F1 /* PersistentStore.swift */; };
@@ -328,6 +337,7 @@
 		5EHEROBT01000000000000F1 /* HeroPrimaryButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeroPrimaryButton.swift; sourceTree = "<group>"; };
 		5EHSRC0100000000000000F1 /* HebrewSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HebrewSearch.swift; sourceTree = "<group>"; };
 		5EHSRC0200000000000000F1 /* TransactionSearchIndex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionSearchIndex.swift; sourceTree = "<group>"; };
+		5EMRCHNT01000000000000F1 /* MerchantCategoryHints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MerchantCategoryHints.swift; sourceTree = "<group>"; };
 		5EINS00100000000000000F1 /* PeriodDrivers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeriodDrivers.swift; sourceTree = "<group>"; };
 		5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryBudgetBreakdown.swift; sourceTree = "<group>"; };
 		5EINS00300000000000000F1 /* DriversStationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DriversStationView.swift; sourceTree = "<group>"; };
@@ -344,6 +354,12 @@
 		5EPAY00300000000000000F1 /* LogPaymentIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogPaymentIntent.swift; sourceTree = "<group>"; };
 		5EPAY00400000000000000F1 /* ApplePaySetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplePaySetupView.swift; sourceTree = "<group>"; };
 		5EPAY00500000000000000F1 /* ApplePayTipPopup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplePayTipPopup.swift; sourceTree = "<group>"; };
+		5EPAYLOG01000000000000F1 /* PaymentLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentLogger.swift; sourceTree = "<group>"; };
+		5EPAYNTF01000000000000F1 /* PaymentNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentNotifier.swift; sourceTree = "<group>"; };
+		5EPAYROW01000000000000F1 /* PaymentNotificationsRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentNotificationsRow.swift; sourceTree = "<group>"; };
+		5EPAYQUE01000000000000F1 /* PaymentQueueSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentQueueSheet.swift; sourceTree = "<group>"; };
+		5EPENDLR01000000000000F1 /* PendingPaymentsListRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingPaymentsListRow.swift; sourceTree = "<group>"; };
+		5EPENDBN01000000000000F1 /* PendingPaymentsBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingPaymentsBanner.swift; sourceTree = "<group>"; };
 		5EPICK0100000000000000F1 /* PickerRowLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerRowLabel.swift; sourceTree = "<group>"; };
 		5EPRF00100000000000000F1 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		5EPSTORE01000000000000F1 /* PersistentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistentStore.swift; sourceTree = "<group>"; };
@@ -539,6 +555,7 @@
 				5EDEP00600000000000000F1 /* DepositTranche.swift */,
 				5EDEP00700000000000000F1 /* DepositLadder.swift */,
 				5EINS00100000000000000F1 /* PeriodDrivers.swift */,
+				5EMRCHNT01000000000000F1 /* MerchantCategoryHints.swift */,
 				5EMFLOWS01000000000000F1 /* MoneyFlowSeries.swift */,
 				5EINS00200000000000000F1 /* CategoryBudgetBreakdown.swift */,
 				5E31E5432FD16B6D00FF83C8 /* BudgetItem.swift */,
@@ -583,6 +600,9 @@
 				5E78E4DA2FDA02D600867892 /* SlideToConfirm.swift */,
 				5E78E4DC2FDA02F600867892 /* BigAmountField.swift */,
 				5E78E4DE2FDA033E00867892 /* NewTransactionSheet.swift */,
+				5EPENDBN01000000000000F1 /* PendingPaymentsBanner.swift */,
+				5EPENDLR01000000000000F1 /* PendingPaymentsListRow.swift */,
+				5EPAYQUE01000000000000F1 /* PaymentQueueSheet.swift */,
 				5ECC1F6D2FDDC729006BAC51 /* TransactionsListView.swift */,
 				5EFACE0100000000000000F2 /* TransactionInsights.swift */,
 				5EFACE0100000000000000F3 /* TransactionAttachments.swift */,
@@ -606,6 +626,8 @@
 				5EGAM00300000000000000F1 /* ProgressService.swift */,
 				5ECELB0300000000000000F1 /* CelebrationFeedback.swift */,
 				5EPSTORE01000000000000F1 /* PersistentStore.swift */,
+				5EPAYLOG01000000000000F1 /* PaymentLogger.swift */,
+				5EPAYNTF01000000000000F1 /* PaymentNotifier.swift */,
 				5EDLROUT01000000000000F1 /* DeepLinkRouter.swift */,
 				5ELAUNCH01000000000000F1 /* LaunchArguments.swift */,
 				5EDEEPLK01000000000000F1 /* DeepLink.swift */,
@@ -717,6 +739,7 @@
 				5EPAY00400000000000000F1 /* ApplePaySetupView.swift */,
 				5EPRF00100000000000000F1 /* ProfileView.swift */,
 				5ERECCRD01000000000000F1 /* RecordsCard.swift */,
+				5EPAYROW01000000000000F1 /* PaymentNotificationsRow.swift */,
 			);
 			path = Profile;
 			sourceTree = "<group>";
@@ -943,6 +966,11 @@
 			files = (
 				5ESET00100000000000000B1 /* SettingsView.swift in Sources */,
 				5EPSTORE01000000000000B1 /* PersistentStore.swift in Sources */,
+				5EPAYLOG01000000000000B1 /* PaymentLogger.swift in Sources */,
+				5EPENDBN01000000000000B1 /* PendingPaymentsBanner.swift in Sources */,
+				5EPENDLR01000000000000B1 /* PendingPaymentsListRow.swift in Sources */,
+				5EPAYQUE01000000000000B1 /* PaymentQueueSheet.swift in Sources */,
+				5EPAYNTF01000000000000B1 /* PaymentNotifier.swift in Sources */,
 				5EBRANDH01000000000000B1 /* BrandHeroLayout.swift in Sources */,
 				5EHEROBT01000000000000B1 /* HeroPrimaryButton.swift in Sources */,
 				5ELOGINV01000000000000B1 /* LoginView.swift in Sources */,
@@ -969,11 +997,13 @@
 				5EAA170100000000000000B2 /* AnalyticsView.swift in Sources */,
 				5EAA170100000000000000B3 /* AnalyticsStations.swift in Sources */,
 				5EINS00100000000000000B1 /* PeriodDrivers.swift in Sources */,
+				5EMRCHNT01000000000000B1 /* MerchantCategoryHints.swift in Sources */,
 				5EMFLOWS01000000000000B1 /* MoneyFlowSeries.swift in Sources */,
 				5EMFLOWV01000000000000B1 /* MoneyFlowStationView.swift in Sources */,
 				5EMFLOWC01000000000000B1 /* MoneyFlowChart.swift in Sources */,
 				5EMFLOWM01000000000000B1 /* MoneyFlowSummary.swift in Sources */,
 				5ERECCRD01000000000000B1 /* RecordsCard.swift in Sources */,
+				5EPAYROW01000000000000B1 /* PaymentNotificationsRow.swift in Sources */,
 				5EINS00200000000000000B1 /* CategoryBudgetBreakdown.swift in Sources */,
 				5EINS00300000000000000B1 /* DriversStationView.swift in Sources */,
 				5EINS00400000000000000B1 /* BudgetStationView.swift in Sources */,
@@ -1083,6 +1113,8 @@
 				5EDEP00600000000000000C1 /* DepositTranche.swift in Sources */,
 				5EDEP00700000000000000C1 /* DepositLadder.swift in Sources */,
 				5EINS00100000000000000C1 /* PeriodDrivers.swift in Sources */,
+				5EPAYLOG01000000000000C1 /* PaymentLogger.swift in Sources */,
+				5EMRCHNT01000000000000C1 /* MerchantCategoryHints.swift in Sources */,
 				5EMFLOWS01000000000000C1 /* MoneyFlowSeries.swift in Sources */,
 				5EINS00200000000000000C1 /* CategoryBudgetBreakdown.swift in Sources */,
 				5EGAM00100000000000000C1 /* XPRules.swift in Sources */,

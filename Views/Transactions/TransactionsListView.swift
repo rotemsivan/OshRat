@@ -80,6 +80,10 @@ struct TransactionsListView: View {
         return descriptor
     }
 
+    /// Card payments waiting to be logged — the "N ממתינים" row above the
+    /// ledger. Observed, so the row appears and goes as they come and go.
+    private let paymentRouter = IncomingPaymentRouter.shared
+
     var body: some View {
         // Computed once per render and handed down; it used to be a computed
         // property read from three places, so each render filtered the whole
@@ -93,6 +97,11 @@ struct TransactionsListView: View {
             Theme.Colors.background.ignoresSafeArea()
             VStack(spacing: 0) {
                 searchBar
+                if paymentRouter.totalWaitingCount > 0 {
+                    PendingPaymentsListRow(count: paymentRouter.totalWaitingCount, onReview: paymentRouter.requestReview)
+                        .padding(.horizontal, Theme.Spacing.lg)
+                        .padding(.bottom, Theme.Spacing.sm)
+                }
                 // Deliberately not animated in or out: the same change reshapes
                 // the list below, and an animated diff of a full page of rows
                 // is exactly the hitch a long ledger can't afford.

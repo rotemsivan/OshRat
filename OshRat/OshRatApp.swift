@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 @main
 struct OshRatApp: App {
@@ -12,6 +13,10 @@ struct OshRatApp: App {
         // text fields, etc.). Must run before any of those views
         // are constructed, so we do it here in `init` rather than in `body`.
         Theme.applyGlobalAppearance()
+
+        // Set before the app finishes launching, so a tap on a payment
+        // notification that launched the app is delivered to it.
+        UNUserNotificationCenter.current().delegate = PaymentNotifier.shared
 
         let store = PersistentStore()
         #if DEBUG
@@ -32,6 +37,7 @@ struct OshRatApp: App {
     /// xcrun simctl launch booted com.oshrat.app.dev -demoEquip item-hat-propeller-red
     /// xcrun simctl launch booted com.oshrat.app.dev -hideAdmin
     /// xcrun simctl launch booted com.oshrat.app.dev -demoPayment "42.90,ILS,SHUFERSAL DEAL,Visa 1234"
+    /// xcrun simctl launch booted com.oshrat.app.dev -demoPendingPayments
     /// ```
     ///
     /// `-demoPayment` stands in for the Wallet automation calling
@@ -68,6 +74,10 @@ struct OshRatApp: App {
             try? context.save()
         }
 
+        if LaunchArguments.contains("-demoPendingPayments") {
+            DemoDataService.queueSamplePayments()
+        }
+
         if let payment = LaunchArguments.value(after: "-demoPayment") {
             let fields = payment
                 .split(separator: ",", omittingEmptySubsequences: false)
@@ -75,11 +85,14 @@ struct OshRatApp: App {
             func field(_ index: Int) -> String? {
                 fields.indices.contains(index) && !fields[index].isEmpty ? fields[index] : nil
             }
+            // Through the same parser the real action uses.
+            let parsed = PaymentPrefill.parseAmount(field(0))
             IncomingPaymentRouter.shared.receive(PaymentPrefill(
-                amount: field(0).flatMap { Decimal(string: $0, locale: Locale(identifier: "en_US_POSIX")) },
-                currencyCode: field(1),
+                amount: parsed?.amount,
+                currencyCode: field(1) ?? parsed?.currencyCode,
                 merchant: field(2),
-                cardName: field(3)
+                cardName: field(3),
+                rawAmount: field(0)
             ))
         }
     }

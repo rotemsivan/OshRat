@@ -24,6 +24,7 @@ import SwiftData
 /// front door on the way would only get in the way.
 struct ContentView: View {
     @Query private var profiles: [UserProfile]
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var hasEntered = Self.skipsLoginAtLaunch
 
@@ -51,6 +52,11 @@ struct ContentView: View {
         .onChange(of: paymentRouter.pending?.id, initial: true) { _, pendingID in
             enterForPayment(pendingID)
         }
+        // Coming back from a payment notification: the payment was saved by
+        // the action while the app sat in the background.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { refreshPayments() }
+        }
         // Finishing the wizard (or a DEBUG demo deploy from the onboarding
         // screen) lands on the dashboard — the user is already in.
         .onChange(of: profiles.isEmpty) { wasEmpty, isEmpty in
@@ -67,6 +73,13 @@ struct ContentView: View {
         withAnimation(.easeInOut(duration: 0.4)) {
             hasEntered = true
         }
+    }
+
+    /// Picks up what the background action saved, and deletes (with their
+    /// notifications) payments that waited past `PaymentPrefill.freshness`.
+    private func refreshPayments() {
+        paymentRouter.reload()
+        paymentRouter.removeExpired().forEach(PaymentNotifier.clear)
     }
 
     private func handleURL(_ url: URL) {

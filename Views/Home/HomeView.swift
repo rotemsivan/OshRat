@@ -133,6 +133,10 @@ struct HomeView: View {
     /// Where `LogPaymentIntent` leaves a payment. Read in `body`, so
     /// Observation re-runs the `onChange` below the moment one arrives.
     private let paymentRouter = IncomingPaymentRouter.shared
+    /// Set while the payments sheet is (or was just) up, so the gate doesn't
+    /// re-present a line the user swiped away. Cleared by a new payment or
+    /// the app coming back to the front.
+    @State private var arePaymentsSnoozed = false
     /// Where `ContentView` parks the widget's "new transaction" link. Opening
     /// the sheet the moment the URL arrives collided with launch-time alerts
     /// (overrun, auto payout), and one of the two was silently dropped — so
@@ -279,8 +283,16 @@ struct HomeView: View {
         // until UIKit has nothing presented — polled, since a child's alert
         // closing changes nothing this view observes. Taken from the router
         // only then, so a payment is never lost to a dropped presentation.
-        .task(id: PaymentGate(pendingID: paymentRouter.pending?.id, isBlocked: isBlockingPayment)) {
-            guard !isBlockingPayment, paymentRouter.pending != nil else { return }
+        //
+        // Showing the line snoozes it (`arePaymentsSnoozed`) until a new
+        // payment arrives, the user asks for the skipped ones from the
+        // transactions list, or the app comes back to the front. The sheet walks
+        // the whole queue itself; the snooze is for when the user swipes it
+        // away ("later") — the gate, freed by that very dismissal, would
+        // otherwise bring the put-back payment straight up again. Set before
+        // presenting, so it can't lose a race with the dismissal.
+        .task(id: PaymentGate(pendingID: paymentRouter.pending?.id, isBlocked: isBlockingPayment || arePaymentsSnoozed)) {
+            guard !isBlockingPayment, !arePaymentsSnoozed, paymentRouter.pending != nil else { return }
             // The blank new-transaction sheet is the one presentation a
             // payment replaces, so it isn't waited out.
             if !isAddingTransaction {
@@ -290,6 +302,9 @@ struct HomeView: View {
                 }
             }
             guard !isBlockingPayment, let payment = paymentRouter.take() else { return }
+            // It's on screen now; its notification has done its job.
+            PaymentNotifier.clear(payment)
+            arePaymentsSnoozed = true
             guard isAddingTransaction else {
                 paymentRequest = payment
                 return
@@ -303,8 +318,14 @@ struct HomeView: View {
                 paymentRequest = payment
             }
         }
+        // Every waiting payment in one sheet that stays up until the last is
+        // done, so the XP they earn shows once, afterwards (`PaymentQueueSheet`).
         .sheet(item: $paymentRequest) { payment in
-            NewTransactionSheet(payment: payment)
+            PaymentQueueSheet(first: payment)
+        }
+        .onChange(of: paymentRouter.presentationRequests) { arePaymentsSnoozed = false }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            arePaymentsSnoozed = false
         }
         .sheet(isPresented: $isEditingBudget) {
             BudgetEditorSheet()

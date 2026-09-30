@@ -368,6 +368,38 @@ enum DemoDataService {
 
     // MARK: Summary
 
+    /// Queues five card payments as if the Wallet automation had just run
+    /// five times — for trying the waiting-payments flow ("רישום כולם")
+    /// without paying for anything. Three are at shops every scenario's
+    /// ledger already has rows for ("סופר", "שוק", "קניות אונליין"), so they
+    /// resolve to a category and can be logged at once; "ACME DESIGN STUDIO"
+    /// is a first visit no name hint recognises (`MerchantCategoryHints`), so
+    /// it has no category, and "Cafe Landwer" arrives without an amount,
+    /// so those two are left for their own sheets. Each posts its
+    /// notification too, when notifications are allowed.
+    static func queueSamplePayments(now: Date = .now) {
+        let card = "Visa 1234"
+        let samples: [(amount: Decimal?, merchant: String, minutesAgo: Double)] = [
+            (Decimal(string: "264.30"), "סופר", 180),
+            (Decimal(string: "87.50"), "שוק", 150),
+            (Decimal(string: "189.90"), "ACME DESIGN STUDIO", 95),
+            (Decimal(string: "149.90"), "קניות אונליין", 60),
+            (nil, "Cafe Landwer", 20),
+        ]
+        for sample in samples {
+            let payment = PaymentPrefill(
+                amount: sample.amount,
+                currencyCode: sample.amount == nil ? nil : "ILS",
+                merchant: sample.merchant,
+                cardName: card,
+                rawAmount: sample.amount.map { "\($0) ₪" },
+                receivedAt: now.addingTimeInterval(-sample.minutesAgo * 60)
+            )
+            IncomingPaymentRouter.shared.receive(payment)
+            Task { await PaymentNotifier.notify(payment) }
+        }
+    }
+
     static func summary(in context: ModelContext) -> DemoStoreSummary {
         var summary = DemoStoreSummary()
         summary.hasProfile = !((try? context.fetch(FetchDescriptor<UserProfile>())) ?? []).isEmpty
