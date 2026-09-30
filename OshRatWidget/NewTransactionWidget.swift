@@ -82,16 +82,11 @@ struct NewTransactionWidgetView: View {
         // The app is pinned to Hebrew/RTL; the widget follows suit so the
         // label renders the same regardless of the device language.
         .environment(\.layoutDirection, .rightToLeft)
-        // The scheme comes from the build (`APP_URL_SCHEME`, via Info.plist):
-        // the dev and release apps each own one, so a widget always opens the
-        // app it shipped with rather than whichever iOS picks for a shared one.
-        .widgetURL(URL(string: "\(Self.urlScheme)://new-transaction"))
+        // Shared with the app (`DeepLink`), which answers it.
+        .widgetURL(DeepLink.newTransaction)
         // Adaptive system background — white in light mode, dark in dark.
         .containerBackground(.background, for: .widget)
     }
-
-    private static let urlScheme =
-        Bundle.main.object(forInfoDictionaryKey: "OshRatURLScheme") as? String ?? "oshrat"
 }
 
 #Preview(as: .systemSmall) {

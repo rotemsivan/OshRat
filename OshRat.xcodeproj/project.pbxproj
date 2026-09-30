@@ -156,6 +156,9 @@
 		5EPAY00500000000000000B1 /* ApplePayTipPopup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00500000000000000F1 /* ApplePayTipPopup.swift */; };
 		5EPICK0100000000000000B1 /* PickerRowLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPICK0100000000000000F1 /* PickerRowLabel.swift */; };
 		5EPRF00100000000000000B1 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPRF00100000000000000F1 /* ProfileView.swift */; };
+		5ELAUNCH01000000000000B1 /* LaunchArguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ELAUNCH01000000000000F1 /* LaunchArguments.swift */; };
+		5EDEEPLK01000000000000B1 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEEPLK01000000000000F1 /* DeepLink.swift */; };
+		5EDEEPLK01000000000000B2 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEEPLK01000000000000F1 /* DeepLink.swift */; };
 		5EPSTORE01000000000000B1 /* PersistentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPSTORE01000000000000F1 /* PersistentStore.swift */; };
 		5ESTREC001000000000000B1 /* StoreRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ESTREC001000000000000F1 /* StoreRecoveryView.swift */; };
 		5ESET00100000000000000B1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ESET00100000000000000F1 /* SettingsView.swift */; };
@@ -322,6 +325,8 @@
 		5EPAY00500000000000000F1 /* ApplePayTipPopup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplePayTipPopup.swift; sourceTree = "<group>"; };
 		5EPICK0100000000000000F1 /* PickerRowLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerRowLabel.swift; sourceTree = "<group>"; };
 		5EPRF00100000000000000F1 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		5ELAUNCH01000000000000F1 /* LaunchArguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchArguments.swift; sourceTree = "<group>"; };
+		5EDEEPLK01000000000000F1 /* DeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLink.swift; sourceTree = "<group>"; };
 		5EPSTORE01000000000000F1 /* PersistentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistentStore.swift; sourceTree = "<group>"; };
 		5ESTREC001000000000000F1 /* StoreRecoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreRecoveryView.swift; sourceTree = "<group>"; };
 		5ESET00100000000000000F1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -577,6 +582,8 @@
 				5EGAM00300000000000000F1 /* ProgressService.swift */,
 				5ECELB0300000000000000F1 /* CelebrationFeedback.swift */,
 				5EPSTORE01000000000000F1 /* PersistentStore.swift */,
+				5ELAUNCH01000000000000F1 /* LaunchArguments.swift */,
+				5EDEEPLK01000000000000F1 /* DeepLink.swift */,
 				5EWARD0300000000000000F1 /* WardrobeService.swift */,
 				5EBREM0200000000000000F1 /* BudgetReminderService.swift */,
 			);
@@ -899,6 +906,8 @@
 			files = (
 				5ESET00100000000000000B1 /* SettingsView.swift in Sources */,
 				5EPSTORE01000000000000B1 /* PersistentStore.swift in Sources */,
+				5ELAUNCH01000000000000B1 /* LaunchArguments.swift in Sources */,
+				5EDEEPLK01000000000000B1 /* DeepLink.swift in Sources */,
 				5ESTREC001000000000000B1 /* StoreRecoveryView.swift in Sources */,
 				5EONB00100000000000000B1 /* OnboardingProgress.swift in Sources */,
 				5EPAY00500000000000000B1 /* ApplePayTipPopup.swift in Sources */,
@@ -1078,6 +1087,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5EDEEPLK01000000000000B2 /* DeepLink.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

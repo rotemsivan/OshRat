@@ -112,15 +112,10 @@ final class PersistentStore {
                 migrationPlan: OshRatMigrationPlan.self,
                 configurations: configuration
             )
-            // Clean up any duplicate category rows left over from earlier
-            // dev resets BEFORE topping up the default set — otherwise
-            // the idempotent seed would see "name already present" and
-            // skip while a duplicate still lurked in the database.
-            SeedData.dedupeCategoriesIfNeeded(in: container.mainContext)
-            // Now safe to top up. Idempotent — renames legacy defaults in
-            // place and adds only the defaults the store doesn't have, so it
-            // runs every launch without growing the table.
-            SeedData.seedDefaultCategoriesIfNeeded(in: container.mainContext)
+            // Merge duplicate category rows, then top up the defaults
+            // (renaming legacy ones in place). Idempotent, so it runs every
+            // launch without growing the table.
+            SeedData.prepareCategories(in: container.mainContext)
             return .ready(container)
         } catch {
             return .failed(String(describing: error))

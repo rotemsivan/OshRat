@@ -380,10 +380,7 @@ struct HomeView: View {
             today = BudgetReminderService.calendar.startOfDay(for: .now)
         }
         .onOpenURL { url in
-            // `oshrat` in a release build, `oshrat-dev` in a dev build — see
-            // `APP_URL_SCHEME` in the build settings.
-            let scheme = Bundle.main.object(forInfoDictionaryKey: "OshRatURLScheme") as? String ?? "oshrat"
-            guard url.scheme == scheme, url.host() == "new-transaction" else { return }
+            guard DeepLink.isNewTransaction(url) else { return }
             isNewTransactionLinkPending = true
         }
         // Opened once nothing else is up — the same wait a card payment gets,
@@ -414,6 +411,12 @@ struct HomeView: View {
         // appearance is plenty — there's no background scheduler in the MVP.
         .task {
             TrashService.purgeExpired(in: modelContext)
+        }
+        // Load the celebration sounds while nothing is happening, rather than
+        // on the first toast (see `CelebrationFeedback.prewarm`).
+        .task {
+            try? await Task.sleep(for: .seconds(2))
+            CelebrationFeedback.shared.prewarm()
         }
         // The achievements pass. The write points run it too, but only this
         // catches what happens with no write at all — a month closing — and
@@ -717,7 +720,7 @@ struct HomeView: View {
     /// simulator can't tap the rat.
     private static var opensWardrobeAtLaunch: Bool {
         #if DEBUG
-        return CommandLine.arguments.contains("-demoWardrobe")
+        return LaunchArguments.contains("-demoWardrobe")
         #else
         return false
         #endif
@@ -725,10 +728,7 @@ struct HomeView: View {
 
     private static var initialTab: HomeBottomBar.Tab {
         #if DEBUG
-        let arguments = CommandLine.arguments
-        if let flagIndex = arguments.firstIndex(of: "-demoTab"),
-           arguments.index(after: flagIndex) < arguments.endIndex,
-           let tab = HomeBottomBar.Tab(rawValue: arguments[arguments.index(after: flagIndex)]) {
+        if let tab = LaunchArguments.value(after: "-demoTab").flatMap(HomeBottomBar.Tab.init(rawValue:)) {
             return tab
         }
         #endif

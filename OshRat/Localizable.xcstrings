@@ -42,12 +42,6 @@
         "he" : {
           "variations" : {
             "plural" : {
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld הפקדות"
-                }
-              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -76,12 +70,6 @@
         "he" : {
           "variations" : {
             "plural" : {
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld ימים"
-                }
-              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -110,12 +98,6 @@
         "he" : {
           "variations" : {
             "plural" : {
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld ימים ברצף"
-                }
-              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -154,12 +136,6 @@
         "he" : {
           "variations" : {
             "plural" : {
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld נכסים"
-                }
-              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -183,41 +159,6 @@
         }
       }
     },
-    "%lld פריטים" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "he" : {
-          "variations" : {
-            "plural" : {
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld פריטים"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "פריט אחד"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld פריטים"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "שני פריטים"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "%lld פריטים חדשים במלתחה" : {
 
     },
@@ -229,12 +170,6 @@
         "he" : {
           "variations" : {
             "plural" : {
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld תנועות בתקופה"
-                }
-              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -263,12 +198,6 @@
         "he" : {
           "variations" : {
             "plural" : {
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld תנועות נבחרו"
-                }
-              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -297,12 +226,6 @@
         "he" : {
           "variations" : {
             "plural" : {
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld תנועות תועדו"
-                }
-              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -965,41 +888,6 @@
     "כולל ריבית של %@ לפי תנאי הפיקדון. אם הבנק שילם סכום אחר — אפשר לתקן כאן, וההפרש יירשם כהכנסה." : {
 
     },
-    "כל %lld שבועות" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "he" : {
-          "variations" : {
-            "plural" : {
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "כל %lld שבועות"
-                }
-              },
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "כל שבוע"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "כל %lld שבועות"
-                }
-              },
-              "two" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "כל שבועיים"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "כל ההישגים" : {
 
     },
@@ -1173,12 +1061,6 @@
         "he" : {
           "variations" : {
             "plural" : {
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "מחיקת %lld תנועות"
-                }
-              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -1343,12 +1225,6 @@
         "he" : {
           "variations" : {
             "plural" : {
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "נפדו גם %lld פיקדונות נוספים."
-                }
-              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",
@@ -1495,12 +1371,6 @@
         "he" : {
           "variations" : {
             "plural" : {
-              "many" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "עוד %lld ימים"
-                }
-              },
               "one" : {
                 "stringUnit" : {
                   "state" : "translated",

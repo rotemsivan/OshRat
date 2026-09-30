@@ -40,6 +40,22 @@ struct CategorySeedTests {
         #expect(first == SeedData.defaultCategories().count)
     }
 
+    /// The launch pass merges a duplicated default and tops up the rest from
+    /// one fetch: a store holding "דיור" twice ends with exactly the defaults.
+    @Test func thePreparePassDedupesThenSeeds() throws {
+        let context = try Self.makeContext()
+        let rent = try #require(SeedData.defaults.first { $0.name == "דיור" })
+        context.insert(rent.makeCategory())
+        context.insert(rent.makeCategory())
+        try context.save()
+
+        SeedData.prepareCategories(in: context)
+
+        let all = try context.fetch(FetchDescriptor<Category>())
+        #expect(all.count == SeedData.defaults.count)
+        #expect(all.filter { $0.name == "דיור" }.count == 1)
+    }
+
     /// An existing user's rent keeps its transactions — it's renamed, not
     /// replaced — and the new defaults are added beside it.
     @Test func anOldStoreIsRenamedInPlaceAndGetsTheNewCategories() throws {

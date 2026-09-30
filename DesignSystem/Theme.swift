@@ -131,7 +131,7 @@ enum Theme {
 
     // MARK: Global UIKit appearance
     // SwiftUI's `.font(...)` modifier propagates to most `Text` views but
-    // *doesn't* reach into UIKit-backed chrome — navigation bars, tab bars,
+    // *doesn't* reach into UIKit-backed chrome — navigation bars,
     // text fields, segmented pickers, alert buttons, etc. Those pull their
     // font from UIKit appearance proxies, so we set them here once at launch.
     static func applyGlobalAppearance() {
@@ -159,20 +159,6 @@ enum Theme {
         barButton.setTitleTextAttributes(buttonFont, for: .normal)
         barButton.setTitleTextAttributes(buttonFont, for: .highlighted)
         barButton.setTitleTextAttributes(buttonFont, for: .disabled)
-
-        // Tab bar item labels.
-        let tabAppearance = UITabBarAppearance()
-        tabAppearance.configureWithDefaultBackground()
-        let tabItemFont: [NSAttributedString.Key: Any] = [.font: Fonts.uiRegular(10)]
-        tabAppearance.stackedLayoutAppearance.normal.titleTextAttributes   = tabItemFont
-        tabAppearance.stackedLayoutAppearance.selected.titleTextAttributes = tabItemFont
-        tabAppearance.inlineLayoutAppearance.normal.titleTextAttributes    = tabItemFont
-        tabAppearance.inlineLayoutAppearance.selected.titleTextAttributes  = tabItemFont
-        tabAppearance.compactInlineLayoutAppearance.normal.titleTextAttributes   = tabItemFont
-        tabAppearance.compactInlineLayoutAppearance.selected.titleTextAttributes = tabItemFont
-        let tabBar = UITabBar.appearance()
-        tabBar.standardAppearance   = tabAppearance
-        tabBar.scrollEdgeAppearance = tabAppearance
 
         // Note: we deliberately do *not* set `UITextField.appearance().font`.
         // Pushing a font through the UITextField appearance proxy interferes

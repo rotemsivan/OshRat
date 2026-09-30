@@ -126,6 +126,15 @@ final class CelebrationFeedback {
         playHaptic(for: moment)
     }
 
+    /// Loads the sounds and the haptic engine ahead of time, so the first
+    /// celebration doesn't pay for the setup on the main thread at the very
+    /// moment it should feel instant. `HomeView` calls it once the dashboard
+    /// has settled after launch; `play` still sets up lazily if it hasn't.
+    func prewarm() {
+        guard isEnabled else { return }
+        prepareIfNeeded()
+    }
+
     // MARK: - Setup
 
     private func prepareIfNeeded() {

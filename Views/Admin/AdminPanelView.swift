@@ -248,7 +248,7 @@ struct AdminPanelButton: View {
     @State private var isPresented = false
 
     /// Launch arguments can't change while the app runs, so read them once.
-    private static let isHidden = CommandLine.arguments.contains("-hideAdmin")
+    private static let isHidden = LaunchArguments.contains("-hideAdmin")
 
     var body: some View {
         if !Self.isHidden {
