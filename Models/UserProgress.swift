@@ -80,6 +80,11 @@ final class UserProgress {
     /// just as much as editing one does.
     var budgetLastTouchedAt: Date?
 
+    /// Days marked "יום שקט" — nothing to log, streak kept — as
+    /// `XPRules.quietDayKey` strings (`yyyy-MM-dd`). Pruned to the last few
+    /// weeks; only the streak's bridge and the weekly cap ever read it.
+    var quietDays: [String] = []
+
     /// The most recent award, so the card can always say what the last points
     /// were for. Stored as the raw value; read it back through `lastAwardReason`.
     var lastAwardReasonRaw: String?
@@ -125,7 +130,7 @@ extension UserProgress {
     /// - points and the best streak take the **higher** of the two;
     /// - the current streak comes from whichever row saw activity **last**;
     /// - one-time awards and unlocked achievements are the **union**, so a
-    ///   milestone paid on either device stays paid;
+    ///   milestone paid on either device stays paid (quiet days likewise);
     /// - waiting celebrations are merged without repeats;
     /// - the achievements epoch is the **earlier** (the longer judged history)
     ///   and the last budget deletion the **later**.
@@ -145,6 +150,7 @@ extension UserProgress {
         awardedKeys = Self.union(awardedKeys, other.awardedKeys)
         unlockedAchievements = Self.union(unlockedAchievements, other.unlockedAchievements)
         pendingCelebrations = Self.union(pendingCelebrations, other.pendingCelebrations)
+        quietDays = Self.union(quietDays, other.quietDays)
         if let theirs = other.pendingLevelUpLevel {
             pendingLevelUpLevel = max(pendingLevelUpLevel ?? theirs, theirs)
         }

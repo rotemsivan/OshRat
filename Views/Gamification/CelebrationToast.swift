@@ -68,6 +68,7 @@ struct CelebrationToast: View {
         // that actually causes trouble.
         .offset(y: offset)
         .opacity(isShowing ? 1 : 0)
+        .swipeUpToDismiss(isEnabled: isShowing && !isDismissing, resetID: celebration, onDismiss: dismiss)
         .onTapGesture { handleTap() }
         // Not tappable while it's invisible — during the entrance delay it's
         // mounted at the top of the screen with nothing to see.

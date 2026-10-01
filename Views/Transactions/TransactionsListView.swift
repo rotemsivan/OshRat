@@ -102,6 +102,11 @@ struct TransactionsListView: View {
                         .padding(.horizontal, Theme.Spacing.lg)
                         .padding(.bottom, Theme.Spacing.sm)
                 }
+                // Renders nothing outside a working evening with nothing logged.
+                QuietDayPrompt(
+                    now: .now,
+                    insets: EdgeInsets(top: 0, leading: Theme.Spacing.lg, bottom: Theme.Spacing.sm, trailing: Theme.Spacing.lg)
+                )
                 // Deliberately not animated in or out: the same change reshapes
                 // the list below, and an animated diff of a full page of rows
                 // is exactly the hitch a long ledger can't afford.
@@ -374,7 +379,7 @@ private enum ExpansionMotion {
 /// Each chip clears only its own filter — the single "reset filters" chip it
 /// replaces meant that dropping a date range also threw away a category the
 /// user had deliberately picked. Editing a filter still goes through the
-/// toolbar button; with two or more on, a last "ניקוי הכל" clears them at once.
+/// toolbar button; with two or more on, a last "ניקוי הכול" clears them at once.
 ///
 /// Scrolls sideways rather than wrapping, so three long chips at a large text
 /// size cost one row of height, never three.
@@ -404,7 +409,7 @@ private struct ActiveFiltersBar: View {
                     }
                 }
                 if filters.activeFilterCount > 1 {
-                    Button("ניקוי הכל", action: filters.clear)
+                    Button("ניקוי הכול", action: filters.clear)
                         .font(Theme.Typography.bodySmall)
                         .foregroundStyle(Theme.Colors.textSecondary)
                         .padding(.horizontal, Theme.Spacing.sm)
@@ -585,7 +590,7 @@ private struct TransactionLedger: View {
     /// The bar that replaces nothing and pushes nothing around: it appears
     /// between the search field and the list only while selecting.
     ///
-    /// "בחר הכל" selects everything the filters leave — every matching row,
+    /// "בחר הכול" selects everything the filters leave — every matching row,
     /// mounted or not — rather than every row in the store: with a filter or a
     /// search active, "all" can only sanely mean the list the user is looking
     /// at.
@@ -604,7 +609,7 @@ private struct TransactionLedger: View {
 
             Spacer(minLength: Theme.Spacing.sm)
 
-            Button(allVisibleSelected ? "ניקוי בחירה" : "בחירת הכל") {
+            Button(allVisibleSelected ? "ניקוי בחירה" : "בחירת הכול") {
                 toggleSelectAll()
             }
             .font(Theme.Typography.body)

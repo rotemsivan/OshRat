@@ -179,7 +179,8 @@ enum XPRules {
     /// Same day → unchanged (logging six things on Tuesday is one day of
     /// consistency, not six). Yesterday → one longer. A longer gap is still
     /// one longer when every day skipped was a rest day (`isStreakRestDay`:
-    /// the weekend or a chag) — Thursday to Sunday keeps the streak going.
+    /// the weekend or a chag) or a marked quiet day (`quietDays`, see
+    /// `quietDaysPerWeek`) — Thursday to Sunday keeps the streak going.
     /// Any other gap, or no history at all → back to a streak of 1. The
     /// weekend only ever *adds*: activity on it counts like any day, and its
     /// absence doesn't break anything. Note that a lapse resets the
@@ -190,6 +191,7 @@ enum XPRules {
         current: Int,
         lastActivity: Date?,
         now: Date = .now,
+        quietDays: Set<String> = [],
         calendar: Calendar = .current
     ) -> Int {
         guard let lastActivity else { return 1 }
@@ -211,9 +213,69 @@ enum XPRules {
         for _ in 1..<gap {
             guard let next = calendar.date(byAdding: .day, value: 1, to: skipped) else { return 1 }
             skipped = next
-            guard isStreakRestDay(skipped, calendar: calendar) else { return 1 }
+            let bridges = isStreakRestDay(skipped, calendar: calendar)
+                || quietDays.contains(quietDayKey(for: skipped, calendar: calendar))
+            guard bridges else { return 1 }
         }
         return current + 1
+    }
+
+    // MARK: - Quiet days
+
+    /// How many working days a week may be marked "יום שקט" — a day with
+    /// genuinely nothing to log. A quiet day **bridges** the streak the way a
+    /// weekend does, but never lengthens it and pays no XP: marking every day
+    /// can at most hold a streak still, and the cap stops even that from
+    /// lasting more than a couple of days a week. Two, because a working week
+    /// is five days and a real quiet day is the exception, not the rule.
+    static let quietDaysPerWeek = 2
+
+    /// The stored form of a quiet day: `yyyy-MM-dd`, Gregorian, in the
+    /// calendar's time zone. A string rather than a `Date` so a trip abroad
+    /// can't slide the mark onto a neighbouring day, and Gregorian whatever
+    /// calendar the device is set to (as `BudgetReminderService` does).
+    static func quietDayKey(for day: Date, calendar: Calendar = .current) -> String {
+        let parts = gregorian(like: calendar).dateComponents([.year, .month, .day], from: day)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+    }
+
+    /// Whether `day` may be marked quiet, and if so how many marks the week
+    /// has left after this one. Only *today* is ever asked about — the
+    /// caller passes now — so there is no backfilling past days to rescue a
+    /// broken streak.
+    static func quietDayEligibility(
+        on day: Date,
+        quietDays: Set<String>,
+        hasActivityToday: Bool,
+        calendar: Calendar = .current
+    ) -> QuietDayEligibility {
+        if quietDays.contains(quietDayKey(for: day, calendar: calendar)) { return .alreadyMarked }
+        if hasActivityToday { return .alreadyLogged }
+        // The weekend and chagim never break a streak, so there is nothing
+        // to protect on them.
+        if isStreakRestDay(day, calendar: calendar) { return .restDay }
+        let used = quietDaysUsed(inWeekOf: day, quietDays: quietDays, calendar: calendar)
+        guard used < quietDaysPerWeek else { return .weeklyLimitReached }
+        return .allowed(remainingAfter: quietDaysPerWeek - used - 1)
+    }
+
+    /// Quiet days already marked in `day`'s week, which runs Sunday to
+    /// Saturday — the Israeli working week.
+    static func quietDaysUsed(inWeekOf day: Date, quietDays: Set<String>, calendar: Calendar = .current) -> Int {
+        var week = gregorian(like: calendar)
+        week.firstWeekday = 1
+        guard let start = week.dateInterval(of: .weekOfYear, for: day)?.start else { return 0 }
+        return (0..<7)
+            .compactMap { week.date(byAdding: .day, value: $0, to: start) }
+            .filter { quietDays.contains(quietDayKey(for: $0, calendar: calendar)) }
+            .count
+    }
+
+    /// A Gregorian calendar in `calendar`'s time zone.
+    private static func gregorian(like calendar: Calendar) -> Calendar {
+        var gregorian = Calendar(identifier: .gregorian)
+        gregorian.timeZone = calendar.timeZone
+        return gregorian
     }
 
     // MARK: - Levels
@@ -290,6 +352,19 @@ enum XPRules {
             xpForNextLevel: cost
         )
     }
+}
+
+/// The answer to "may today be marked quiet?" — the prompt and the
+/// notification action both read it, so they explain a refusal the same way.
+enum QuietDayEligibility: Equatable {
+    /// Yes; `remainingAfter` marks will be left this week once it's used.
+    case allowed(remainingAfter: Int)
+    case alreadyMarked
+    /// Something was logged today, so it isn't a quiet day.
+    case alreadyLogged
+    /// The weekend or a chag — the streak is safe anyway.
+    case restDay
+    case weeklyLimitReached
 }
 
 /// Where the user stands inside their current level — the shape the dashboard

@@ -367,6 +367,37 @@ enum DemoDataService {
         }
     }
 
+    /// Makes today look untouched: the last activity moves back to the
+    /// previous working day and today's quiet mark is dropped. For trying the
+    /// evening reminder and the quiet-day prompt, which both stay away from a
+    /// day that already has activity — and every deploy stamps activity *now*
+    /// (step 7 above). Going back to a working day, past the weekend and
+    /// chagim, keeps the streak alive, so the next log extends it as it would
+    /// for a real user.
+    static func clearTodaysActivity(in context: ModelContext, now: Date = .now) {
+        let calendar = Calendar.current
+        var day = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: now)) ?? now
+        while XPRules.isStreakRestDay(day, calendar: calendar),
+              let earlier = calendar.date(byAdding: .day, value: -1, to: day) {
+            day = earlier
+        }
+        // Noon, so no time-zone edge can pull it onto today.
+        let rewound = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: day) ?? day
+        let todayKey = XPRules.quietDayKey(for: now, calendar: calendar)
+        // Every row, not just the one `ProgressService` resolves to: with
+        // iCloud on, a duplicate row still stamped today would be folded back
+        // in by `SyncDeduplicator` (`absorb` keeps the later activity) on the
+        // next activation, and today would be active again.
+        let rows = (try? context.fetch(FetchDescriptor<UserProgress>())) ?? []
+        for progress in rows {
+            if let last = progress.lastActivityDate, last >= calendar.startOfDay(for: now) {
+                progress.lastActivityDate = rewound
+            }
+            progress.quietDays.removeAll { $0 == todayKey }
+        }
+        try? context.save()
+    }
+
     // MARK: Summary
 
     /// Queues five card payments as if the Wallet automation had just run

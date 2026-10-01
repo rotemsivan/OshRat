@@ -142,6 +142,8 @@ struct HomeView: View {
     /// (overrun, auto payout), and one of the two was silently dropped — so
     /// it waits there until the screen is free.
     private let linkRouter = DeepLinkRouter.shared
+    /// Notifications that arrived while the app was open, shown as toasts.
+    private let noticeCenter = InAppNoticeCenter.shared
     /// The deposit settle pass found the screen busy and should run again
     /// once it clears. See `settleMaturedDeposits`.
     @State private var isDepositSettleDeferred = false
@@ -149,6 +151,13 @@ struct HomeView: View {
     /// `.now` on each render so that a day rolling over while the app is open
     /// actually re-renders — nothing else would prompt one at midnight.
     @State private var today: Date = BudgetReminderService.calendar.startOfDay(for: .now)
+    /// The time the quiet-day prompt judges by. Ticked at 19:00 (and on every
+    /// activation), so the prompt appears in an app left open into the evening.
+    @State private var reminderClock: Date = .now
+    /// Bumped on every activation, so the evening reminders are rescheduled
+    /// then too — the user may have allowed notifications in Settings meanwhile.
+    @State private var activationCount = 0
+    @AppStorage(DailyReminderService.isEnabledKey) private var isEveningReminderEnabled = true
 
     var body: some View {
         ZStack {
@@ -247,6 +256,13 @@ struct HomeView: View {
                         onOpenWardrobe: { openWardrobe(from: .toast) },
                         onDismiss: { ProgressService.dismissCelebration(celebration, in: modelContext) }
                     )
+                } else if let notice = noticeCenter.next {
+                    // A notification that arrived while the app was open.
+                    InAppNoticeToast(
+                        notice: notice,
+                        onOpen: { isAddingTransaction = true },
+                        onDismiss: { noticeCenter.dismiss(notice) }
+                    )
                 } else if let reminder = BudgetReminderService.nextReminder(budgetDueToday, on: today) {
                     BudgetReminderToast(
                         reminder: reminder,
@@ -326,6 +342,30 @@ struct HomeView: View {
         .onChange(of: paymentRouter.presentationRequests) { arePaymentsSnoozed = false }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             arePaymentsSnoozed = false
+            reminderClock = .now
+            activationCount += 1
+        }
+        // Keep the evening reminders in step with today: scheduled ahead, and
+        // today's taken down once something is logged or the day is marked
+        // quiet — on this device or, once it syncs in, another one.
+        .task(id: EveningReminderKey(
+            day: today,
+            hasActivityToday: progressRows.first.map { ProgressService.hasActivity(on: .now, progress: $0) } ?? false,
+            isQuietToday: progressRows.first.map { ProgressService.isQuietDay(.now, progress: $0) } ?? false,
+            isEnabled: isEveningReminderEnabled,
+            activation: activationCount
+        )) {
+            await DailyReminderService.askPermissionOnce()
+            await DailyReminderService.reschedule(in: modelContext)
+        }
+        // Wake the quiet-day prompt at 19:00 if the app is open then.
+        .task(id: today) {
+            reminderClock = .now
+            guard let evening = Calendar.current.date(
+                bySettingHour: DailyReminder.hour, minute: 0, second: 0, of: today
+            ), evening > .now else { return }
+            try? await Task.sleep(for: .seconds(evening.timeIntervalSinceNow))
+            if !Task.isCancelled { reminderClock = .now }
         }
         .sheet(isPresented: $isEditingBudget) {
             BudgetEditorSheet()
@@ -533,6 +573,11 @@ struct HomeView: View {
                         .alignmentGuide(.top) { $0[.bottom] + Theme.Spacing.md }
                         .padding(.trailing, Theme.Spacing.md)
                 }
+
+                // Empty outside 19:00–midnight on a working day with nothing
+                // logged. Below the assets card rather than under the
+                // greeting, whose rat rests on that card's top edge.
+                QuietDayPrompt(now: reminderClock)
 
                 // Swipeable previous/next-period pager. Negative padding
                 // cancels the VStack's gutter so the scroll view spans the
@@ -1041,6 +1086,15 @@ private struct PaymentGate: Equatable {
 private struct LinkGate: Equatable {
     let isPending: Bool
     let isBlocked: Bool
+}
+
+/// Everything that can change which evening reminders should be pending.
+private struct EveningReminderKey: Equatable {
+    let day: Date
+    let hasActivityToday: Bool
+    let isQuietToday: Bool
+    let isEnabled: Bool
+    let activation: Int
 }
 
 /// The overrun alert fires on going over budget *or* on the screen clearing

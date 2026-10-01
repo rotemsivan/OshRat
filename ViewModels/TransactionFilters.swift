@@ -247,7 +247,7 @@ enum TypeFilter: String, CaseIterable, Identifiable {
 
     var hebrewLabel: String {
         switch self {
-        case .all:      return "הכל"
+        case .all:      return "הכול"
         case .income:   return "הכנסה"
         case .expense:  return "הוצאה"
         case .transfer: return "העברה"

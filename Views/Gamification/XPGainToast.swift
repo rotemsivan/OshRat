@@ -46,6 +46,9 @@ struct XPGainToast: View {
     /// Flips once the pill is in, driving the count-up and the bar fill — so
     /// the user sees them move rather than arriving already done.
     @State private var hasFilled = false
+    /// Set by the first way out — the hold running out or a swipe up — so
+    /// the other can't call `onDismiss` a second time.
+    @State private var isDismissing = false
 
     @ScaledMetric(relativeTo: .caption) private var barWidth: CGFloat = 96
 
@@ -85,7 +88,10 @@ struct XPGainToast: View {
         .padding(.horizontal, Theme.Spacing.lg)
         .offset(y: reduceMotion || isShowing ? 0 : -100)
         .opacity(isShowing ? 1 : 0)
-        .allowsHitTesting(false)
+        .swipeUpToDismiss(isEnabled: isShowing && !isDismissing, resetID: gain.id, onDismiss: dismiss)
+        // Only while it's in: during the entrance delay it's mounted at the
+        // top of the screen with nothing to see.
+        .allowsHitTesting(isShowing)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("קיבלת \(gain.amount) נקודות"))
         .task(id: gain.id) { await run() }
@@ -132,6 +138,7 @@ struct XPGainToast: View {
     private func run() async {
         isShowing = false
         hasFilled = false
+        isDismissing = false
         do {
             try await Task.sleep(for: Self.entranceDelay)
             withAnimation(.spring(response: Self.slideDuration, dampingFraction: 0.85)) {
@@ -148,14 +155,22 @@ struct XPGainToast: View {
             CelebrationFeedback.shared.play(.xpGained)
             AccessibilityNotification.Announcement(String(localized: "קיבלת \(gain.amount) נקודות")).post()
             try await Task.sleep(for: Self.holdDuration)
-            withAnimation(.easeIn(duration: Self.slideDuration)) {
-                isShowing = false
-            }
-            try await Task.sleep(for: .seconds(Self.slideDuration))
         } catch {
             return
         }
-        onDismiss()
+        dismiss()
+    }
+
+    private func dismiss() {
+        guard !isDismissing else { return }
+        isDismissing = true
+        withAnimation(.easeIn(duration: Self.slideDuration)) {
+            isShowing = false
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(Self.slideDuration))
+            onDismiss()
+        }
     }
 }
 

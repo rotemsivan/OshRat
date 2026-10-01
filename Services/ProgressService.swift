@@ -132,6 +132,59 @@ enum ProgressService {
         progress(in: context).budgetLastTouchedAt = now
     }
 
+    // MARK: - Quiet days
+
+    /// Whether today already counts for the streak — the evening reminder's
+    /// "has the user logged anything?". Read off the streak's own marker
+    /// rather than the ledger: it is exactly the streak's definition of a
+    /// day with activity, and it syncs with the row.
+    static func hasActivity(on day: Date, progress: UserProgress, calendar: Calendar = .current) -> Bool {
+        progress.lastActivityDate.map { calendar.isDate($0, inSameDayAs: day) } ?? false
+    }
+
+    static func isQuietDay(_ day: Date, progress: UserProgress, calendar: Calendar = .current) -> Bool {
+        progress.quietDays.contains(XPRules.quietDayKey(for: day, calendar: calendar))
+    }
+
+    static func quietDayEligibility(in context: ModelContext, now: Date = .now) -> QuietDayEligibility {
+        let progress = progress(in: context)
+        return XPRules.quietDayEligibility(
+            on: now,
+            quietDays: Set(progress.quietDays),
+            hasActivityToday: hasActivity(on: now, progress: progress)
+        )
+    }
+
+    /// Marks today "יום שקט" if the rules allow it, and says what happened.
+    /// Deliberately not activity: no XP, no streak step, no achievement pass —
+    /// the mark only lets the next real log bridge over today.
+    @discardableResult
+    static func markQuietDay(in context: ModelContext, now: Date = .now) -> QuietDayEligibility {
+        let eligibility = quietDayEligibility(in: context, now: now)
+        guard case .allowed = eligibility else { return eligibility }
+
+        let progress = progress(in: context)
+        progress.quietDays.append(XPRules.quietDayKey(for: now))
+        // Only the current week matters to the cap and only a short gap to
+        // the streak, so old marks are dead weight in a synced row.
+        if let cutoff = Calendar.current.date(byAdding: .day, value: -quietDayRetentionDays, to: now) {
+            let oldest = XPRules.quietDayKey(for: cutoff)
+            // `yyyy-MM-dd` sorts as dates do.
+            progress.quietDays.removeAll { $0 < oldest }
+        }
+        try? context.save()
+        return eligibility
+    }
+
+    /// Takes today's mark back — the prompt's "ביטול".
+    static func unmarkQuietDay(in context: ModelContext, now: Date = .now) {
+        let progress = progress(in: context)
+        progress.quietDays.removeAll { $0 == XPRules.quietDayKey(for: now) }
+        try? context.save()
+    }
+
+    private static let quietDayRetentionDays = 60
+
     // MARK: - Celebrations
 
     /// More than this many achievements unlocked in one pass are announced as
@@ -475,8 +528,12 @@ enum ProgressService {
             current: progress.currentStreak,
             lastActivity: progress.lastActivityDate,
             now: now,
+            quietDays: Set(progress.quietDays),
             calendar: calendar
         )
+        // Something was logged after all, so today wasn't quiet: drop the
+        // mark and hand the week its allowance back.
+        progress.quietDays.removeAll { $0 == XPRules.quietDayKey(for: now, calendar: calendar) }
 
         progress.currentStreak = updated
         progress.longestStreak = max(progress.longestStreak, updated)

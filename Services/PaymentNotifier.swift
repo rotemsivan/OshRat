@@ -79,12 +79,29 @@ final class PaymentNotifier: NSObject, UNUserNotificationCenterDelegate {
 
     // MARK: UNUserNotificationCenterDelegate
 
-    /// With the app open, the waiting payment's sheet comes up on its own, so
-    /// a banner on top of it would say the same thing twice.
+    /// Nothing the app posts appears as a system banner while it's open.
+    /// A waiting payment's sheet comes up on its own, so its notification is
+    /// simply dropped; everything else — the evening reminder, a quiet-day
+    /// note — becomes the app's own toast (`InAppNoticeCenter`), which waits
+    /// its turn behind celebrations and open sheets.
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        notification.request.content.categoryIdentifier == Self.category ? [] : [.banner, .sound]
+        if notification.request.content.categoryIdentifier != Self.category {
+            InAppNoticeCenter.shared.post(InAppNoticeCenter.notice(for: notification))
+        }
+        return []
+    }
+
+    /// A notification was answered. Only the evening reminder's button needs
+    /// handling here; a plain tap just opens the app, which does the rest.
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        if DailyReminderService.isReminder(response.notification) {
+            await DailyReminderService.handle(response)
+        }
     }
 }

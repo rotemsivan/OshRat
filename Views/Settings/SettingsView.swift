@@ -36,6 +36,9 @@ private struct SettingsForm: View {
     @Query(sort: \FXRateSnapshot.fetchedAt, order: .reverse) private var fxSnapshots: [FXRateSnapshot]
 
     @AppStorage(CelebrationFeedback.isEnabledKey) private var soundsEnabled = true
+    @AppStorage(DailyReminderService.isEnabledKey) private var eveningReminderEnabled = true
+    /// Notification permission, so a reminder that can't be delivered says so.
+    @State private var notificationPermission: PaymentNotifier.Permission?
 
     @State private var isShowingRecentlyDeleted = false
     @State private var fxRefresh: FXRefreshState = .idle
@@ -55,6 +58,7 @@ private struct SettingsForm: View {
         Form {
             personalSection
             budgetSection
+            reminderSection
             applePaySection
             feedbackSection
             ratesSection
@@ -73,6 +77,7 @@ private struct SettingsForm: View {
         }
         .onAppear { nameOnOpen = profile.name }
         .task { cloudStatus = await CloudAccountService.status() }
+        .task { notificationPermission = await PaymentNotifier.permission() }
         .onDisappear {
             if profile.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 profile.name = nameOnOpen
@@ -141,6 +146,39 @@ private struct SettingsForm: View {
             }
         } header: {
             Text("תקציב")
+        }
+    }
+
+    /// The evening reminder's switch. Turning it off takes the pending
+    /// reminders down (`HomeView` reschedules on the stored value); turning it
+    /// on asks for permission if it never was.
+    private var reminderSection: some View {
+        Section {
+            Toggle(isOn: $eveningReminderEnabled) {
+                Label {
+                    HStack(spacing: Theme.Spacing.xs) {
+                        Text("תזכורת ערב")
+                        InfoButton("ב-19:00 בימים א׳–ה׳, אם עוד לא נרשמה תנועה באותו יום. לא בשבת, בחג ובערב חג. ביום בלי תנועות אפשר לסמן יום שקט ולשמור על הרצף, עד פעמיים בשבוע.")
+                    }
+                } icon: {
+                    Image(systemName: "bell")
+                }
+            }
+            .onChange(of: eveningReminderEnabled) { _, isOn in
+                guard isOn else { return }
+                Task {
+                    if await PaymentNotifier.permission() == .notAsked {
+                        notificationPermission = await PaymentNotifier.requestPermission()
+                    }
+                    await DailyReminderService.reschedule(in: modelContext)
+                }
+            }
+            if eveningReminderEnabled, notificationPermission == .denied,
+               let url = URL(string: UIApplication.openNotificationSettingsURLString) {
+                Link(destination: url) {
+                    Label("ההתראות כבויות — פתיחת הגדרות", systemImage: "bell.slash")
+                }
+            }
         }
     }
 

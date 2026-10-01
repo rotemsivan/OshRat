@@ -64,6 +64,7 @@ struct BudgetReminderToast: View {
         .padding(.horizontal, Theme.Spacing.lg)
         .offset(y: offset)
         .opacity(isShowing ? 1 : 0)
+        .swipeUpToDismiss(isEnabled: isShowing && !isDismissing, resetID: reminder, onDismiss: dismiss)
         .onTapGesture { handleTap() }
         .allowsHitTesting(isShowing)
         .accessibilityElement(children: .combine)

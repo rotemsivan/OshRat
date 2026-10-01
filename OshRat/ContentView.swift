@@ -52,6 +52,11 @@ struct ContentView: View {
         // for `HomeView` and goes straight past the login. Before onboarding
         // there's no account to log against, so it's ignored.
         .onOpenURL(perform: handleURL)
+        // The evening reminder's "רישום תנועה" parks the same request
+        // without a URL, so it's picked up here and goes past the login too.
+        .onChange(of: linkRouter.isNewTransactionPending, initial: true) { _, isPending in
+            if isPending, !profiles.isEmpty { hasEntered = true }
+        }
         // A card payment from the Wallet automation, likewise. `initial`
         // catches one that arrived on a cold launch, before this view existed.
         .onChange(of: paymentRouter.pending?.id, initial: true) { _, pendingID in

@@ -13,7 +13,7 @@ import SwiftUI
 struct BudgetStationView: View {
     let report: AnalyticsReport
 
-    /// Rows shown before "הצג הכל". Overruns sort first, so they're always in.
+    /// Rows shown before "הצג הכול". Overruns sort first, so they're always in.
     private static let collapsedRows = 4
 
     @State private var showsAllRows = false
@@ -49,7 +49,7 @@ struct BudgetStationView: View {
                                 )
                             }
                             if budget.rows.count > Self.collapsedRows {
-                                Button(showsAllRows ? "הצג פחות" : "הצג הכל (\(budget.rows.count))", action: toggleRows)
+                                Button(showsAllRows ? "הצג פחות" : "הצג הכול (\(budget.rows.count))", action: toggleRows)
                                     .font(Theme.Typography.bodySmall)
                                     .foregroundStyle(Theme.Colors.accent)
                                     .frame(minHeight: 44)

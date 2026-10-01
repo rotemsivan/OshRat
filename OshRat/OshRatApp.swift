@@ -17,8 +17,14 @@ struct OshRatApp: App {
         // Set before the app finishes launching, so a tap on a payment
         // notification that launched the app is delivered to it.
         UNUserNotificationCenter.current().delegate = PaymentNotifier.shared
+        DailyReminderService.registerCategories()
 
         let store = PersistentStore()
+        // The evening reminder's "no transactions today" button runs in the
+        // background, where no view hands it a context.
+        if case .ready(let container) = store.state {
+            DailyReminderService.container = container
+        }
         #if DEBUG
         if case .ready(let container) = store.state {
             Self.applyDemoLaunchArguments(in: container.mainContext)
@@ -72,6 +78,16 @@ struct OshRatApp: App {
                 config.setEquippedID(item.id, for: item.slot)
             }
             try? context.save()
+        }
+
+        // After a deploy, which stamps today's activity: today looks untouched,
+        // so the evening reminder and the quiet-day prompt can be tried.
+        if LaunchArguments.contains("-demoInactiveToday") {
+            DemoDataService.clearTodaysActivity(in: context)
+        }
+
+        if LaunchArguments.contains("-demoReminder") {
+            Task { await DailyReminderService.postDemoReminder() }
         }
 
         if LaunchArguments.contains("-demoPendingPayments") {

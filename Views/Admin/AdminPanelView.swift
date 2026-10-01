@@ -26,6 +26,12 @@ struct AdminPanelView: View {
     @State private var isConfirmingWipe = false
     /// Recomputed on appear so the summary below can't go stale.
     @State private var summary = DemoStoreSummary()
+    /// Today's standing for the evening reminder, refreshed with the summary.
+    @State private var hasActivityToday = false
+    @State private var isQuietToday = false
+    /// Why the quiet-day card is hidden right now, or `nil` if it shows.
+    @State private var promptHiddenReason: String?
+    @State private var progressRowCount = 0
 
     /// Fired once the store has been rewritten. Lets a presenter that outlives
     /// the change clean up after itself — onboarding uses it to throw away a
@@ -41,6 +47,7 @@ struct AdminPanelView: View {
                 lengthSection
                 scenariosSection
                 paymentsSection
+                eveningReminderSection
                 resetSection
             }
             .scrollContentBackground(.hidden)
@@ -70,11 +77,11 @@ struct AdminPanelView: View {
             Text("כל מה שקיים עכשיו יימחק ובמקומו ייטען \(scenario.title) על פני \(months(for: scenario)) חודשים.")
         }
         .confirmationDialog(
-            Text("למחוק הכל ולהתחיל מאפס?"),
+            Text("למחוק הכול ולהתחיל מאפס?"),
             isPresented: $isConfirmingWipe,
             titleVisibility: .visible
         ) {
-            Button("מחיקת הכל", role: .destructive) { wipe() }
+            Button("מחיקת הכול", role: .destructive) { wipe() }
             Button("ביטול", role: .cancel) {}
         } message: {
             Text("הפרופיל, החשבונות, התנועות, התקציב, היעדים והניקוד יימחקו — גם מ-iCloud של גרסת הפיתוח, כשהיא מסונכרנת. הקטגוריות ייטענו מחדש והאפליקציה תחזור למסך ההתחלה.")
@@ -169,6 +176,34 @@ struct AdminPanelView: View {
         }
     }
 
+    private var eveningReminderSection: some View {
+        Section {
+            LabeledContent("פעילות היום") {
+                Text(hasActivityToday ? "יש" : "אין")
+            }
+            LabeledContent("יום שקט") {
+                Text(isQuietToday ? "מסומן" : "לא מסומן")
+            }
+            LabeledContent("הכרטיס") {
+                Text(promptHiddenReason.map { "מוסתר: \($0)" } ?? "מוצג")
+                    .multilineTextAlignment(.trailing)
+            }
+            LabeledContent("‎-demoQuietPrompt") {
+                Text(QuietDayPrompt.ignoresEvening ? "פעיל" : "כבוי")
+            }
+            LabeledContent("שורות התקדמות") {
+                Text(progressRowCount.formatted())
+            }
+            Button(action: clearTodaysActivity) {
+                Label("יום בלי פעילות", systemImage: "moon.zzz")
+            }
+        } header: {
+            Text("תזכורת ערב")
+        } footer: {
+            Text("מזיז את הפעילות האחרונה ליום העבודה הקודם ומוריד את סימון היום השקט, כך שהיום נראה כאילו לא נרשם בו כלום — הרצף נשמר. כל טעינת תרחיש רושמת פעילות להיום. עם ‎-demoQuietPrompt הכרטיס מופיע גם לפני 19:00.")
+        }
+    }
+
     private var resetSection: some View {
         Section {
             Button(role: .destructive) {
@@ -227,8 +262,23 @@ struct AdminPanelView: View {
         }
     }
 
+    private func clearTodaysActivity() {
+        DemoDataService.clearTodaysActivity(in: modelContext)
+        refresh()
+    }
+
     private func refresh() {
         summary = DemoDataService.summary(in: modelContext)
+        // Read, never create: `ProgressService.progress(in:)` would insert a
+        // row into an empty store when the panel opens from onboarding.
+        let rows = (try? modelContext.fetch(
+            FetchDescriptor<UserProgress>(sortBy: [SortDescriptor(\.createdAt)])
+        )) ?? []
+        let progress = rows.first
+        progressRowCount = rows.count
+        promptHiddenReason = QuietDayPrompt.hiddenReason(progress: progress, now: .now)
+        hasActivityToday = progress.map { ProgressService.hasActivity(on: .now, progress: $0) } ?? false
+        isQuietToday = progress.map { ProgressService.isQuietDay(.now, progress: $0) } ?? false
     }
 
     // MARK: - Derived
