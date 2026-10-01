@@ -82,6 +82,22 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "-demoScenario"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-hideAdmin"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-demoReminder"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-demoQuietPrompt"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "-initCloudKitSchema"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
