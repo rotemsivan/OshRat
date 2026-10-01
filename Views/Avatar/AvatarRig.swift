@@ -60,6 +60,20 @@ enum AvatarPose {
     }
 }
 
+extension MascotMood {
+    /// The body language that goes with the face, on the bust: arms in a
+    /// little for worry and sadness, out at the sides for anger, up for joy.
+    var rig: AvatarRig {
+        switch self {
+        case .calm:    return .rest
+        case .happy:   return AvatarPose.cheer.rig
+        case .worried: return AvatarRig(leftArm: -6, rightArm: 6)
+        case .sad:     return AvatarRig(leftArm: -10, rightArm: 10)
+        case .angry:   return AvatarRig(leftArm: 22, rightArm: -22)
+        }
+    }
+}
+
 extension AvatarCrop {
     /// The art's canvas, as the asset-name suffix.
     var canvas: AvatarCanvas {

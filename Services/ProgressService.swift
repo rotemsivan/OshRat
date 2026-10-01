@@ -210,6 +210,7 @@ enum ProgressService {
 
     private static func enqueue(_ celebration: Celebration, on progress: UserProgress) {
         progress.pendingCelebrations.append(celebration.rawValue)
+        progress.lastCelebrationAt = .now
     }
 
     /// A level-up pending in the pre-queue `pendingLevelUpLevel` field goes to

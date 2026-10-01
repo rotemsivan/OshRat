@@ -37,15 +37,19 @@ struct AvatarLayers: View {
     let rig: AvatarRig
     /// Equipped item per slot. Ids with no catalogue entry are skipped.
     let equipped: [WardrobeSlot: String]
+    /// The face. Only the bust has mood faces (`Scripts/make_mood_faces.py`);
+    /// the full body always wears the calm one.
+    var mood: MascotMood = .calm
 
-    init(crop: AvatarCrop, pose: AvatarPose = .base, equipped: [WardrobeSlot: String]) {
-        self.init(crop: crop, rig: pose.rig, equipped: equipped)
+    init(crop: AvatarCrop, pose: AvatarPose = .base, equipped: [WardrobeSlot: String], mood: MascotMood = .calm) {
+        self.init(crop: crop, rig: pose.rig, equipped: equipped, mood: mood)
     }
 
-    init(crop: AvatarCrop, rig: AvatarRig, equipped: [WardrobeSlot: String]) {
+    init(crop: AvatarCrop, rig: AvatarRig, equipped: [WardrobeSlot: String], mood: MascotMood = .calm) {
         self.crop = crop
         self.rig = rig
         self.equipped = equipped
+        self.mood = mood
     }
 
     var body: some View {
@@ -62,7 +66,7 @@ struct AvatarLayers: View {
             bodyLayer(.outfit, items)
             arm(.left, items)
             arm(.right, items)
-            part("head")
+            part(crop == .bust ? "head\(mood.headSuffix)" : "head")
             bodyLayer(.glasses, items)
             bodyLayer(.hat, items)
             bodyLayer(.prop, items)
@@ -131,26 +135,30 @@ struct AvatarLayers: View {
 struct UserAvatar: View {
     var crop: AvatarCrop = .bust
     var rig: AvatarRig = .rest
+    /// Only the greeting and the profile picture pass one (`MascotMood`).
+    var mood: MascotMood = .calm
 
     @Query(sort: \MascotConfig.createdAt, order: .forward)
     private var configs: [MascotConfig]
     @Query(sort: \UserProgress.createdAt, order: .forward)
     private var progressRows: [UserProgress]
 
-    init(crop: AvatarCrop = .bust, pose: AvatarPose = .base) {
+    init(crop: AvatarCrop = .bust, pose: AvatarPose = .base, mood: MascotMood = .calm) {
         self.crop = crop
         self.rig = pose.rig
+        self.mood = mood
     }
 
     /// For a caller animating the limbs itself.
-    init(crop: AvatarCrop = .bust, rig: AvatarRig) {
+    init(crop: AvatarCrop = .bust, rig: AvatarRig, mood: MascotMood = .calm) {
         self.crop = crop
         self.rig = rig
+        self.mood = mood
     }
 
     var body: some View {
         let equipped = equipped
-        AvatarLayers(crop: crop, rig: rig, equipped: equipped)
+        AvatarLayers(crop: crop, rig: rig, equipped: equipped, mood: mood)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(accessibilityLabel(for: equipped)))
     }

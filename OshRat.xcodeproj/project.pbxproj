@@ -58,7 +58,6 @@
 		5E78E4DD2FDA02F600867892 /* BigAmountField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E78E4DC2FDA02F600867892 /* BigAmountField.swift */; };
 		5E78E4DF2FDA033E00867892 /* NewTransactionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E78E4DE2FDA033E00867892 /* NewTransactionSheet.swift */; };
 		5E8EB3A32FD2F5060037E1F3 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E4793A62FD207EA00568427 /* Theme.swift */; };
-		5EQDAY0400000000000000B1 /* SwipeUpToDismiss.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0400000000000000F1 /* SwipeUpToDismiss.swift */; };
 		5E8EB3A52FD2F8E70037E1F3 /* FXRateSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8EB3A42FD2F8E70037E1F3 /* FXRateSnapshot.swift */; };
 		5E8EB3A62FD2F8E70037E1F3 /* FXRateSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8EB3A42FD2F8E70037E1F3 /* FXRateSnapshot.swift */; };
 		5E8EB3A72FD2F8E70037E1F3 /* FXRateSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E8EB3A42FD2F8E70037E1F3 /* FXRateSnapshot.swift */; };
@@ -98,6 +97,7 @@
 		5ECELB0100000000000000C2 /* Celebration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECELB0100000000000000F1 /* Celebration.swift */; };
 		5ECELB0200000000000000B1 /* AchievementBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECELB0200000000000000F1 /* AchievementBadge.swift */; };
 		5ECELB0300000000000000B1 /* CelebrationFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECELB0300000000000000F1 /* CelebrationFeedback.swift */; };
+		5ECLDACC01000000000000B1 /* CloudAccountService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECLDACC01000000000000F1 /* CloudAccountService.swift */; };
 		5ED3E0E82FD1BB4D003083F0 /* Holding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0E72FD1BB4D003083F0 /* Holding.swift */; };
 		5ED3E0E92FD1BB4D003083F0 /* Holding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0E72FD1BB4D003083F0 /* Holding.swift */; };
 		5ED3E0EA2FD1BB4D003083F0 /* Holding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ED3E0E72FD1BB4D003083F0 /* Holding.swift */; };
@@ -110,19 +110,12 @@
 		5EDEEPLK01000000000000B1 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEEPLK01000000000000F1 /* DeepLink.swift */; };
 		5EDEEPLK01000000000000B2 /* DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEEPLK01000000000000F1 /* DeepLink.swift */; };
 		5EDEP00100000000000000B1 /* DepositTerms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00100000000000000F1 /* DepositTerms.swift */; };
-		5EQDAY0100000000000000B1 /* DailyReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0100000000000000F1 /* DailyReminder.swift */; };
 		5EDEP00100000000000000C1 /* DepositTerms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00100000000000000F1 /* DepositTerms.swift */; };
-		5EQDAY0100000000000000C1 /* DailyReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0100000000000000F1 /* DailyReminder.swift */; };
 		5EDEP00100000000000000C2 /* DepositTerms.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00100000000000000F1 /* DepositTerms.swift */; };
-		5EQDAY0100000000000000C2 /* DailyReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0100000000000000F1 /* DailyReminder.swift */; };
 		5EDEP00200000000000000B1 /* DepositPayoutService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00200000000000000F1 /* DepositPayoutService.swift */; };
 		5EDEP00300000000000000B1 /* DepositMaturitySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00300000000000000F1 /* DepositMaturitySheet.swift */; };
-		5EQDAY0300000000000000B1 /* QuietDayPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0300000000000000F1 /* QuietDayPrompt.swift */; };
-		5EQDAY0600000000000000B1 /* InAppNoticeToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0600000000000000F1 /* InAppNoticeToast.swift */; };
 		5EDEP00400000000000000B1 /* DepositInfoSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00400000000000000F1 /* DepositInfoSheet.swift */; };
 		5EDEP00500000000000000B1 /* DepositLadderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00500000000000000F1 /* DepositLadderService.swift */; };
-		5EQDAY0200000000000000B1 /* DailyReminderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0200000000000000F1 /* DailyReminderService.swift */; };
-		5EQDAY0500000000000000B1 /* InAppNoticeCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0500000000000000F1 /* InAppNoticeCenter.swift */; };
 		5EDEP00600000000000000B1 /* DepositTranche.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00600000000000000F1 /* DepositTranche.swift */; };
 		5EDEP00600000000000000C1 /* DepositTranche.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00600000000000000F1 /* DepositTranche.swift */; };
 		5EDEP00600000000000000C2 /* DepositTranche.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00600000000000000F1 /* DepositTranche.swift */; };
@@ -190,8 +183,18 @@
 		5EPLSPND01000000000000B1 /* PlannedSpend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPLSPND01000000000000F1 /* PlannedSpend.swift */; };
 		5EPLSPND01000000000000C1 /* PlannedSpend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPLSPND01000000000000F1 /* PlannedSpend.swift */; };
 		5EPRF00100000000000000B1 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPRF00100000000000000F1 /* ProfileView.swift */; };
-		5ECLDACC01000000000000B1 /* CloudAccountService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ECLDACC01000000000000F1 /* CloudAccountService.swift */; };
 		5EPSTORE01000000000000B1 /* PersistentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPSTORE01000000000000F1 /* PersistentStore.swift */; };
+		5EQDAY0100000000000000B1 /* DailyReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0100000000000000F1 /* DailyReminder.swift */; };
+		5EQDAY0100000000000000C1 /* DailyReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0100000000000000F1 /* DailyReminder.swift */; };
+		5EQDAY0100000000000000C2 /* DailyReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0100000000000000F1 /* DailyReminder.swift */; };
+		5EQDAY0200000000000000B1 /* DailyReminderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0200000000000000F1 /* DailyReminderService.swift */; };
+		5EQDAY0300000000000000B1 /* QuietDayPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0300000000000000F1 /* QuietDayPrompt.swift */; };
+		5EQDAY0400000000000000B1 /* SwipeUpToDismiss.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0400000000000000F1 /* SwipeUpToDismiss.swift */; };
+		5EQDAY0500000000000000B1 /* InAppNoticeCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0500000000000000F1 /* InAppNoticeCenter.swift */; };
+		5EQDAY0600000000000000B1 /* InAppNoticeToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0600000000000000F1 /* InAppNoticeToast.swift */; };
+		5EQDAY0700000000000000B1 /* MascotMood.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0700000000000000F1 /* MascotMood.swift */; };
+		5EQDAY0700000000000000C1 /* MascotMood.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0700000000000000F1 /* MascotMood.swift */; };
+		5EQDAY0700000000000000C2 /* MascotMood.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0700000000000000F1 /* MascotMood.swift */; };
 		5ERECCRD01000000000000B1 /* RecordsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ERECCRD01000000000000F1 /* RecordsCard.swift */; };
 		5ESET00100000000000000B1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ESET00100000000000000F1 /* SettingsView.swift */; };
 		5ESTREC001000000000000B1 /* StoreRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ESTREC001000000000000F1 /* StoreRecoveryView.swift */; };
@@ -289,7 +292,6 @@
 		5E4793A12FD201AC00568427 /* BudgetStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetStepView.swift; sourceTree = "<group>"; };
 		5E4793A32FD2021F00568427 /* BudgetVsActualCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetVsActualCard.swift; sourceTree = "<group>"; };
 		5E4793A62FD207EA00568427 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
-		5EQDAY0400000000000000F1 /* SwipeUpToDismiss.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeUpToDismiss.swift; sourceTree = "<group>"; };
 		5E78E4DA2FDA02D600867892 /* SlideToConfirm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlideToConfirm.swift; sourceTree = "<group>"; };
 		5E78E4DC2FDA02F600867892 /* BigAmountField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BigAmountField.swift; sourceTree = "<group>"; };
 		5E78E4DE2FDA033E00867892 /* NewTransactionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewTransactionSheet.swift; sourceTree = "<group>"; };
@@ -324,6 +326,7 @@
 		5ECELB0100000000000000F1 /* Celebration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Celebration.swift; sourceTree = "<group>"; };
 		5ECELB0200000000000000F1 /* AchievementBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementBadge.swift; sourceTree = "<group>"; };
 		5ECELB0300000000000000F1 /* CelebrationFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CelebrationFeedback.swift; sourceTree = "<group>"; };
+		5ECLDACC01000000000000F1 /* CloudAccountService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudAccountService.swift; sourceTree = "<group>"; };
 		5ED3E0E72FD1BB4D003083F0 /* Holding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Holding.swift; sourceTree = "<group>"; };
 		5ED3E0EB2FD1BB9D003083F0 /* HoldingEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoldingEditorView.swift; sourceTree = "<group>"; };
 		5ED3E0EE2FD1BE69003083F0 /* GreetingHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreetingHeaderView.swift; sourceTree = "<group>"; };
@@ -333,15 +336,10 @@
 		5ED3E0F62FD1BEE2003083F0 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		5EDEEPLK01000000000000F1 /* DeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLink.swift; sourceTree = "<group>"; };
 		5EDEP00100000000000000F1 /* DepositTerms.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositTerms.swift; sourceTree = "<group>"; };
-		5EQDAY0100000000000000F1 /* DailyReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyReminder.swift; sourceTree = "<group>"; };
 		5EDEP00200000000000000F1 /* DepositPayoutService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositPayoutService.swift; sourceTree = "<group>"; };
 		5EDEP00300000000000000F1 /* DepositMaturitySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositMaturitySheet.swift; sourceTree = "<group>"; };
-		5EQDAY0300000000000000F1 /* QuietDayPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuietDayPrompt.swift; sourceTree = "<group>"; };
-		5EQDAY0600000000000000F1 /* InAppNoticeToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppNoticeToast.swift; sourceTree = "<group>"; };
 		5EDEP00400000000000000F1 /* DepositInfoSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositInfoSheet.swift; sourceTree = "<group>"; };
 		5EDEP00500000000000000F1 /* DepositLadderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositLadderService.swift; sourceTree = "<group>"; };
-		5EQDAY0200000000000000F1 /* DailyReminderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyReminderService.swift; sourceTree = "<group>"; };
-		5EQDAY0500000000000000F1 /* InAppNoticeCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppNoticeCenter.swift; sourceTree = "<group>"; };
 		5EDEP00600000000000000F1 /* DepositTranche.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositTranche.swift; sourceTree = "<group>"; };
 		5EDEP00700000000000000F1 /* DepositLadder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositLadder.swift; sourceTree = "<group>"; };
 		5EDLROUT01000000000000F1 /* DeepLinkRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkRouter.swift; sourceTree = "<group>"; };
@@ -385,8 +383,14 @@
 		5EPICK0100000000000000F1 /* PickerRowLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerRowLabel.swift; sourceTree = "<group>"; };
 		5EPLSPND01000000000000F1 /* PlannedSpend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannedSpend.swift; sourceTree = "<group>"; };
 		5EPRF00100000000000000F1 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
-		5ECLDACC01000000000000F1 /* CloudAccountService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudAccountService.swift; sourceTree = "<group>"; };
 		5EPSTORE01000000000000F1 /* PersistentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistentStore.swift; sourceTree = "<group>"; };
+		5EQDAY0100000000000000F1 /* DailyReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyReminder.swift; sourceTree = "<group>"; };
+		5EQDAY0200000000000000F1 /* DailyReminderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyReminderService.swift; sourceTree = "<group>"; };
+		5EQDAY0300000000000000F1 /* QuietDayPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuietDayPrompt.swift; sourceTree = "<group>"; };
+		5EQDAY0400000000000000F1 /* SwipeUpToDismiss.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeUpToDismiss.swift; sourceTree = "<group>"; };
+		5EQDAY0500000000000000F1 /* InAppNoticeCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppNoticeCenter.swift; sourceTree = "<group>"; };
+		5EQDAY0600000000000000F1 /* InAppNoticeToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppNoticeToast.swift; sourceTree = "<group>"; };
+		5EQDAY0700000000000000F1 /* MascotMood.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotMood.swift; sourceTree = "<group>"; };
 		5ERECCRD01000000000000F1 /* RecordsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordsCard.swift; sourceTree = "<group>"; };
 		5ESET00100000000000000F1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		5ESTREC001000000000000F1 /* StoreRecoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreRecoveryView.swift; sourceTree = "<group>"; };
@@ -578,6 +582,7 @@
 				5E31E5422FD16B6D00FF83C8 /* Account.swift */,
 				5EDEP00100000000000000F1 /* DepositTerms.swift */,
 				5EQDAY0100000000000000F1 /* DailyReminder.swift */,
+				5EQDAY0700000000000000F1 /* MascotMood.swift */,
 				5EDEP00600000000000000F1 /* DepositTranche.swift */,
 				5EDEP00700000000000000F1 /* DepositLadder.swift */,
 				5EINS00100000000000000F1 /* PeriodDrivers.swift */,
@@ -1100,6 +1105,7 @@
 				5E31E5532FD16B6D00FF83C8 /* Account.swift in Sources */,
 				5EDEP00100000000000000B1 /* DepositTerms.swift in Sources */,
 				5EQDAY0100000000000000B1 /* DailyReminder.swift in Sources */,
+				5EQDAY0700000000000000B1 /* MascotMood.swift in Sources */,
 				5EDEP00600000000000000B1 /* DepositTranche.swift in Sources */,
 				5EDEP00700000000000000B1 /* DepositLadder.swift in Sources */,
 				5EDEP00500000000000000B1 /* DepositLadderService.swift in Sources */,
@@ -1158,6 +1164,7 @@
 				5E31E5652FD16B6D00FF83C8 /* Account.swift in Sources */,
 				5EDEP00100000000000000C1 /* DepositTerms.swift in Sources */,
 				5EQDAY0100000000000000C1 /* DailyReminder.swift in Sources */,
+				5EQDAY0700000000000000C1 /* MascotMood.swift in Sources */,
 				5EDEP00600000000000000C1 /* DepositTranche.swift in Sources */,
 				5EDEP00700000000000000C1 /* DepositLadder.swift in Sources */,
 				5EINS00100000000000000C1 /* PeriodDrivers.swift in Sources */,
@@ -1196,6 +1203,7 @@
 				5E31E55C2FD16B6D00FF83C8 /* Account.swift in Sources */,
 				5EDEP00100000000000000C2 /* DepositTerms.swift in Sources */,
 				5EQDAY0100000000000000C2 /* DailyReminder.swift in Sources */,
+				5EQDAY0700000000000000C2 /* MascotMood.swift in Sources */,
 				5EDEP00600000000000000C2 /* DepositTranche.swift in Sources */,
 				5EDEP00700000000000000C2 /* DepositLadder.swift in Sources */,
 				5EINS00100000000000000C2 /* PeriodDrivers.swift in Sources */,

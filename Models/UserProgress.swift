@@ -85,6 +85,10 @@ final class UserProgress {
     /// weeks; only the streak's bridge and the weekly cap ever read it.
     var quietDays: [String] = []
 
+    /// When a celebration (level-up, achievement) was last queued. The rat is
+    /// happy for the rest of that day (`MascotMood`).
+    var lastCelebrationAt: Date?
+
     /// The most recent award, so the card can always say what the last points
     /// were for. Stored as the raw value; read it back through `lastAwardReason`.
     var lastAwardReasonRaw: String?
@@ -151,6 +155,7 @@ extension UserProgress {
         unlockedAchievements = Self.union(unlockedAchievements, other.unlockedAchievements)
         pendingCelebrations = Self.union(pendingCelebrations, other.pendingCelebrations)
         quietDays = Self.union(quietDays, other.quietDays)
+        lastCelebrationAt = [lastCelebrationAt, other.lastCelebrationAt].compactMap { $0 }.max()
         if let theirs = other.pendingLevelUpLevel {
             pendingLevelUpLevel = max(pendingLevelUpLevel ?? theirs, theirs)
         }

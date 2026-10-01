@@ -22,6 +22,9 @@ struct ProfileView: View {
     /// dashboard's greeting rat opens the same screen.
     let wardrobeTransition: Namespace.ID
     var onOpenWardrobe: () -> Void = {}
+    /// The rat's mood, worked out by `HomeView` for the greeting too, so the
+    /// two pictures never disagree.
+    var mood: MascotMood = .calm
 
     @Query(sort: \UserProfile.createdAt) private var profiles: [UserProfile]
     /// Sorted oldest-first to match the row `ProgressService` resolves to —
@@ -112,7 +115,7 @@ struct ProfileView: View {
         HStack(spacing: Theme.Spacing.md) {
             // The rat is the way into the wardrobe — tap yourself to dress.
             Button(action: onOpenWardrobe) {
-                ProfileAvatar(wardrobeTransition: wardrobeTransition)
+                ProfileAvatar(wardrobeTransition: wardrobeTransition, mood: mood)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Text("המלתחה"))
@@ -276,20 +279,24 @@ private struct ProfileAvatar: View {
 
     /// The wardrobe zooms out of this picture and back into it.
     let wardrobeTransition: Namespace.ID
+    let mood: MascotMood
 
     @Query(sort: \MascotConfig.createdAt, order: .forward)
     private var configs: [MascotConfig]
 
-    init(diameter: CGFloat = 68, wardrobeTransition: Namespace.ID) {
+    init(diameter: CGFloat = 68, wardrobeTransition: Namespace.ID, mood: MascotMood = .calm) {
         _diameter = ScaledMetric(wrappedValue: diameter, relativeTo: .largeTitle)
         self.wardrobeTransition = wardrobeTransition
+        self.mood = mood
     }
 
     private var wearsHat: Bool { configs.first?.hatID != nil }
 
     var body: some View {
         AvatarPortrait(diameter: diameter, framing: wearsHat ? .headroom : .head) {
-            UserAvatar(crop: .bust, pose: .thumbsup)
+            // The crop is the head, so it's the face that carries the mood;
+            // a calm rat keeps its thumbs-up.
+            UserAvatar(crop: .bust, rig: mood == .calm ? AvatarPose.thumbsup.rig : mood.rig, mood: mood)
         }
         .background(Theme.Colors.accent.opacity(0.12))
         .clipShape(Circle())

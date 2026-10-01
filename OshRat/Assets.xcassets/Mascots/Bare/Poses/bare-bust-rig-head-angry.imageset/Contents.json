@@ -1,0 +1,15 @@
+{
+  "images": [
+    {
+      "filename": "bare-bust-rig-head-angry.svg",
+      "idiom": "universal"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  },
+  "properties": {
+    "preserves-vector-representation": true
+  }
+}

@@ -151,13 +151,18 @@ struct HomeView: View {
     /// `.now` on each render so that a day rolling over while the app is open
     /// actually re-renders — nothing else would prompt one at midnight.
     @State private var today: Date = BudgetReminderService.calendar.startOfDay(for: .now)
-    /// The time the quiet-day prompt judges by. Ticked at 19:00 (and on every
-    /// activation), so the prompt appears in an app left open into the evening.
+    /// The time the quiet-day prompt and the rat's mood judge by. Ticked at
+    /// 17:00 and 19:00 (and on every activation), so both change in an app
+    /// left open into the evening.
     @State private var reminderClock: Date = .now
     /// Bumped on every activation, so the evening reminders are rescheduled
     /// then too — the user may have allowed notifications in Settings meanwhile.
     @State private var activationCount = 0
     @AppStorage(DailyReminderService.isEnabledKey) private var isEveningReminderEnabled = true
+    #if DEBUG
+    /// The admin panel's forced mood (`MascotMoodScenario`); empty follows the data.
+    @AppStorage(MascotMoodScenario.storageKey) private var debugMoodScenario = ""
+    #endif
 
     var body: some View {
         ZStack {
@@ -187,7 +192,8 @@ struct HomeView: View {
                     NavigationStack {
                         ProfileView(
                             wardrobeTransition: wardrobeTransition,
-                            onOpenWardrobe: { openWardrobe(from: .profilePicture) }
+                            onOpenWardrobe: { openWardrobe(from: .profilePicture) },
+                            mood: mascotMood.mood
                         )
                     }
                 }
@@ -358,14 +364,19 @@ struct HomeView: View {
             await DailyReminderService.askPermissionOnce()
             await DailyReminderService.reschedule(in: modelContext)
         }
-        // Wake the quiet-day prompt at 19:00 if the app is open then.
+        // Tick the clock at each hour the screen changes by itself if the app
+        // is open then: the rat's worry at 17:00, and the quiet-day prompt
+        // and the rat's sadness at 19:00.
         .task(id: today) {
             reminderClock = .now
-            guard let evening = Calendar.current.date(
-                bySettingHour: DailyReminder.hour, minute: 0, second: 0, of: today
-            ), evening > .now else { return }
-            try? await Task.sleep(for: .seconds(evening.timeIntervalSinceNow))
-            if !Task.isCancelled { reminderClock = .now }
+            let hours = Set(MascotMood.clockThresholds + [DailyReminder.hour]).sorted()
+            for hour in hours {
+                guard let moment = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: today),
+                      moment > .now else { continue }
+                try? await Task.sleep(for: .seconds(moment.timeIntervalSinceNow))
+                if Task.isCancelled { return }
+                reminderClock = .now
+            }
         }
         .sheet(isPresented: $isEditingBudget) {
             BudgetEditorSheet()
@@ -675,7 +686,9 @@ struct HomeView: View {
     }
 
     private var headerRow: some View {
-        HStack(alignment: .top) {
+        // Read once: it walks today's rows and, when over budget, the month's.
+        let mood = mascotMood
+        return HStack(alignment: .top) {
             GreetingHeaderView(
                 name: profiles.first?.name ?? "",
                 wardrobeTransition: wardrobeTransition,
@@ -684,7 +697,9 @@ struct HomeView: View {
                 // edge (its negative bottom padding, less the stack spacing);
                 // the badge's base hovers `md` above it. So the text has to
                 // stop `sm + md + badge` above the row's bottom, plus a breath.
-                badgeClearance: Theme.Spacing.sm + Theme.Spacing.md + levelBadgeHeight + Theme.Spacing.xs
+                badgeClearance: Theme.Spacing.sm + Theme.Spacing.md + levelBadgeHeight + Theme.Spacing.xs,
+                mood: mood.mood,
+                moodLine: mood.reason.line
             )
             #if DEBUG
             // Was a bare reset button; the wipe now lives inside the panel
@@ -993,6 +1008,63 @@ struct HomeView: View {
     /// its semantics ("this month's budget was breached") must not follow
     /// the card as the user browses other periods or the year view. Cheap on
     /// a hand-entered ledger, so recomputing per render is fine.
+    /// How the rat feels, and why — for the greeting and the profile picture.
+    /// The facts come from data this view already holds; the rules are
+    /// `MascotMood.reading`'s.
+    private var mascotMood: (mood: MascotMood, reason: MascotMoodReason) {
+        #if DEBUG
+        // A mood forced from the admin panel, or `-demoMood sad` on the
+        // launch line — for testing and screenshots, whatever the data says.
+        let forced = MascotMoodScenario(rawValue: debugMoodScenario)
+            ?? LaunchArguments.value(after: "-demoMood").flatMap(MascotMoodScenario.init(mood:))
+        if let forced { return forced.reading }
+        #endif
+        let now = reminderClock
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: now)
+        let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? now
+
+        // The ledger is newest first: skip anything dated after today, stop at
+        // the first row before it.
+        var luxuries = 0
+        for transaction in transactions {
+            if transaction.date >= startOfTomorrow { continue }
+            if transaction.date < startOfToday { break }
+            if transaction.kind == .expense, !transaction.isTransfer, !transaction.isManualBalanceEdit,
+               transaction.category?.nature == .want {
+                luxuries += 1
+            }
+        }
+
+        // Over budget now — and was it already before today's logging? Only
+        // worked out when it matters, since it's a second pass over the month.
+        let isOverBudget = monthlyBudgetReport.hasOverrun
+        var wentOverToday = false
+        if isOverBudget {
+            let before = BudgetVsActual(
+                budgetItems: budgetItems,
+                transactions: transactions.filter { ($0.createdAt ?? .distantPast) < startOfToday },
+                preferredCurrency: preferredCurrencyCode,
+                fxSnapshot: fxSnapshots.first
+            )
+            wentOverToday = !before.hasOverrun
+        }
+
+        let progress = progressRows.first
+        let facts = MascotMoodFacts(
+            now: now,
+            isReminderDay: DailyReminder.isReminderDay(now),
+            hasActivityToday: progress.map { ProgressService.hasActivity(on: now, progress: $0) } ?? false,
+            isQuietToday: progress.map { ProgressService.isQuietDay(now, progress: $0) } ?? false,
+            luxuriesToday: luxuries,
+            wentOverBudgetToday: wentOverToday,
+            isOverBudget: isOverBudget,
+            celebratedToday: progress?.lastCelebrationAt.map { calendar.isDate($0, inSameDayAs: now) } ?? false
+        )
+        return MascotMood.reading(for: facts)
+    }
+
+
     private var monthlyBudgetReport: BudgetVsActual {
         report(for: .current())
     }

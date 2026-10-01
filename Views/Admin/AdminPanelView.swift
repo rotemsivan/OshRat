@@ -32,6 +32,7 @@ struct AdminPanelView: View {
     /// Why the quiet-day card is hidden right now, or `nil` if it shows.
     @State private var promptHiddenReason: String?
     @State private var progressRowCount = 0
+    @AppStorage(MascotMoodScenario.storageKey) private var moodScenario = ""
 
     /// Fired once the store has been rewritten. Lets a presenter that outlives
     /// the change clean up after itself — onboarding uses it to throw away a
@@ -48,6 +49,7 @@ struct AdminPanelView: View {
                 scenariosSection
                 paymentsSection
                 eveningReminderSection
+                moodSection
                 resetSection
             }
             .scrollContentBackground(.hidden)
@@ -201,6 +203,24 @@ struct AdminPanelView: View {
             Text("תזכורת ערב")
         } footer: {
             Text("מזיז את הפעילות האחרונה ליום העבודה הקודם ומוריד את סימון היום השקט, כך שהיום נראה כאילו לא נרשם בו כלום — הרצף נשמר. כל טעינת תרחיש רושמת פעילות להיום. עם ‎-demoQuietPrompt הכרטיס מופיע גם לפני 19:00.")
+        }
+    }
+
+    private var moodSection: some View {
+        Section {
+            Picker(selection: $moodScenario) {
+                Text("לפי הנתונים").tag("")
+                ForEach(MascotMoodScenario.allCases) { scenario in
+                    Text(verbatim: scenario.title).tag(scenario.rawValue)
+                }
+            } label: {
+                Label("מצב רוח", systemImage: "face.smiling")
+            }
+            .pickerStyle(.inline)
+        } header: {
+            Text("העכבר")
+        } footer: {
+            Text("כופה מצב רוח על העכבר בדשבורד ובפרופיל, עם המשפט שלו בבועה. \"לפי הנתונים\" מחזיר את הכללים האמיתיים. נשמר עד שמשנים אותו.")
         }
     }
 
