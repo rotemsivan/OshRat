@@ -74,13 +74,13 @@ struct ApplePaySetupView: View {
     /// name like "Run Immediately" never splits across lines in the RTL text.
     /// Step 4 matters: the list after "Next" also offers existing shortcuts,
     /// and the action only gets fields to connect when it's added to a new
-    /// one (step 5).
+    /// one — which opens straight onto the action search, so picking it is
+    /// part of the same step.
     private static let stepTexts: [LocalizedStringKey] = [
         "פתחו את **קיצורים** ועברו ללשונית **אוטומציה**.",
         "הקישו **+** ובחרו **ארנק** (Wallet).",
         "תחת **כשאני מקיש/ה** (When\u{00A0}I\u{00A0}tap) בחרו את הכרטיסים, סמנו **הפעלה מיידית** (Run\u{00A0}Immediately) והקישו **הבא** (Next).",
-        "בחרו **קיצור חדש** (New\u{00A0}Shortcut).",
-        "הקישו **הוספת פעולה** (Add\u{00A0}Action), חפשו **רישום תשלום** והקישו עליה.",
+        "בחרו **קיצור חדש** (New\u{00A0}Shortcut). במסך הפעולות שנפתח, חפשו **רישום תשלום** והקישו עליה.",
         "בפעולה, הקישו על המילה **סכום** ובחרו **קלט קיצור** (Shortcut\u{00A0}Input). הקישו על **קלט קיצור** שנכנס ובחרו **סכום** (Amount).",
         "עשו אותו דבר ב**בית עסק** (בחרו Merchant) וב**כרטיס** (בחרו Card\u{00A0}or\u{00A0}Pass). הכרטיס לא חובה — הוא רק עוזר לבחור את החשבון.",
         "הקישו **סיום** (Done)."
