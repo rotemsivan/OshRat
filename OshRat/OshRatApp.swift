@@ -41,6 +41,7 @@ struct OshRatApp: App {
     /// xcrun simctl launch booted com.oshrat.app.dev -demoScenario saver -demoMonths 24
     /// xcrun simctl launch booted com.oshrat.app.dev -resetStore
     /// xcrun simctl launch booted com.oshrat.app.dev -demoEquip item-hat-propeller-red
+    /// xcrun simctl launch booted com.oshrat.app.dev -demoScenario saver -demoLevel 25
     /// xcrun simctl launch booted com.oshrat.app.dev -hideAdmin
     /// xcrun simctl launch booted com.oshrat.app.dev -demoPayment "42.90,ILS,SHUFERSAL DEAL,Visa 1234"
     /// xcrun simctl launch booted com.oshrat.app.dev -demoPendingPayments
@@ -68,6 +69,32 @@ struct OshRatApp: App {
         if let scenario = LaunchArguments.value(after: "-demoScenario").flatMap(DemoScenario.init(rawValue:)) {
             let months = LaunchArguments.value(after: "-demoMonths").flatMap { Int($0) }
             DemoDataService.deploy(scenario, monthsOverride: months, in: context)
+        }
+
+        // After the deploy, which writes the scenario's own XP: lifts the store
+        // to a level, e.g. `-demoLevel 25` to unlock the whole wardrobe. Sets
+        // the total straight onto the row, as the deploy does, and drops any
+        // queued toasts so the jump doesn't announce itself. Achievements are
+        // evaluated first: otherwise the dashboard's own pass pays their XP on
+        // top and the store lands a level or two higher, with a toast.
+        if let level = LaunchArguments.value(after: "-demoLevel").flatMap({ Int($0) }) {
+            ProgressService.evaluateAchievements(in: context)
+            let progress = ProgressService.progress(in: context)
+            progress.totalXP = XPRules.totalXP(toReach: min(max(level, 1), XPRules.maxLevel))
+            progress.pendingLevelUpLevel = nil
+            progress.pendingCelebrations = []
+            try? context.save()
+        }
+
+        // Renames the profile, e.g. `-demoName עמית`, for screenshots with a
+        // name other than the scenario's. Oldest profile first, as every
+        // profile `@Query` reads it.
+        if let name = LaunchArguments.value(after: "-demoName"), !name.isEmpty {
+            let descriptor = FetchDescriptor<UserProfile>(sortBy: [SortDescriptor(\.createdAt)])
+            if let profile = try? context.fetch(descriptor).first {
+                profile.name = name
+                try? context.save()
+            }
         }
 
         // Comma-separated, so a whole look can be put on at once:

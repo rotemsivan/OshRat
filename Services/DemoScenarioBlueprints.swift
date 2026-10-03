@@ -51,7 +51,7 @@ struct DemoAccountSpec {
     /// balance from it, so the ledger genuinely adds up to what the dashboard
     /// shows instead of the two being typed independently.
     var targetClosingBalance: Decimal?
-    /// Wallets (ביט, פייבוקס) hold a float, not a salary: when one is about to
+    /// Wallets (ביס) hold a float, not a salary: when one is about to
     /// go overdrawn the generator moves money in from the primary account,
     /// which is what a person actually does. Without it a wallet that only ever
     /// pays out ends the history tens of thousands in the red.
@@ -156,8 +156,8 @@ enum DemoScenarioLibrary {
             profession: "מעצבת גרפית",
             goalsText: "לסגור את המינוס ולחסוך לטיול הגדול",
             accounts: [
-                DemoAccountSpec(key: "current", name: "עו״ש לאומי", type: .current, isFavorite: true, targetClosingBalance: 9_500),
-                DemoAccountSpec(key: "wallet", name: "ביט", type: .digitalWallet, openingBalance: 280, topUpWhenEmpty: true),
+                DemoAccountSpec(key: "current", name: "עו״ש עכברוש", type: .current, isFavorite: true, targetClosingBalance: 9_500),
+                DemoAccountSpec(key: "wallet", name: "ביס", type: .digitalWallet, openingBalance: 280, topUpWhenEmpty: true),
                 DemoAccountSpec(key: "savings", name: "חיסכון לטיול", type: .savings, openingBalance: 3_000)
             ],
             incomes: [
@@ -232,7 +232,7 @@ enum DemoScenarioLibrary {
             goalsText: "לעבור לדירה גדולה יותר ולחסוך ללימודים של הילדים",
             accounts: [
                 DemoAccountSpec(key: "current", name: "עו״ש משותף", type: .current, isFavorite: true, targetClosingBalance: 62_000),
-                DemoAccountSpec(key: "wallet", name: "ביט", type: .digitalWallet, openingBalance: 540, topUpWhenEmpty: true),
+                DemoAccountSpec(key: "wallet", name: "ביס", type: .digitalWallet, openingBalance: 540, topUpWhenEmpty: true),
                 DemoAccountSpec(key: "usd", name: "חשבון דולרי", type: .current, currency: "USD", openingBalance: 3_200),
                 DemoAccountSpec(
                     key: "kids",
@@ -339,8 +339,8 @@ enum DemoScenarioLibrary {
             profession: "רואת חשבון",
             goalsText: "לפרוש מוקדם ולחיות מהריבית",
             accounts: [
-                DemoAccountSpec(key: "current", name: "עו״ש דיסקונט", type: .current, isFavorite: true, targetClosingBalance: 54_000),
-                DemoAccountSpec(key: "wallet", name: "פייבוקס", type: .digitalWallet, openingBalance: 190, topUpWhenEmpty: true),
+                DemoAccountSpec(key: "current", name: "עו״ש עכברוש", type: .current, isFavorite: true, targetClosingBalance: 54_000),
+                DemoAccountSpec(key: "wallet", name: "ביס", type: .digitalWallet, openingBalance: 190, topUpWhenEmpty: true),
                 DemoAccountSpec(key: "usd", name: "חשבון דולרי", type: .current, currency: "USD", openingBalance: 5_400),
                 DemoAccountSpec(
                     key: "matured",
@@ -461,7 +461,7 @@ enum DemoScenarioLibrary {
             accounts: [
                 DemoAccountSpec(key: "business", name: "עו״ש עסקי", type: .current, isFavorite: true, targetClosingBalance: 31_000),
                 DemoAccountSpec(key: "personal", name: "עו״ש פרטי", type: .current, targetClosingBalance: 6_500),
-                DemoAccountSpec(key: "wallet", name: "ביט", type: .digitalWallet, openingBalance: 130, topUpWhenEmpty: true),
+                DemoAccountSpec(key: "wallet", name: "ביס", type: .digitalWallet, openingBalance: 130, topUpWhenEmpty: true),
                 DemoAccountSpec(
                     key: "deposit",
                     name: "פיקדון רבעוני",
