@@ -9,6 +9,9 @@ struct IncomeSourceEditorSheet: View {
     private let isNew: Bool
     private let onSave: (IncomeSourceDraft) -> Void
     private let onCancel: () -> Void
+    /// Set by a save tapped with a required field empty; the empty fields
+    /// then show `MissingFieldBadge`.
+    @State private var showsMissingFields = false
 
     @Environment(\.dismiss) private var dismiss
 
@@ -31,6 +34,7 @@ struct IncomeSourceEditorSheet: View {
             Form {
                 Section {
                     HebrewTextField("שם מקור ההכנסה", text: $draft.name, submitLabel: .next)
+                        .missingFieldBadge(showsMissingFields && isNameEmpty)
                 } footer: {
                     Text("למשל: משכורת, עבודה צדדית, השכרת דירה.")
                 }
@@ -75,14 +79,22 @@ struct IncomeSourceEditorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("שמירה") {
+                        guard !isNameEmpty else {
+                            showsMissingFields = true
+                            MissingFields.signalRefusedSave()
+                            return
+                        }
                         onSave(draft)
                         dismiss()
                     }
-                    .disabled(draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
         .tint(Theme.Colors.accent)
+    }
+
+    private var isNameEmpty: Bool {
+        draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }
 

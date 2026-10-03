@@ -13,6 +13,9 @@ struct HoldingEditorView: View {
     @State private var draft: HoldingDraft
     private let isNew: Bool
     private let onSave: (HoldingDraft) -> Void
+    /// Set by a save tapped with a required field empty; the empty fields
+    /// then show `MissingFieldBadge`.
+    @State private var showsMissingFields = false
 
     @Environment(\.dismiss) private var dismiss
 
@@ -43,7 +46,9 @@ struct HoldingEditorView: View {
 
                 HebrewTextField("שם הנכס", text: $draft.name, submitLabel: .next)
             } header: {
+                // Either field will do, so the mark sits on the pair.
                 Text("פרטי הנכס")
+                    .missingFieldBadge(showsMissingFields && !isSavable)
             } footer: {
                 Text("למשל: TEVA — טבע, או VOO — Vanguard S&P 500. אפשר גם נכסים שאינם מניות, כגון אג״ח או קרנות.")
             }
@@ -77,10 +82,14 @@ struct HoldingEditorView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("שמירה") {
+                    guard isSavable else {
+                        showsMissingFields = true
+                        MissingFields.signalRefusedSave()
+                        return
+                    }
                     onSave(draft)
                     dismiss()
                 }
-                .disabled(!isSavable)
             }
         }
         .tint(Theme.Colors.accent)

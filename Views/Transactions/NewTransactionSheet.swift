@@ -117,6 +117,9 @@ struct NewTransactionSheet: View {
     /// threshold, driving the themed glow that flashes over the sheet
     /// (coloured by `kind`) just before it dismisses.
     @State private var hasConfirmed: Bool = false
+    /// Set when the user slides to confirm with a required field still
+    /// empty; each empty one then shows `MissingFieldBadge` by its label.
+    @State private var showsMissingFields = false
 
     /// Files staged for this transaction (receipts, invoices). Held in
     /// memory while the sheet is open, then materialized into
@@ -349,6 +352,10 @@ struct NewTransactionSheet: View {
                     label: confirmLabel,
                     isEnabled: canConfirm,
                     tint: kindTint,
+                    onBlockedAttempt: {
+                        showsMissingFields = true
+                        MissingFields.signalRefusedSave()
+                    },
                     onConfirm: handleConfirm
                 )
                 .padding(.horizontal, Theme.Spacing.lg)
@@ -487,7 +494,7 @@ struct NewTransactionSheet: View {
     /// transfer is exactly how money reaches savings / investment accounts.
     private var transferSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            sectionLabel("העברה בין חשבונות")
+            sectionLabel("העברה בין חשבונות", isMissing: isMissing(sourceAccount == nil || destinationAccount == nil))
             HStack(spacing: Theme.Spacing.xs) {
                 // Source first → lands on the visual right under RTL; the
                 // arrow then flows leftward toward the destination chip.
@@ -563,7 +570,7 @@ struct NewTransactionSheet: View {
 
     private var accountSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            sectionLabel(kind == .income ? "לאיזה חשבון להוסיף" : "מאיזה חשבון")
+            sectionLabel(kind == .income ? "לאיזה חשבון להוסיף" : "מאיזה חשבון", isMissing: isMissing(sourceAccount == nil))
             Menu {
                 ForEach(selectableAccounts) { account in
                     Button {
@@ -610,7 +617,7 @@ struct NewTransactionSheet: View {
     /// category's glyph too, as the budget editor's does.
     private var categorySection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            sectionLabel("קטגוריה")
+            sectionLabel("קטגוריה", isMissing: isMissing(category == nil))
             Menu {
                 if let transactionKind = kind.transactionKind {
                     CategoryMenuContent(
@@ -635,7 +642,8 @@ struct NewTransactionSheet: View {
     /// expense only — a transfer takes no note).
     private var titleSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            sectionLabel("שם התנועה")
+            // Only income and expense need a title; a transfer may go without.
+            sectionLabel("שם התנועה", isMissing: kind != .transfer && isMissing(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
             VStack(alignment: .leading, spacing: 0) {
                 HebrewTextField(titlePlaceholder, text: $title)
                     .padding(Theme.Spacing.md)
@@ -781,7 +789,7 @@ struct NewTransactionSheet: View {
 
     private var amountSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            sectionLabel(kind == .transfer ? "סכום להעברה" : "סכום")
+            sectionLabel(kind == .transfer ? "סכום להעברה" : "סכום", isMissing: isMissing(amount <= 0))
             // Tighter than the section spacing so the budget bar reads as
             // part of the amount box rather than a section of its own.
             VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
@@ -819,11 +827,12 @@ struct NewTransactionSheet: View {
 
     // MARK: - Small helpers
 
-    private func sectionLabel(_ text: LocalizedStringKey) -> some View {
+    private func sectionLabel(_ text: LocalizedStringKey, isMissing: Bool = false) -> some View {
         Text(text)
             .font(Theme.Typography.caption)
             .foregroundStyle(Theme.Colors.textSecondary)
             .textCase(.uppercase)
+            .missingFieldBadge(isMissing)
             // `.leading` resolves to the visual right edge under RTL,
             // which is where the eye lands first in Hebrew. Earlier we
             // used `.trailing`, which mirrored to the visual left and
@@ -972,6 +981,12 @@ struct NewTransactionSheet: View {
             return "≈ \(dest.formatted(.currency(code: destination.currencyCode))) יתקבלו בחשבון היעד"
         }
         return "שערי חליפין לא זמינים — לא ניתן להמיר ל-\(destination.currencyCode)."
+    }
+
+    /// Whether a required field should show its badge: it's empty *and* the
+    /// user has already tried to confirm.
+    private func isMissing(_ isEmpty: Bool) -> Bool {
+        showsMissingFields && isEmpty
     }
 
     private var canConfirm: Bool {

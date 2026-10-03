@@ -224,7 +224,6 @@ struct OnboardingFlowView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            .disabled(!viewModel.canContinue)
         }
         .padding(.horizontal, Theme.Spacing.md)
         .padding(.vertical, Theme.Spacing.sm)
@@ -239,6 +238,13 @@ struct OnboardingFlowView: View {
     }
 
     private func primaryAction() {
+        // The button stays tappable so a tap can show *what's* missing
+        // rather than just sitting greyed out.
+        guard viewModel.canContinue else {
+            viewModel.showsMissingFields = true
+            MissingFields.signalRefusedSave()
+            return
+        }
         if viewModel.isOnLastStep {
             viewModel.commit(into: modelContext)
             // Everything is in the store now; nothing left to resume.

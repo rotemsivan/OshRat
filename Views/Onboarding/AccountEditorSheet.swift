@@ -41,6 +41,9 @@ struct AccountEditorSheet: View {
     private let lockCurrency: Bool
     private let onSave: (AccountDraft) -> Void
     private let onCancel: () -> Void
+    /// Set by a save tapped with a required field empty; the empty fields
+    /// then show `MissingFieldBadge`.
+    @State private var showsMissingFields = false
 
     @Environment(\.dismiss) private var dismiss
 
@@ -88,6 +91,7 @@ struct AccountEditorSheet: View {
                             FavouriteRatToggle(isFavorite: $draft.isFavorite)
                         }
                         HebrewTextField("שם החשבון", text: $draft.name, submitLabel: .next)
+                            .missingFieldBadge(showsMissingFields && isNameEmpty)
                             .padding(Theme.Spacing.md)
                             .background(Theme.Colors.surface)
                             .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
@@ -161,10 +165,14 @@ struct AccountEditorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("שמירה") {
+                        guard !isNameEmpty else {
+                            showsMissingFields = true
+                            MissingFields.signalRefusedSave()
+                            return
+                        }
                         onSave(draft)
                         dismiss()
                     }
-                    .disabled(draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
@@ -175,6 +183,10 @@ struct AccountEditorSheet: View {
         .overlay {
             FavouriteWindowGlow(isActive: draft.isFavorite)
         }
+    }
+
+    private var isNameEmpty: Bool {
+        draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     // MARK: - Sections

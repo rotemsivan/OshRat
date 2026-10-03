@@ -15,8 +15,10 @@ import SwiftUI
 ///
 /// `isEnabled` greys the control out — the gesture still works at a low
 /// level (we want the user to feel the resistance) but doesn't trigger
-/// the confirm callback. The colour cues and the disabled state come from
-/// the design system to stay consistent with the rest of the app.
+/// the confirm callback. Touching it in that state calls
+/// `onBlockedAttempt` instead, so the form can point at what's missing.
+/// The colour cues and the disabled state come from the design system to
+/// stay consistent with the rest of the app.
 struct SlideToConfirm: View {
     let label: String
     let isEnabled: Bool
@@ -25,6 +27,9 @@ struct SlideToConfirm: View {
     /// (income green / expense red / transfer accent) so the gesture is
     /// themed to the action being confirmed.
     var tint: Color = Theme.Colors.accent
+    /// A drag or tap while disabled — the user tried to confirm an
+    /// incomplete form, and the caller marks what's missing.
+    var onBlockedAttempt: (() -> Void)? = nil
     let onConfirm: () -> Void
 
     @Environment(\.layoutDirection) private var layoutDirection
@@ -63,6 +68,12 @@ struct SlideToConfirm: View {
                     .gesture(dragGesture(maxOffset: maxOffset))
             }
             .frame(width: trackWidth, height: Self.height)
+            // The thumb's drag reports its own blocked attempts; this covers
+            // a tap anywhere else on the track.
+            .contentShape(Capsule())
+            .onTapGesture {
+                if !isEnabled { onBlockedAttempt?() }
+            }
         }
         .frame(height: Self.height)
         .opacity(isEnabled ? 1 : 0.5)
@@ -125,6 +136,7 @@ struct SlideToConfirm: View {
             .onEnded { _ in
                 guard isEnabled else {
                     springBack()
+                    onBlockedAttempt?()
                     return
                 }
                 if dragOffset >= maxOffset * Self.confirmRatio {

@@ -24,6 +24,10 @@ struct PersonalDetailsStepView: View {
                     textContentType: .name,
                     autocapitalizationType: .words
                 )
+                .missingFieldBadge(
+                    viewModel.showsMissingFields
+                        && viewModel.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                )
 
                 HebrewTextField(
                     "מקצוע",

@@ -31,6 +31,7 @@ struct AccountsStepView: View {
                 }
             } header: {
                 Text("החשבונות שלי")
+                    .missingFieldBadge(viewModel.showsMissingFields && viewModel.accountDrafts.isEmpty)
             } footer: {
                 Text("הוסיפו עו״ש, חיסכון או תיק השקעות. אפשר להוסיף ולמחוק חשבונות גם בהמשך.")
             }

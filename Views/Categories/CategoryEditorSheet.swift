@@ -29,6 +29,9 @@ struct CategoryEditorSheet: View {
     @State private var nature: CategoryNature
     @State private var symbolName: String
     @State private var colorHex: String
+    /// Set by a save tapped with a required field empty; the empty fields
+    /// then show `MissingFieldBadge`.
+    @State private var showsMissingFields = false
 
     @Query private var allCategories: [Category]
     @Environment(\.modelContext) private var modelContext
@@ -70,6 +73,7 @@ struct CategoryEditorSheet: View {
 
                 Section {
                     HebrewTextField("שם הקטגוריה", text: $name)
+                        .missingFieldBadge(showsMissingFields && trimmedName.isEmpty)
                 } footer: {
                     if nameIsTaken {
                         Text("כבר יש קטגוריה בשם הזה.")
@@ -125,7 +129,9 @@ struct CategoryEditorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("שמירה", action: save)
-                        .disabled(!canSave)
+                        // A taken name already says so in red under the
+                        // field; only an empty one needs the tap to explain.
+                        .disabled(nameIsTaken)
                 }
             }
             // Income categories have no need/want split.
@@ -137,7 +143,11 @@ struct CategoryEditorSheet: View {
     }
 
     private func save() {
-        guard canSave else { return }
+        guard canSave else {
+            showsMissingFields = true
+            MissingFields.signalRefusedSave()
+            return
+        }
         let target: Category
         if let category {
             target = category

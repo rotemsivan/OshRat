@@ -30,6 +30,9 @@ struct DepositMaturitySheet: View {
 
     @State private var amount: Decimal
     @State private var targetID: PersistentIdentifier?
+    /// Set by a save tapped with a required field empty; the empty fields
+    /// then show `MissingFieldBadge`.
+    @State private var showsMissingFields = false
 
     init(
         deposit: Account,
@@ -69,6 +72,7 @@ struct DepositMaturitySheet: View {
                     .listRowBackground(Color.clear)
                 } header: {
                     Text("סכום הפדיון")
+                        .missingFieldBadge(showsMissingFields && amount <= 0)
                 } footer: {
                     Text(amountFooter)
                 }
@@ -90,6 +94,7 @@ struct DepositMaturitySheet: View {
                     }
                 } header: {
                     Text("להעביר אל")
+                        .missingFieldBadge(showsMissingFields && target == nil && !candidates.isEmpty)
                 } footer: {
                     Text(targetFooter)
                 }
@@ -108,10 +113,17 @@ struct DepositMaturitySheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("העברה") {
-                        if let target { onConfirm(amount, target) }
+                        guard canConfirm, let target else {
+                            showsMissingFields = true
+                            MissingFields.signalRefusedSave()
+                            return
+                        }
+                        onConfirm(amount, target)
                         dismiss()
                     }
-                    .disabled(!canConfirm)
+                    // Nothing to fill in when there's no account to pay into,
+                    // or no rate to reach the chosen one — the footers say so.
+                    .disabled(candidates.isEmpty || fxBlocksPayout)
                 }
             }
         }
@@ -158,6 +170,13 @@ struct DepositMaturitySheet: View {
     private var canConfirm: Bool {
         guard let target, amount > 0 else { return false }
         return DepositPayoutService.canPayOut(deposit, to: target, using: fxSnapshot)
+    }
+
+    /// A target is picked but its currency can't be reached without a rate
+    /// we don't have — not a missing field, so the button stays disabled.
+    private var fxBlocksPayout: Bool {
+        guard let target else { return false }
+        return !DepositPayoutService.canPayOut(deposit, to: target, using: fxSnapshot)
     }
 
     private var amountFooter: LocalizedStringKey {

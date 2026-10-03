@@ -17,6 +17,9 @@ struct PlannedExpenseEditorSheet: View {
 
     @State private var draft: PlannedExpenseDraft
     @State private var isCreatingCategory = false
+    /// Set by a save tapped with a required field empty; the empty fields
+    /// then show `MissingFieldBadge`.
+    @State private var showsMissingFields = false
     private let isNew: Bool
     private let onSave: (PlannedExpenseDraft) -> Void
     private let onCancel: () -> Void
@@ -66,10 +69,14 @@ struct PlannedExpenseEditorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("שמירה") {
+                        guard draft.category != nil else {
+                            showsMissingFields = true
+                            MissingFields.signalRefusedSave()
+                            return
+                        }
                         onSave(draft)
                         dismiss()
                     }
-                    .disabled(draft.category == nil)
                 }
             }
         }
@@ -119,6 +126,7 @@ struct PlannedExpenseEditorSheet: View {
             ))
         } header: {
             Text("קטגוריה")
+                .missingFieldBadge(showsMissingFields && draft.category == nil)
         } footer: {
             Text("הקטגוריה קובעת אם ההוצאה משויכת לצרכים (חובה) או למותרות (בחירה).")
         }

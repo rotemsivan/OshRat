@@ -180,6 +180,7 @@
 		5EPENDBN01000000000000B1 /* PendingPaymentsBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPENDBN01000000000000F1 /* PendingPaymentsBanner.swift */; };
 		5EPENDLR01000000000000B1 /* PendingPaymentsListRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPENDLR01000000000000F1 /* PendingPaymentsListRow.swift */; };
 		5EPICK0100000000000000B1 /* PickerRowLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPICK0100000000000000F1 /* PickerRowLabel.swift */; };
+		5EMISS0100000000000000B1 /* MissingFieldBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EMISS0100000000000000F1 /* MissingFieldBadge.swift */; };
 		5EPLSPND01000000000000B1 /* PlannedSpend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPLSPND01000000000000F1 /* PlannedSpend.swift */; };
 		5EPLSPND01000000000000C1 /* PlannedSpend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPLSPND01000000000000F1 /* PlannedSpend.swift */; };
 		5EPRF00100000000000000B1 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPRF00100000000000000F1 /* ProfileView.swift */; };
@@ -381,6 +382,7 @@
 		5EPENDBN01000000000000F1 /* PendingPaymentsBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingPaymentsBanner.swift; sourceTree = "<group>"; };
 		5EPENDLR01000000000000F1 /* PendingPaymentsListRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingPaymentsListRow.swift; sourceTree = "<group>"; };
 		5EPICK0100000000000000F1 /* PickerRowLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerRowLabel.swift; sourceTree = "<group>"; };
+		5EMISS0100000000000000F1 /* MissingFieldBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MissingFieldBadge.swift; sourceTree = "<group>"; };
 		5EPLSPND01000000000000F1 /* PlannedSpend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannedSpend.swift; sourceTree = "<group>"; };
 		5EPRF00100000000000000F1 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		5EPSTORE01000000000000F1 /* PersistentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistentStore.swift; sourceTree = "<group>"; };
@@ -621,6 +623,7 @@
 				5E13B1952FD5BD0700C87118 /* DecimalField.swift */,
 				5ECC1F6F2FDDCC37006BAC51 /* HebrewTextField.swift */,
 				5EPICK0100000000000000F1 /* PickerRowLabel.swift */,
+				5EMISS0100000000000000F1 /* MissingFieldBadge.swift */,
 				5ECATAP100000000000000F1 /* CategoryAppearance.swift */,
 				5ECATM0100000000000000F1 /* CategoryMenuContent.swift */,
 			);
@@ -1055,6 +1058,7 @@
 				5EINS00400000000000000B1 /* BudgetStationView.swift in Sources */,
 				5E13B1962FD5BD0700C87118 /* DecimalField.swift in Sources */,
 				5EPICK0100000000000000B1 /* PickerRowLabel.swift in Sources */,
+				5EMISS0100000000000000B1 /* MissingFieldBadge.swift in Sources */,
 				5E31E54B2FD16B6D00FF83C8 /* UserProfile.swift in Sources */,
 				5ED3E0F12FD1BE8C003083F0 /* AssetsSummaryCard.swift in Sources */,
 				5E4793A02FD2017300568427 /* PlannedExpenseEditorSheet.swift in Sources */,

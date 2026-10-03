@@ -38,6 +38,11 @@ final class OnboardingViewModel {
 
     var step: OnboardingStep = .personalDetails
 
+    /// Set when "המשך" is tapped before the step's requirement is met; the
+    /// step then badges what's missing (`MissingFieldBadge`). Per step, so
+    /// it's cleared on every move, and not part of the saved progress.
+    var showsMissingFields = false
+
     /// Whether the "Continue" button on the current step should be enabled.
     /// Each step has its own minimal requirement; this keeps validation
     /// in one place rather than scattered across views.
@@ -81,6 +86,7 @@ final class OnboardingViewModel {
               currentIndex + 1 < OnboardingStep.allCases.count
         else { return }
         step = OnboardingStep.allCases[currentIndex + 1]
+        showsMissingFields = false
     }
 
     func retreat() {
@@ -88,6 +94,7 @@ final class OnboardingViewModel {
               currentIndex > 0
         else { return }
         step = OnboardingStep.allCases[currentIndex - 1]
+        showsMissingFields = false
     }
 
     // MARK: - Account draft helpers
