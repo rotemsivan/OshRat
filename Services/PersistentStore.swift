@@ -163,6 +163,14 @@ final class PersistentStore {
     private static func open() -> State {
         if CommandLine.arguments.contains("-initCloudKitSchema") {
             initializeCloudKitSchema()
+            // Quit rather than go on to open the real store. A build run from
+            // Xcode is development-signed, so it syncs with the container's
+            // **Development** environment — and on a phone that also has the
+            // App Store app, it runs over that app's store, which then merges
+            // in whatever old test data Development still holds (and uploads
+            // the real data there). That happened once; the schema run is
+            // only ever wanted for its console line.
+            exit(0)
         }
         do {
             let container = try ModelContainer(for: OshRatSchema.schema, configurations: configuration)
