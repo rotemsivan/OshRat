@@ -48,7 +48,21 @@ final class PersistentStore {
 
     private(set) var state: State
 
-    init() {
+    /// The app's one store, **opened on first use** — a `static let` is
+    /// initialised lazily, the first time anything reads it.
+    ///
+    /// Lazy on purpose: the app is also launched in the background, with no
+    /// window, to run `LogPaymentIntent` at the till. That action never
+    /// touches the store, but when `OshRatApp.init` opened it eagerly, every
+    /// Apple Pay tap first opened a CloudKit-mirrored database, ran
+    /// `SyncDeduplicator` and saved — kicking off an iCloud export — on a
+    /// usually locked phone, before the action even started. A cold launch
+    /// sometimes ran out of the time Shortcuts allows and the automation
+    /// failed. Now only a window (`OshRatApp`'s scene) or the evening
+    /// reminder's background button (`DailyReminderService`) opens it.
+    static let shared = PersistentStore()
+
+    private init() {
         state = Self.open()
     }
 

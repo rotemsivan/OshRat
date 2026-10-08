@@ -29,9 +29,13 @@ enum DailyReminderService {
         UserDefaults.standard.object(forKey: isEnabledKey) as? Bool ?? true
     }
 
-    /// The store, for the background action. Set by `OshRatApp` once the
-    /// container has opened; the action does nothing without one.
-    static var container: ModelContainer?
+    /// The store, for the background action — opened here if this launch
+    /// hasn't opened it yet (no window in a background launch). The action
+    /// does nothing if it can't be opened.
+    static var container: ModelContainer? {
+        guard case .ready(let container) = PersistentStore.shared.state else { return nil }
+        return container
+    }
 
     static let category = "daily-reminder"
     /// The same reminder without the quiet-day button — that week's quiet

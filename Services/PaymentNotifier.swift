@@ -46,15 +46,30 @@ final class PaymentNotifier: NSObject, UNUserNotificationCenterDelegate {
     // MARK: Posting
 
     /// Posts the payment's notification, identified by the payment's id so it
-    /// can be taken down once the payment has been dealt with.
-    static func notify(_ payment: PaymentPrefill) async {
+    /// can be taken down once the payment has been dealt with. Returns whether
+    /// it could: without permission iOS drops it without an error, and the
+    /// payment would wait unseen — `LogPaymentIntent` reports that instead.
+    @discardableResult
+    static func notify(_ payment: PaymentPrefill) async -> Bool {
+        guard await permission() == .allowed else { return false }
         let content = UNMutableNotificationContent()
         content.title = title(for: payment)
-        content.body = String(localized: "הקישו כדי לרשום את התנועה בעכבר עו״ש")
+        // Nothing arrived at all means the automation's fields aren't tied to
+        // the payment — the most common setup slip. Say so here, where it's
+        // noticed, rather than leave an empty sheet to puzzle over; the sheet
+        // then shows exactly what the shortcut sent.
+        content.body = payment.receivedAnything
+            ? String(localized: "הקישו כדי לרשום את התנועה בעכבר עו״ש")
+            : String(localized: "לא הגיעו פרטים מהקיצור — הקישו כדי לבדוק את ההגדרה")
         content.sound = .default
         content.categoryIdentifier = category
         let request = UNNotificationRequest(identifier: payment.id.uuidString, content: content, trigger: nil)
-        try? await UNUserNotificationCenter.current().add(request)
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            return true
+        } catch {
+            return false
+        }
     }
 
     /// Takes the payment's notification off the lock screen and Notification

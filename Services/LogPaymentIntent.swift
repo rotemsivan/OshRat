@@ -55,7 +55,26 @@ struct LogPaymentIntent: AppIntent {
             rawAmount: amount
         )
         IncomingPaymentRouter.shared.receive(payment)
-        await PaymentNotifier.notify(payment)
+        // The payment is saved either way. If its notification can't be
+        // shown (permission off), fail loudly: Shortcuts shows a thrown
+        // error's message as a banner, which beats a payment waiting where
+        // nobody knows to look.
+        guard await PaymentNotifier.notify(payment) else {
+            throw LogPaymentError.notificationsOff
+        }
         return .result()
+    }
+}
+
+/// What `LogPaymentIntent` reports back to Shortcuts when it can't finish the
+/// job quietly. Shortcuts displays `localizedStringResource` to the user.
+enum LogPaymentError: Error, CustomLocalizedStringResourceConvertible {
+    case notificationsOff
+
+    var localizedStringResource: LocalizedStringResource {
+        switch self {
+        case .notificationsOff:
+            "התשלום נשמר, אבל ההתראות של עכבר עו״ש כבויות. פתחו את האפליקציה כדי לרשום אותו, ואפשרו התראות בהגדרות."
+        }
     }
 }

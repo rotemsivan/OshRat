@@ -4,10 +4,6 @@ import UserNotifications
 
 @main
 struct OshRatApp: App {
-    /// The on-device database. It either opened (`.ready`) or the app shows
-    /// `StoreRecoveryView` instead of crashing — see `PersistentStore`.
-    @State private var store: PersistentStore
-
     init() {
         // Push our Heebo font into the UIKit-backed UI chrome (nav bars,
         // text fields, etc.). Must run before any of those views
@@ -18,20 +14,24 @@ struct OshRatApp: App {
         // notification that launched the app is delivered to it.
         UNUserNotificationCenter.current().delegate = PaymentNotifier.shared
         DailyReminderService.registerCategories()
+        // Deliberately no store here: a background launch for the Apple Pay
+        // action has no window and must stay light — see
+        // `PersistentStore.shared`.
+    }
 
-        let store = PersistentStore()
-        // The evening reminder's "no transactions today" button runs in the
-        // background, where no view hands it a context.
-        if case .ready(let container) = store.state {
-            DailyReminderService.container = container
-        }
+    /// The on-device database, opened when the first window is built (the
+    /// `WindowGroup`'s content isn't evaluated in a windowless background
+    /// launch). It either opened (`.ready`) or the app shows
+    /// `StoreRecoveryView` instead of crashing — see `PersistentStore`.
+    private static let store: PersistentStore = {
+        let store = PersistentStore.shared
         #if DEBUG
         if case .ready(let container) = store.state {
-            Self.applyDemoLaunchArguments(in: container.mainContext)
+            applyDemoLaunchArguments(in: container.mainContext)
         }
         #endif
-        _store = State(initialValue: store)
-    }
+        return store
+    }()
 
     #if DEBUG
     /// Command-line hooks for the demo data, so a scenario can be deployed
@@ -57,8 +57,9 @@ struct OshRatApp: App {
     /// two combine. The item still has to be unlocked at the store's level to
     /// show — `UserAvatar` hides anything the level hasn't reached.
     ///
-    /// Runs here, before any window exists, so the first frame already shows
-    /// the seeded store rather than flashing the old one. Useful for
+    /// Runs as the store opens, before the first window's content is built,
+    /// so the first frame already shows the seeded store rather than
+    /// flashing the old one. Useful for
     /// screenshots and for `simctl`-driven checks, where no gesture can be
     /// driven (see the simulator note in CLAUDE.md).
     private static func applyDemoLaunchArguments(in context: ModelContext) {
@@ -143,17 +144,29 @@ struct OshRatApp: App {
 
     var body: some Scene {
         WindowGroup {
-            switch store.state {
-            case .ready(let container):
-                ContentView()
-                    // App-wide default font. Any `Text(...)` that doesn't set
-                    // an explicit `.font(...)` will inherit Heebo from here.
-                    .font(Theme.Typography.body)
-                    .modelContainer(container)
-            case .failed(let details):
-                StoreRecoveryView(store: store, details: details)
-                    .font(Theme.Typography.body)
-            }
+            StoreGate(store: Self.store)
+        }
+    }
+}
+
+/// The app's root: the app itself once the store opened, the recovery screen
+/// if it didn't. A view rather than a `switch` in the scene, so it re-renders
+/// when `StoreRecoveryView`'s retry changes `store.state` (a view's `body`
+/// tracks the `@Observable` reads).
+private struct StoreGate: View {
+    let store: PersistentStore
+
+    var body: some View {
+        switch store.state {
+        case .ready(let container):
+            ContentView()
+                // App-wide default font. Any `Text(...)` that doesn't set
+                // an explicit `.font(...)` will inherit Heebo from here.
+                .font(Theme.Typography.body)
+                .modelContainer(container)
+        case .failed(let details):
+            StoreRecoveryView(store: store, details: details)
+                .font(Theme.Typography.body)
         }
     }
 }
