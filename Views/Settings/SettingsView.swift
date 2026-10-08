@@ -189,7 +189,13 @@ private struct SettingsForm: View {
             NavigationLink {
                 ApplePaySetupView()
             } label: {
-                Label("הוראות הגדרה", systemImage: "list.number")
+                // The live check's verdict, so a broken automation shows here
+                // without the user going looking for it.
+                LabeledContent {
+                    applePayStatus
+                } label: {
+                    Label("הוראות הגדרה", systemImage: "list.number")
+                }
             }
             Link(destination: URL(string: "shortcuts://")!) {
                 Label("פתיחת קיצורים", systemImage: "arrow.up.forward.app")
@@ -199,6 +205,30 @@ private struct SettingsForm: View {
                 Text("רישום מ-Apple Pay")
                 InfoButton("אחרי תשלום בארנק, עכבר עו״ש נפתח עם תנועה שכבר מולאו בה הסכום ובית העסק. דורש הגדרה חד־פעמית באפליקציית קיצורים.")
             }
+        }
+    }
+
+    /// "פועל" / "דורש תיקון" from the last payment the automation delivered;
+    /// nothing until one has.
+    @ViewBuilder
+    private var applePayStatus: some View {
+        switch IncomingPaymentRouter.shared.lastReceived?.setupVerdict {
+        // Colour on the icon only: green and orange text would fall below
+        // 4.5:1 on the row's background.
+        case .working:
+            Label {
+                Text("פועל")
+            } icon: {
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.Colors.income)
+            }
+        case .missing, .empty:
+            Label {
+                Text("דורש תיקון")
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Theme.Colors.wants)
+            }
+        case nil:
+            EmptyView()
         }
     }
 

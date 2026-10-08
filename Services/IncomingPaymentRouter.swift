@@ -25,6 +25,7 @@ final class IncomingPaymentRouter {
     static let shared = IncomingPaymentRouter()
 
     private static let storageKey = "pendingPayments"
+    private static let lastReceivedKey = "lastReceivedPayment"
 
     /// Waiting payments, oldest first. A queue, not one slot: a second
     /// payment while the first still waits (a split bill, a second purchase)
@@ -39,6 +40,17 @@ final class IncomingPaymentRouter {
     /// only.
     private(set) var presentationRequests = 0
 
+    /// The newest payment the automation delivered, kept after it's logged
+    /// or dropped — what the setup screen's live check reads
+    /// (`PaymentSetupCheckCard`). On disk, like the queue, since the action
+    /// usually runs in a launch of its own.
+    private(set) var lastReceived: PaymentPrefill? {
+        didSet {
+            let data = lastReceived.flatMap { try? JSONEncoder().encode($0) }
+            UserDefaults.standard.set(data, forKey: Self.lastReceivedKey)
+        }
+    }
+
     /// The payment `HomeView` will show next, if any: the oldest one not
     /// skipped.
     var pending: PaymentPrefill? { queue.first { !$0.isSkipped } }
@@ -52,10 +64,12 @@ final class IncomingPaymentRouter {
 
     private init() {
         queue = Self.load().filter { $0.isFresh() }
+        lastReceived = Self.loadLastReceived()
     }
 
     func receive(_ payment: PaymentPrefill) {
         queue.append(payment)
+        lastReceived = payment
         presentationRequests += 1
     }
 
@@ -115,11 +129,18 @@ final class IncomingPaymentRouter {
     func reload() {
         let stored = Self.load()
         if stored != queue { queue = stored }
+        let last = Self.loadLastReceived()
+        if last != lastReceived { lastReceived = last }
     }
 
     private func save() {
         guard let data = try? JSONEncoder().encode(queue) else { return }
         UserDefaults.standard.set(data, forKey: Self.storageKey)
+    }
+
+    private static func loadLastReceived() -> PaymentPrefill? {
+        guard let data = UserDefaults.standard.data(forKey: lastReceivedKey) else { return nil }
+        return try? JSONDecoder().decode(PaymentPrefill.self, from: data)
     }
 
     private static func load() -> [PaymentPrefill] {

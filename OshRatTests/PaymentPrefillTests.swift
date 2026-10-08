@@ -202,6 +202,52 @@ struct PaymentPrefillTests {
         #expect(router.pending == nil)
     }
 
+    // MARK: Checking the setup
+
+    /// Amount and merchant make a working automation; the card is optional.
+    @Test func amountAndMerchantPassTheSetupCheckWithOrWithoutACard() {
+        #expect(PaymentPrefill(amount: 42, merchant: "Cafe", cardName: "Visa 1234").setupVerdict == .working)
+        #expect(PaymentPrefill(amount: 42, merchant: "Cafe", cardName: nil).setupVerdict == .working)
+    }
+
+    /// Nothing usable at all means the fields aren't tied to the payment —
+    /// blank strings from an unfilled variable included.
+    @Test func aPaymentWithNothingInItIsAnEmptySetup() {
+        #expect(PaymentPrefill(amount: nil, merchant: nil, cardName: nil).setupVerdict == .empty)
+        #expect(PaymentPrefill(amount: 0, merchant: "  ", cardName: "").setupVerdict == .empty)
+    }
+
+    /// A field wired to the whole Shortcut Input sends text that isn't a
+    /// number: the amount counts as missing even though something arrived.
+    @Test func anUnreadableAmountIsReportedMissing() {
+        let raw = "Cafe Nero 42"
+        let payment = PaymentPrefill(
+            amount: nil, merchant: "Cafe Nero", cardName: "Visa",
+            rawAmount: raw
+        )
+        #expect(!payment.arrived(.amount))
+        #expect(payment.setupVerdict == .missing([.amount]))
+    }
+
+    @Test func eachMissingRequiredFieldIsListedInOrder() {
+        #expect(PaymentPrefill(amount: 42, merchant: nil, cardName: nil).setupVerdict == .missing([.merchant]))
+        #expect(PaymentPrefill(amount: nil, merchant: nil, cardName: "Visa").setupVerdict == .missing([.amount, .merchant]))
+    }
+
+    /// The newest delivery is remembered after it leaves the queue, for the
+    /// setup screen's live check.
+    @Test func theLastDeliveredPaymentOutlivesTheQueue() {
+        let router = IncomingPaymentRouter.shared
+        defer { router.removeExpired(now: .distantFuture) }
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        while router.take(now: now) != nil {}
+
+        router.receive(PaymentPrefill(amount: 10, merchant: "A", receivedAt: now))
+        router.receive(PaymentPrefill(amount: 20, merchant: "B", receivedAt: now))
+        while router.take(now: now) != nil {}
+        #expect(router.lastReceived?.merchant == "B")
+    }
+
     // MARK: Reading the amount
 
     /// The Wallet automation sends the amount as text formatted for the

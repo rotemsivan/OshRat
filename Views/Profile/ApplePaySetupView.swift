@@ -10,7 +10,10 @@ import SwiftUI
 ///
 /// A short promise, the numbered steps, then the one thing the app itself
 /// needs — permission to post the payment's notification
-/// (`PaymentNotificationsRow`) — and the way into Shortcuts. (An animated
+/// (`PaymentNotificationsRow`) — the way into Shortcuts, and the live check
+/// (`PaymentSetupCheckCard`), which tells the user whether it worked and,
+/// if not, which step to fix. Its advice cites step numbers from
+/// `stepTexts`, so renumbering the steps means updating it too. (An animated
 /// walkthrough on a drawn phone was tried and dropped in favour of the text.)
 ///
 /// A ready-made shortcut shared by iCloud link was tried and dropped: a
@@ -25,6 +28,7 @@ struct ApplePaySetupView: View {
                 steps
                 PaymentNotificationsRow()
                 openShortcutsButton
+                PaymentSetupCheckCard()
                 limits
             }
             .padding(.horizontal, Theme.Spacing.lg)
@@ -83,7 +87,8 @@ struct ApplePaySetupView: View {
         "בחרו **קיצור חדש** (New\u{00A0}Shortcut). במסך הפעולות שנפתח, חפשו **רישום תשלום** והקישו עליה.",
         "בפעולה, הקישו על המילה **סכום** ובחרו **קלט קיצור** (Shortcut\u{00A0}Input). הקישו על **קלט קיצור** שנכנס ובחרו **סכום** (Amount).",
         "עשו אותו דבר ב**בית עסק** (בחרו Merchant) וב**כרטיס** (בחרו Card\u{00A0}or\u{00A0}Pass). הכרטיס לא חובה — הוא רק עוזר לבחור את החשבון.",
-        "הקישו **סיום** (Done)."
+        "הקישו **סיום** (Done).",
+        "חזרו לכאן, הקישו **התחלת בדיקה** למטה ושלמו פעם אחת בארנק. הבדיקה תראה מה הגיע, ואם משהו חסר — איזה שלב לתקן."
     ]
 
     private var limits: some View {

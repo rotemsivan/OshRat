@@ -54,6 +54,44 @@ struct PaymentPrefill: Identifiable, Equatable, Codable {
         (amount ?? 0) > 0 || trimmedMerchant != nil || trimmedCardName != nil
     }
 
+    // MARK: - Checking the setup
+
+    /// The three details the automation can hand over — the action's three
+    /// fields.
+    enum SetupField: CaseIterable {
+        case amount, merchant, card
+    }
+
+    /// Whether this field's detail came through usable. An amount counts only
+    /// once it reads as a number above zero: a field tied to the whole
+    /// Shortcut Input instead of its Amount sends text that doesn't.
+    func arrived(_ field: SetupField) -> Bool {
+        switch field {
+        case .amount:   (amount ?? 0) > 0
+        case .merchant: trimmedMerchant != nil
+        case .card:     trimmedCardName != nil
+        }
+    }
+
+    /// What one delivered payment says about the user's automation — the
+    /// setup screen's live check (`PaymentSetupCheckCard`).
+    enum SetupVerdict: Equatable {
+        /// Amount and merchant arrived; the card is optional (it only helps
+        /// pick the account), so it never fails the check.
+        case working
+        /// Something arrived, so the automation runs and is wired up — but
+        /// these required fields came through empty or unreadable.
+        case missing([SetupField])
+        /// Nothing at all: the action's fields aren't tied to the payment.
+        case empty
+    }
+
+    var setupVerdict: SetupVerdict {
+        guard receivedAnything else { return .empty }
+        let missing = [SetupField.amount, .merchant].filter { !arrived($0) }
+        return missing.isEmpty ? .working : .missing(missing)
+    }
+
     // MARK: - Reading the amount
 
     /// The amount and currency out of whatever text the shortcut passed.
