@@ -53,7 +53,7 @@ struct AvatarLayers: View {
     }
 
     var body: some View {
-        let items = equipped.compactMapValues(WardrobeItem.withID)
+        let items = equipped.compactMapValues { WardrobeItem.withID($0) }
         ZStack {
             bodyLayer(.background, items)
             if crop == .fullBody {
@@ -185,7 +185,7 @@ struct UserAvatar: View {
     private func accessibilityLabel(for equipped: [WardrobeSlot: String]) -> String {
         let names = WardrobeSlot.allCases
             .filter { $0.isDrawn(on: crop.canvas) }
-            .compactMap { equipped[$0].flatMap(WardrobeItem.withID)?.name }
+            .compactMap { equipped[$0].flatMap { WardrobeItem.withID($0) }?.name }
         guard !names.isEmpty else { return String(localized: "העכבר שלך") }
         return String(localized: "העכבר שלך, עם \(names.formatted(.list(type: .and)))")
     }

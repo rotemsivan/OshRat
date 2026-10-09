@@ -117,7 +117,7 @@ final class UserProgress {
 
     /// The celebration to show now, skipping any entry this build can't read.
     var nextCelebration: Celebration? {
-        pendingCelebrations.lazy.compactMap(Celebration.init(rawValue:)).first
+        pendingCelebrations.lazy.compactMap { Celebration(rawValue: $0) }.first
     }
 
     /// Whether a one-time award has already been paid.

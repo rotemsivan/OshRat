@@ -31,7 +31,7 @@ struct TransactionSearchQuery {
         guard !tokens.isEmpty else { return nil }
         self.tokens = tokens
         self.layoutTokens = HebrewSearch.hebrewLayoutVariant(ofRaw: raw)
-            .map(HebrewSearch.words(ofFolded:))
+            .map { HebrewSearch.words(ofFolded: $0) }
             .flatMap { $0.isEmpty || $0 == tokens ? nil : $0 }
     }
 }
@@ -127,7 +127,7 @@ final class TransactionSearchIndex {
             source: source,
             folded: folded,
             words: words,
-            skeletons: words.map(HebrewSearch.skeleton)
+            skeletons: words.map { HebrewSearch.skeleton($0) }
         )
         entries[id] = entry
         return entry

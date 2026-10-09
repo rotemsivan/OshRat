@@ -108,7 +108,7 @@ struct ContentView: View {
     /// notifications) payments that waited past `PaymentPrefill.freshness`.
     private func refreshPayments() {
         paymentRouter.reload()
-        paymentRouter.removeExpired().forEach(PaymentNotifier.clear)
+        paymentRouter.removeExpired().forEach { PaymentNotifier.clear($0) }
     }
 
     private func handleURL(_ url: URL) {
@@ -130,7 +130,7 @@ struct ContentView: View {
     /// (`-demoTab`, `-demoWardrobe`) skip the login, as does `-skipLogin`.
     private static var skipsLoginAtLaunch: Bool {
         #if DEBUG
-        ["-skipLogin", "-demoTab", "-demoWardrobe"].contains(where: LaunchArguments.contains)
+        ["-skipLogin", "-demoTab", "-demoWardrobe"].contains { LaunchArguments.contains($0) }
         #else
         false
         #endif

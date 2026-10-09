@@ -1224,7 +1224,7 @@ struct NewTransactionSheet: View {
             }
         }
         paymentRouter.putBack(incomplete)
-        logged.forEach(PaymentNotifier.clear)
+        logged.forEach { PaymentNotifier.clear($0) }
         try? modelContext.save()
         queueStep?.onLoggedOthers(logged.count)
         for _ in logged {

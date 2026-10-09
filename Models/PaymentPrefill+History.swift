@@ -50,8 +50,8 @@ extension PaymentPrefill {
         accounts: [Account],
         categories: [Category] = []
     ) -> Resolved {
-        let merchantKey = payment.trimmedMerchant.map(HebrewSearch.fold)
-        let cardKey = payment.trimmedCardName.map(HebrewSearch.fold)
+        let merchantKey = payment.trimmedMerchant.map { HebrewSearch.fold($0) }
+        let cardKey = payment.trimmedCardName.map { HebrewSearch.fold($0) }
         let accountIDs = Set(accounts.map(\.persistentModelID))
 
         var merchantMatch: Transaction?
@@ -82,7 +82,7 @@ extension PaymentPrefill {
         // resort, for a shop they've never logged.
         let guessedCategory: Category? = merchantMatch == nil
             ? payment.trimmedMerchant
-                .flatMap(MerchantCategoryHints.categoryName(forMerchant:))
+                .flatMap { MerchantCategoryHints.categoryName(forMerchant: $0) }
                 .flatMap { name in categories.first { $0.kind == .expense && $0.name == name } }
             : nil
 

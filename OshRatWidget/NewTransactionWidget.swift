@@ -26,7 +26,9 @@ struct NewTransactionWidget: Widget {
 
 // MARK: - Timeline
 
-struct NewTransactionEntry: TimelineEntry {
+/// `nonisolated` because the target defaults types to `@MainActor`, and the
+/// provider below builds entries off the main actor, where WidgetKit calls it.
+nonisolated struct NewTransactionEntry: TimelineEntry {
     let date: Date
 }
 

@@ -1016,7 +1016,7 @@ struct HomeView: View {
         // A mood forced from the admin panel, or `-demoMood sad` on the
         // launch line — for testing and screenshots, whatever the data says.
         let forced = MascotMoodScenario(rawValue: debugMoodScenario)
-            ?? LaunchArguments.value(after: "-demoMood").flatMap(MascotMoodScenario.init(mood:))
+            ?? LaunchArguments.value(after: "-demoMood").flatMap { MascotMoodScenario(mood: $0) }
         if let forced { return forced.reading }
         #endif
         let now = reminderClock

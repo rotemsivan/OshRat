@@ -166,7 +166,7 @@ struct RecentlyDeletedView: View {
     }
 
     private var transactionItems: [DeletedItem] {
-        deletedTransactions.map(DeletedItem.init(transaction:))
+        deletedTransactions.map { DeletedItem(transaction: $0) }
     }
 
     // MARK: - Actions

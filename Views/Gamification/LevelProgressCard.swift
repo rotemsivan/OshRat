@@ -130,7 +130,7 @@ struct LevelProgressCard: View {
     /// The last id in `unlockedAchievements` that this build's catalogue
     /// knows — the ledger is kept in the order achievements were earned.
     private var latestAchievement: Achievement? {
-        progress?.unlockedAchievements.reversed().lazy.compactMap(Achievement.withID).first
+        progress?.unlockedAchievements.reversed().lazy.compactMap { Achievement.withID($0) }.first
     }
 
     private var currentStreak: Int { progress?.currentStreak ?? 0 }
