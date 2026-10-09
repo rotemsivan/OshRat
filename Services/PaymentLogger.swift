@@ -74,7 +74,9 @@ enum PaymentLogger {
             currencyCode: payment.currencyCode ?? account.currencyCode,
             balanceAfter: account.balance,
             category: resolved.category,
-            account: account
+            account: account,
+            // The tap's own time, like the sheet shows it.
+            hasTimeOfDay: true
         )
         transaction.paymentMerchant = payment.trimmedMerchant
         transaction.paymentCardName = payment.trimmedCardName

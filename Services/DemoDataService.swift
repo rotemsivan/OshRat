@@ -485,11 +485,23 @@ enum DemoDataService {
                 return calendar.date(byAdding: .day, value: clamped - 1, to: monthStart)
             }
 
+            /// A moment on `day` within `hours`, as the sheet's time field
+            /// would have recorded it. A time today that hasn't come yet moves
+            /// into the last few hours instead — the sheet can't log the future.
+            func timed(_ day: Date, hours: ClosedRange<Int>) -> Date {
+                let hour = Int.random(in: hours, using: &generator)
+                let minute = Int.random(in: 0...59, using: &generator)
+                let moment = calendar.date(bySettingHour: hour, minute: minute, second: 0, of: day) ?? day
+                guard moment > now else { return moment }
+                let minutesAgo = Double(Int.random(in: 5...180, using: &generator))
+                return max(calendar.startOfDay(for: now), now.addingTimeInterval(-minutesAgo * 60))
+            }
+
             for spec in plan.incomes {
                 guard let day = date(day: spec.day), day <= now else { continue }
                 rows.append(
                     PlannedRow(
-                        date: day,
+                        date: timed(day, hours: 8...9),
                         accountKey: spec.accountKey,
                         kind: .income,
                         title: spec.title,
@@ -503,7 +515,7 @@ enum DemoDataService {
                 guard let day = date(day: spec.day), day <= now else { continue }
                 rows.append(
                     PlannedRow(
-                        date: day,
+                        date: timed(day, hours: 8...19),
                         accountKey: spec.accountKey,
                         kind: .expense,
                         title: spec.title,
@@ -519,7 +531,7 @@ enum DemoDataService {
                 guard let day = date(day: spec.day), day <= now else { continue }
                 rows.append(
                     PlannedRow(
-                        date: day,
+                        date: timed(day, hours: 9...17),
                         accountKey: spec.accountKey,
                         kind: .expense,
                         title: spec.title,
@@ -538,7 +550,7 @@ enum DemoDataService {
                     guard let day = date(day: Int.random(in: 1...daysInMonth, using: &generator)), day <= now else { continue }
                     rows.append(
                         PlannedRow(
-                            date: day,
+                            date: timed(day, hours: 8...21),
                             accountKey: spec.accountKey,
                             kind: .expense,
                             title: spec.titles.randomElement(using: &generator) ?? spec.plannedLabel,
@@ -556,7 +568,7 @@ enum DemoDataService {
                     guard let day = date(day: Int.random(in: 1...daysInMonth, using: &generator)), day <= now else { continue }
                     rows.append(
                         PlannedRow(
-                            date: day,
+                            date: timed(day, hours: 9...17),
                             accountKey: invoices.accountKey,
                             kind: .income,
                             title: invoices.titles.randomElement(using: &generator) ?? invoices.plannedLabel,
@@ -575,7 +587,7 @@ enum DemoDataService {
                 guard offset < spec.months else { continue }
                 rows.append(
                     PlannedRow(
-                        date: day,
+                        date: timed(day, hours: 9...11),
                         accountKey: spec.fromKey,
                         kind: .expense,
                         title: spec.title,
@@ -625,7 +637,8 @@ enum DemoDataService {
                 let topUp = roundedUpToHundreds(shortfall)
                 result.append(
                     PlannedRow(
-                        date: row.date,
+                        // Just before the spend that needed it, on the same day.
+                        date: max(Calendar.current.startOfDay(for: row.date), row.date.addingTimeInterval(-10 * 60)),
                         accountKey: plan.primaryAccountKey,
                         kind: .expense,
                         title: "טעינת הארנק",
@@ -690,7 +703,8 @@ enum DemoDataService {
                     destinationAccount: destination,
                     destinationAmount: row.amount,
                     destinationBalanceAfter: destination.balance,
-                    createdAt: row.date
+                    createdAt: row.date,
+                    hasTimeOfDay: true
                 )
                 context.insert(transfer)
                 // Same call the transfer sheet makes, so a demo deposit ladder
@@ -713,7 +727,8 @@ enum DemoDataService {
                 // A demo life is logged as it happens: each row "entered" on
                 // the day it's dated, so the achievements' entry-spread guards
                 // see the history a real user would have built.
-                createdAt: row.date
+                createdAt: row.date,
+                hasTimeOfDay: true
             )
             context.insert(transaction)
         }

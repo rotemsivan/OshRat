@@ -104,6 +104,11 @@ struct NewTransactionSheet: View {
     /// seeded from the row in edit mode. The picker is capped at the
     /// present (`...Date.now`) so a transaction can never be future-dated.
     @State private var date: Date = .now
+    /// Whether `date`'s time of day is one the user saw (`Transaction.hasTimeOfDay`).
+    /// True for everything entered here — the picker shows hours and minutes,
+    /// defaulting to now — and seeded from the row in edit mode, where a row
+    /// from before the time field reads false until "הוספת שעה" is tapped.
+    @State private var hasTime: Bool = true
     @State private var amount: Decimal = 0
     /// Currency the user is typing the amount in. Starts as the source
     /// account's currency (so the common case is zero-conversion) but
@@ -258,6 +263,7 @@ struct NewTransactionSheet: View {
             _title = State(initialValue: transaction.title)
             _details = State(initialValue: transaction.note)
             _date = State(initialValue: transaction.date)
+            _hasTime = State(initialValue: transaction.hasTimeOfDay)
             _amount = State(initialValue: transaction.amount)
             _amountCurrencyCode = State(initialValue: transaction.currencyCode)
             _isShowingDetails = State(initialValue: !transaction.note.isEmpty)
@@ -710,25 +716,39 @@ struct NewTransactionSheet: View {
         }
     }
 
-    /// When the transaction happened. The picker is bounded to `...Date.now`
-    /// so future dates can't be entered — a ledger only records what has
-    /// already occurred. Date-only (no time) matches how the list groups and
-    /// labels rows by day.
+    /// When the transaction happened, to the minute. The picker is bounded to
+    /// `...Date.now` so future moments can't be entered — a ledger only
+    /// records what has already occurred. The list still groups by day; the
+    /// time orders the rows within it and shows in the expanded card.
+    ///
+    /// A row from before the time field (`hasTime` false) shows its date
+    /// alone, with "הוספת שעה" to give it one: its stored time is whatever the
+    /// clock said when it was entered, so it isn't presented as known.
     private var dateSection: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.sm) {
-            sectionLabel("תאריך")
+            sectionLabel(hasTime ? "תאריך ושעה" : "תאריך")
             HStack(spacing: Theme.Spacing.sm) {
                 Image(systemName: "calendar")
                     .foregroundStyle(Theme.Colors.textSecondary)
                 DatePicker(
-                    "תאריך התנועה",
+                    hasTime ? "תאריך ושעת התנועה" : "תאריך התנועה",
                     selection: $date,
                     in: ...Date.now,
-                    displayedComponents: .date
+                    displayedComponents: hasTime ? [.date, .hourAndMinute] : .date
                 )
                 .labelsHidden()
                 .environment(\.locale, Locale(identifier: "he_IL"))
                 Spacer()
+                if !hasTime {
+                    Button {
+                        hasTime = true
+                    } label: {
+                        Label("הוספת שעה", systemImage: "clock")
+                            .font(Theme.Typography.bodySmall)
+                    }
+                    .buttonStyle(.borderless)
+                    .tint(Theme.Colors.accent)
+                }
             }
             .padding(Theme.Spacing.md)
             .background(Theme.Colors.surface)
@@ -1341,7 +1361,8 @@ struct NewTransactionSheet: View {
             // The destination's running balance after the credit — the
             // counterpart to `balanceAfter`, in the destination account's
             // own currency, so the list can show both sides of the move.
-            destinationBalanceAfter: destination.balance
+            destinationBalanceAfter: destination.balance,
+            hasTimeOfDay: hasTime
         )
         modelContext.insert(transfer)
 
@@ -1375,7 +1396,8 @@ struct NewTransactionSheet: View {
             currencyCode: amountCurrencyCode,
             balanceAfter: account.balance,
             category: category,
-            account: account
+            account: account,
+            hasTimeOfDay: hasTime
         )
         if let budgetLink {
             transaction.budgetItem = budgetLink.item
@@ -1413,6 +1435,7 @@ struct NewTransactionSheet: View {
         existing.amount = amount
         existing.kind = kindModel
         existing.date = date
+        existing.hasTimeOfDay = hasTime
         existing.title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         existing.note = details.trimmingCharacters(in: .whitespacesAndNewlines)
         existing.currencyCode = amountCurrencyCode

@@ -1409,6 +1409,7 @@ private struct ExpandedTransactionCard: View {
         }
 
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
+            if transaction.hasTimeOfDay { timeLine }
             if let budget, let category = transaction.category {
                 budgetBlock(budget, categoryName: category.name)
             }
@@ -1431,6 +1432,26 @@ private struct ExpandedTransactionCard: View {
 
 
     // MARK: Blocks
+
+    /// When in the day it happened. Only for rows with a real time
+    /// (`Transaction.hasTimeOfDay`) — the list's day header already says which
+    /// day, and an older row's stored time is just when it was typed in.
+    private var timeLine: some View {
+        Label {
+            Text("בשעה \(transaction.date.formatted(Self.timeFormat))")
+        } icon: {
+            Image(systemName: "clock")
+        }
+        .font(Theme.Typography.caption)
+        .foregroundStyle(Theme.Colors.textSecondary)
+        .monospacedDigit()
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// "14:32" — 24-hour, as Israel reads a clock.
+    private static let timeFormat = Date.FormatStyle(locale: Locale(identifier: "he_IL"))
+        .hour(.twoDigits(amPM: .omitted))
+        .minute(.twoDigits)
 
     /// Where this transaction's category stands against its budget in the
     /// transaction's own month: "₪620 מתוך ₪1,000", a bar, and the share. First

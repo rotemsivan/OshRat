@@ -114,6 +114,14 @@ final class Transaction {
     /// having to remember.
     var createdAt: Date?
 
+    /// Whether `date`'s time of day is real — chosen in the sheet (where it
+    /// defaults to now), or the moment an Apple Pay card was tapped. Rows from
+    /// before the sheet had a time field read `false`: their `date` still
+    /// carries *a* time (whatever the clock said when they were entered), but
+    /// not one the user saw, so the expanded card shows none. The list sorts
+    /// on `date` either way.
+    var hasTimeOfDay: Bool = false
+
     // MARK: - Logged budget occurrence
 
     /// The scheduled budget line this row was logged from, via the budget
@@ -155,9 +163,11 @@ final class Transaction {
         destinationAccount: Account? = nil,
         destinationAmount: Decimal? = nil,
         destinationBalanceAfter: Decimal? = nil,
-        createdAt: Date = .now
+        createdAt: Date = .now,
+        hasTimeOfDay: Bool = false
     ) {
         self.createdAt = createdAt
+        self.hasTimeOfDay = hasTimeOfDay
         self.amount = amount
         self.kind = kind
         self.date = date

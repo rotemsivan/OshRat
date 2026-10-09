@@ -87,7 +87,9 @@ enum DepositPayoutService {
                 title: Transaction.depositInterestTitle,
                 currencyCode: deposit.currencyCode,
                 balanceAfter: deposit.balance,
-                account: deposit
+                account: deposit,
+                // The app only ever pays out now (`date`'s default).
+                hasTimeOfDay: true
             )
             context.insert(interestRow)
         }
@@ -110,7 +112,8 @@ enum DepositPayoutService {
             account: deposit,
             destinationAccount: target,
             destinationAmount: creditedAmount,
-            destinationBalanceAfter: target.balance
+            destinationBalanceAfter: target.balance,
+            hasTimeOfDay: true
         )
         context.insert(transfer)
 
