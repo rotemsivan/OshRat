@@ -178,6 +178,7 @@
 		5EPAYNTF01000000000000B1 /* PaymentNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAYNTF01000000000000F1 /* PaymentNotifier.swift */; };
 		5EPAYQUE01000000000000B1 /* PaymentQueueSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAYQUE01000000000000F1 /* PaymentQueueSheet.swift */; };
 		5EPAYROW01000000000000B1 /* PaymentNotificationsRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAYROW01000000000000F1 /* PaymentNotificationsRow.swift */; };
+		5EPAYVID01000000000000B1 /* ApplePaySetupVideo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAYVID01000000000000F1 /* ApplePaySetupVideo.swift */; };
 		5EPENDBN01000000000000B1 /* PendingPaymentsBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPENDBN01000000000000F1 /* PendingPaymentsBanner.swift */; };
 		5EPENDLR01000000000000B1 /* PendingPaymentsListRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPENDLR01000000000000F1 /* PendingPaymentsListRow.swift */; };
 		5EPICK0100000000000000B1 /* PickerRowLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPICK0100000000000000F1 /* PickerRowLabel.swift */; };
@@ -409,6 +410,7 @@
 		5EPAYNTF01000000000000F1 /* PaymentNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentNotifier.swift; sourceTree = "<group>"; };
 		5EPAYQUE01000000000000F1 /* PaymentQueueSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentQueueSheet.swift; sourceTree = "<group>"; };
 		5EPAYROW01000000000000F1 /* PaymentNotificationsRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentNotificationsRow.swift; sourceTree = "<group>"; };
+		5EPAYVID01000000000000F1 /* ApplePaySetupVideo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplePaySetupVideo.swift; sourceTree = "<group>"; };
 		5EPENDBN01000000000000F1 /* PendingPaymentsBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingPaymentsBanner.swift; sourceTree = "<group>"; };
 		5EPENDLR01000000000000F1 /* PendingPaymentsListRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingPaymentsListRow.swift; sourceTree = "<group>"; };
 		5EPICK0100000000000000F1 /* PickerRowLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerRowLabel.swift; sourceTree = "<group>"; };
@@ -842,6 +844,7 @@
 			isa = PBXGroup;
 			children = (
 				5EPAY00400000000000000F1 /* ApplePaySetupView.swift */,
+				5EPAYVID01000000000000F1 /* ApplePaySetupVideo.swift */,
 				5EPRF00100000000000000F1 /* ProfileView.swift */,
 				5ERECCRD01000000000000F1 /* RecordsCard.swift */,
 				5EPAYROW01000000000000F1 /* PaymentNotificationsRow.swift */,
@@ -1128,6 +1131,7 @@
 				5EONB00100000000000000B1 /* OnboardingProgress.swift in Sources */,
 				5EPAY00500000000000000B1 /* ApplePayTipPopup.swift in Sources */,
 				5EPAY00400000000000000B1 /* ApplePaySetupView.swift in Sources */,
+				5EPAYVID01000000000000B1 /* ApplePaySetupVideo.swift in Sources */,
 				5EPAY00300000000000000B1 /* LogPaymentIntent.swift in Sources */,
 				5EPAY00200000000000000B1 /* IncomingPaymentRouter.swift in Sources */,
 				5EPAY00100000000000000B1 /* PaymentPrefill.swift in Sources */,

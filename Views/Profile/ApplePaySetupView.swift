@@ -8,13 +8,14 @@ import SwiftUI
 /// them through it (see `LogPaymentIntent` for why this is the only route).
 /// Pushed from Settings → רישום מ-Apple Pay.
 ///
-/// A short promise, the numbered steps, then the one thing the app itself
-/// needs — permission to post the payment's notification
-/// (`PaymentNotificationsRow`) — the way into Shortcuts, and the live check
-/// (`PaymentSetupCheckCard`), which tells the user whether it worked and,
-/// if not, which step to fix. Its advice cites step numbers from
-/// `stepTexts`, so renumbering the steps means updating it too. (An animated
-/// walkthrough on a drawn phone was tried and dropped in favour of the text.)
+/// A short promise, the steps as a video (`ApplePaySetupVideo`, captioned
+/// with `stepTexts` and toggled between a Hebrew and an English iPhone), then
+/// the one thing the app itself needs — permission to post the payment's
+/// notification (`PaymentNotificationsRow`) — the way into Shortcuts, and the
+/// live check (`PaymentSetupCheckCard`), which tells the user whether it
+/// worked and, if not, which step to fix. Its advice cites step numbers from
+/// `stepTexts`, so renumbering the steps means updating it too — and the
+/// video's step times and the videos themselves (see `ApplePaySetupVideo`).
 ///
 /// A ready-made shortcut shared by iCloud link was tried and dropped: a
 /// standalone shortcut doesn't accept a Wallet payment as its input, so the
@@ -59,15 +60,28 @@ struct ApplePaySetupView: View {
         .cardStyle()
     }
 
-    /// The one-time automation, step by step.
+    /// The one-time automation, shown as a video with the current step's
+    /// text under it. The full list stays one tap away, for VoiceOver and for
+    /// anyone who'd rather read it at their own pace.
     private var steps: some View {
         VStack(alignment: .leading, spacing: Theme.Spacing.md) {
             Text("הגדרה חד־פעמית באפליקציית קיצורים")
                 .font(Theme.Typography.amount)
                 .foregroundStyle(Theme.Colors.textPrimary)
-            ForEach(Array(Self.stepTexts.enumerated()), id: \.offset) { index, text in
-                SetupStep(number: index + 1, text: text)
+            ApplePaySetupVideo(steps: Self.stepTexts)
+            DisclosureGroup {
+                VStack(alignment: .leading, spacing: Theme.Spacing.md) {
+                    ForEach(Array(Self.stepTexts.enumerated()), id: \.offset) { index, text in
+                        SetupStep(number: index + 1, text: text)
+                    }
+                }
+                .padding(.top, Theme.Spacing.sm)
+            } label: {
+                Text("כל השלבים כטקסט")
+                    .font(Theme.Typography.bodySmall)
+                    .foregroundStyle(Theme.Colors.textSecondary)
             }
+            .tint(Theme.Colors.accent)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .cardStyle()
