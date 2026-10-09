@@ -248,6 +248,73 @@ struct PaymentPrefillTests {
         #expect(router.lastReceived?.merchant == "B")
     }
 
+    // MARK: Two processes, one queue
+
+    /// The extension appends straight to the stored queue while the app holds
+    /// its own mirror of it. The app's next change re-reads the disk, so the
+    /// payment it never saw survives — and the next reload counts it as an
+    /// arrival, which ends a snooze.
+    @Test func aPaymentSavedByTheOtherProcessSurvivesTheAppsNextChange() {
+        let router = IncomingPaymentRouter.shared
+        defer { router.removeExpired(now: .distantFuture) }
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        while router.take(now: now) != nil {}
+
+        router.receive(PaymentPrefill(amount: 10, merchant: "Seen", receivedAt: now))
+        // Written as the extension writes, behind the router's back.
+        PaymentInbox.append(PaymentPrefill(amount: 20, merchant: "Unseen", receivedAt: now))
+
+        let requests = router.presentationRequests
+        #expect(router.take(now: now)?.merchant == "Seen")
+        #expect(PaymentInbox.load().map(\.merchant) == ["Unseen"])
+
+        router.reload()
+        #expect(router.pending?.merchant == "Unseen")
+        // One arrival, whichever of `take` and `reload` noticed it first.
+        #expect(router.presentationRequests == requests + 1)
+    }
+
+    /// An update installed over a build without the App Group finds its
+    /// waiting payments in the app's own defaults: they move into the shared
+    /// queue once, merged by id with whatever is already there.
+    @Test func paymentsFromBeforeTheAppGroupMoveIntoIt() throws {
+        try #require(PaymentInbox.isShared)
+        let router = IncomingPaymentRouter.shared
+        defer { router.removeExpired(now: .distantFuture) }
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        while router.take(now: now) != nil {}
+
+        let alreadyShared = PaymentPrefill(amount: 20, merchant: "Shared", receivedAt: now)
+        PaymentInbox.append(alreadyShared)
+        let stranded = [
+            PaymentPrefill(amount: 10, merchant: "Old", receivedAt: now.addingTimeInterval(-60)),
+            alreadyShared,  // both places: kept once
+        ]
+        UserDefaults.standard.set(try JSONEncoder().encode(stranded), forKey: "pendingPayments")
+
+        PaymentInbox.migrateFromAppDefaultsIfNeeded()
+        #expect(PaymentInbox.load().map(\.merchant) == ["Old", "Shared"])
+        #expect(UserDefaults.standard.data(forKey: "pendingPayments") == nil)
+        router.reload()
+    }
+
+    /// Taking a payment and putting it back isn't news: it mustn't end the
+    /// snooze the user chose by swiping the sheet away.
+    @Test func aPutBackPaymentIsNotAnArrival() {
+        let router = IncomingPaymentRouter.shared
+        defer { router.removeExpired(now: .distantFuture) }
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        while router.take(now: now) != nil {}
+
+        router.receive(PaymentPrefill(amount: 10, merchant: "A", receivedAt: now))
+        let requests = router.presentationRequests
+        let taken = router.take(now: now)
+        router.putBack([taken].compactMap { $0 })
+        router.reload()
+        #expect(router.presentationRequests == requests)
+        #expect(router.pending?.merchant == "A")
+    }
+
     // MARK: Reading the amount
 
     /// The Wallet automation sends the amount as text formatted for the

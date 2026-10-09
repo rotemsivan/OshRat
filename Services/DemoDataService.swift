@@ -428,7 +428,7 @@ enum DemoDataService {
                 receivedAt: now.addingTimeInterval(-sample.minutesAgo * 60)
             )
             IncomingPaymentRouter.shared.receive(payment)
-            Task { await PaymentNotifier.notify(payment) }
+            Task { await PaymentNotification.post(payment) }
         }
     }
 

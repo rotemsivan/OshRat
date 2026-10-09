@@ -162,6 +162,7 @@
 		5EMFLOWS01000000000000C1 /* MoneyFlowSeries.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EMFLOWS01000000000000F1 /* MoneyFlowSeries.swift */; };
 		5EMFLOWS01000000000000C2 /* MoneyFlowSeries.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EMFLOWS01000000000000F1 /* MoneyFlowSeries.swift */; };
 		5EMFLOWV01000000000000B1 /* MoneyFlowStationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EMFLOWV01000000000000F1 /* MoneyFlowStationView.swift */; };
+		5EMISS0100000000000000B1 /* MissingFieldBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EMISS0100000000000000F1 /* MissingFieldBadge.swift */; };
 		5EMRCHNT01000000000000B1 /* MerchantCategoryHints.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EMRCHNT01000000000000F1 /* MerchantCategoryHints.swift */; };
 		5EMRCHNT01000000000000C1 /* MerchantCategoryHints.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EMRCHNT01000000000000F1 /* MerchantCategoryHints.swift */; };
 		5EONB00100000000000000B1 /* OnboardingProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EONB00100000000000000F1 /* OnboardingProgress.swift */; };
@@ -177,13 +178,18 @@
 		5EPAYNTF01000000000000B1 /* PaymentNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAYNTF01000000000000F1 /* PaymentNotifier.swift */; };
 		5EPAYQUE01000000000000B1 /* PaymentQueueSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAYQUE01000000000000F1 /* PaymentQueueSheet.swift */; };
 		5EPAYROW01000000000000B1 /* PaymentNotificationsRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAYROW01000000000000F1 /* PaymentNotificationsRow.swift */; };
-		5ESETCHK01000000000000B1 /* PaymentSetupCheckCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ESETCHK01000000000000F1 /* PaymentSetupCheckCard.swift */; };
 		5EPENDBN01000000000000B1 /* PendingPaymentsBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPENDBN01000000000000F1 /* PendingPaymentsBanner.swift */; };
 		5EPENDLR01000000000000B1 /* PendingPaymentsListRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPENDLR01000000000000F1 /* PendingPaymentsListRow.swift */; };
 		5EPICK0100000000000000B1 /* PickerRowLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPICK0100000000000000F1 /* PickerRowLabel.swift */; };
-		5EMISS0100000000000000B1 /* MissingFieldBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EMISS0100000000000000F1 /* MissingFieldBadge.swift */; };
+		5EPINBOX01000000000000B1 /* PaymentInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPINBOX01000000000000F1 /* PaymentInbox.swift */; };
+		5EPINBOX01000000000000B2 /* PaymentInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPINBOX01000000000000F1 /* PaymentInbox.swift */; };
+		5EPINBOX01000000000000B3 /* PaymentInbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPINBOX01000000000000F1 /* PaymentInbox.swift */; };
 		5EPLSPND01000000000000B1 /* PlannedSpend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPLSPND01000000000000F1 /* PlannedSpend.swift */; };
 		5EPLSPND01000000000000C1 /* PlannedSpend.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPLSPND01000000000000F1 /* PlannedSpend.swift */; };
+		5EPNPOST01000000000000B1 /* PaymentNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPNPOST01000000000000F1 /* PaymentNotification.swift */; };
+		5EPNPOST01000000000000B3 /* PaymentNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPNPOST01000000000000F1 /* PaymentNotification.swift */; };
+		5EPPHIST01000000000000B1 /* PaymentPrefill+History.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPPHIST01000000000000F1 /* PaymentPrefill+History.swift */; };
+		5EPPHIST01000000000000B2 /* PaymentPrefill+History.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPPHIST01000000000000F1 /* PaymentPrefill+History.swift */; };
 		5EPRF00100000000000000B1 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPRF00100000000000000F1 /* ProfileView.swift */; };
 		5EPSTORE01000000000000B1 /* PersistentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPSTORE01000000000000F1 /* PersistentStore.swift */; };
 		5EQDAY0100000000000000B1 /* DailyReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0100000000000000F1 /* DailyReminder.swift */; };
@@ -199,6 +205,7 @@
 		5EQDAY0700000000000000C2 /* MascotMood.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EQDAY0700000000000000F1 /* MascotMood.swift */; };
 		5ERECCRD01000000000000B1 /* RecordsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ERECCRD01000000000000F1 /* RecordsCard.swift */; };
 		5ESET00100000000000000B1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ESET00100000000000000F1 /* SettingsView.swift */; };
+		5ESETCHK01000000000000B1 /* PaymentSetupCheckCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ESETCHK01000000000000F1 /* PaymentSetupCheckCard.swift */; };
 		5ESTREC001000000000000B1 /* StoreRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ESTREC001000000000000F1 /* StoreRecoveryView.swift */; };
 		5ESYNCDD01000000000000B1 /* SyncDeduplicator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5ESYNCDD01000000000000F1 /* SyncDeduplicator.swift */; };
 		5ETRSH0100000000000000C1 /* TrashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E17150100000000000000F2 /* TrashService.swift */; };
@@ -214,6 +221,9 @@
 		5EWARD0700000000000000B1 /* WardrobeItemTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0700000000000000F1 /* WardrobeItemTile.swift */; };
 		5EWARD0800000000000000B1 /* WardrobeEntryPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0800000000000000F1 /* WardrobeEntryPoint.swift */; };
 		5EWARD0900000000000000B1 /* AvatarRig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EWARD0900000000000000F1 /* AvatarRig.swift */; };
+		5EXINT0100000000000000A4 /* OshRatIntents.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = 5EXINT0100000000000000A3 /* OshRatIntents.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		5EXLOGPI01000000000000B3 /* LogPaymentIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00300000000000000F1 /* LogPaymentIntent.swift */; };
+		5EXPPREF01000000000000B3 /* PaymentPrefill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EPAY00100000000000000F1 /* PaymentPrefill.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -238,6 +248,13 @@
 			remoteGlobalIDString = 5EA9D90100000000000000B1;
 			remoteInfo = OshRatWidget;
 		};
+		5EXINT0100000000000000C1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5E31E5082FD16A0100FF83C8 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5EXINT0100000000000000B1;
+			remoteInfo = OshRatIntents;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -250,6 +267,17 @@
 				5EA9D90100000000000000A4 /* OshRatWidget.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5EXINT0100000000000000B5 /* Embed ExtensionKit Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				5EXINT0100000000000000A4 /* OshRatIntents.appex in Embed ExtensionKit Extensions */,
+			);
+			name = "Embed ExtensionKit Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -369,6 +397,7 @@
 		5EMFLOWM01000000000000F1 /* MoneyFlowSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoneyFlowSummary.swift; sourceTree = "<group>"; };
 		5EMFLOWS01000000000000F1 /* MoneyFlowSeries.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoneyFlowSeries.swift; sourceTree = "<group>"; };
 		5EMFLOWV01000000000000F1 /* MoneyFlowStationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoneyFlowStationView.swift; sourceTree = "<group>"; };
+		5EMISS0100000000000000F1 /* MissingFieldBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MissingFieldBadge.swift; sourceTree = "<group>"; };
 		5EMRCHNT01000000000000F1 /* MerchantCategoryHints.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MerchantCategoryHints.swift; sourceTree = "<group>"; };
 		5EONB00100000000000000F1 /* OnboardingProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingProgress.swift; sourceTree = "<group>"; };
 		5EPAY00100000000000000F1 /* PaymentPrefill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentPrefill.swift; sourceTree = "<group>"; };
@@ -380,12 +409,13 @@
 		5EPAYNTF01000000000000F1 /* PaymentNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentNotifier.swift; sourceTree = "<group>"; };
 		5EPAYQUE01000000000000F1 /* PaymentQueueSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentQueueSheet.swift; sourceTree = "<group>"; };
 		5EPAYROW01000000000000F1 /* PaymentNotificationsRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentNotificationsRow.swift; sourceTree = "<group>"; };
-		5ESETCHK01000000000000F1 /* PaymentSetupCheckCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentSetupCheckCard.swift; sourceTree = "<group>"; };
 		5EPENDBN01000000000000F1 /* PendingPaymentsBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingPaymentsBanner.swift; sourceTree = "<group>"; };
 		5EPENDLR01000000000000F1 /* PendingPaymentsListRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingPaymentsListRow.swift; sourceTree = "<group>"; };
 		5EPICK0100000000000000F1 /* PickerRowLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerRowLabel.swift; sourceTree = "<group>"; };
-		5EMISS0100000000000000F1 /* MissingFieldBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MissingFieldBadge.swift; sourceTree = "<group>"; };
+		5EPINBOX01000000000000F1 /* PaymentInbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentInbox.swift; sourceTree = "<group>"; };
 		5EPLSPND01000000000000F1 /* PlannedSpend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlannedSpend.swift; sourceTree = "<group>"; };
+		5EPNPOST01000000000000F1 /* PaymentNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentNotification.swift; sourceTree = "<group>"; };
+		5EPPHIST01000000000000F1 /* PaymentPrefill+History.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PaymentPrefill+History.swift"; sourceTree = "<group>"; };
 		5EPRF00100000000000000F1 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		5EPSTORE01000000000000F1 /* PersistentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistentStore.swift; sourceTree = "<group>"; };
 		5EQDAY0100000000000000F1 /* DailyReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyReminder.swift; sourceTree = "<group>"; };
@@ -397,6 +427,7 @@
 		5EQDAY0700000000000000F1 /* MascotMood.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MascotMood.swift; sourceTree = "<group>"; };
 		5ERECCRD01000000000000F1 /* RecordsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordsCard.swift; sourceTree = "<group>"; };
 		5ESET00100000000000000F1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		5ESETCHK01000000000000F1 /* PaymentSetupCheckCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaymentSetupCheckCard.swift; sourceTree = "<group>"; };
 		5ESTREC001000000000000F1 /* StoreRecoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreRecoveryView.swift; sourceTree = "<group>"; };
 		5ESYNCDD01000000000000F1 /* SyncDeduplicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncDeduplicator.swift; sourceTree = "<group>"; };
 		5EWARD0100000000000000F1 /* WardrobeItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeItem.swift; sourceTree = "<group>"; };
@@ -408,6 +439,7 @@
 		5EWARD0700000000000000F1 /* WardrobeItemTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeItemTile.swift; sourceTree = "<group>"; };
 		5EWARD0800000000000000F1 /* WardrobeEntryPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardrobeEntryPoint.swift; sourceTree = "<group>"; };
 		5EWARD0900000000000000F1 /* AvatarRig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarRig.swift; sourceTree = "<group>"; };
+		5EXINT0100000000000000A3 /* OshRatIntents.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = OshRatIntents.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -424,6 +456,13 @@
 				Info.plist,
 			);
 			target = 5EA9D90100000000000000B1 /* OshRatWidget */;
+		};
+		5EXINT0100000000000000A2 /* Exceptions for "OshRatIntents" folder in "OshRatIntents" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 5EXINT0100000000000000B1 /* OshRatIntents */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -454,6 +493,14 @@
 			path = OshRatWidget;
 			sourceTree = "<group>";
 		};
+		5EXINT0100000000000000A1 /* OshRatIntents */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5EXINT0100000000000000A2 /* Exceptions for "OshRatIntents" folder in "OshRatIntents" target */,
+			);
+			path = OshRatIntents;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -479,6 +526,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		5EA9D90100000000000000B3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5EXINT0100000000000000B3 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -552,6 +606,7 @@
 		5E31E5072FD16A0100FF83C8 = {
 			isa = PBXGroup;
 			children = (
+				5EXINT0100000000000000A1 /* OshRatIntents */,
 				5EB0F14F2FD57DFB0022B03B /* Fonts */,
 				5E31E5122FD16A0100FF83C8 /* OshRat */,
 				5E4793A52FD2075F00568427 /* DesignSystem */,
@@ -570,6 +625,7 @@
 		5E31E5112FD16A0100FF83C8 /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				5EXINT0100000000000000A3 /* OshRatIntents.appex */,
 				5E31E5102FD16A0100FF83C8 /* OshRat.app */,
 				5E31E5212FD16A0200FF83C8 /* OshRatTests.xctest */,
 				5E2626BF2FD1821F00180F49 /* ViewModels */,
@@ -582,6 +638,7 @@
 		5E31E5412FD16B4400FF83C8 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				5EPPHIST01000000000000F1 /* PaymentPrefill+History.swift */,
 				5EPAY00100000000000000F1 /* PaymentPrefill.swift */,
 				5E31E5422FD16B6D00FF83C8 /* Account.swift */,
 				5EDEP00100000000000000F1 /* DepositTerms.swift */,
@@ -652,6 +709,8 @@
 		5E8EB3A82FD2F9070037E1F3 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				5EPNPOST01000000000000F1 /* PaymentNotification.swift */,
+				5EPINBOX01000000000000F1 /* PaymentInbox.swift */,
 				5EPAY00300000000000000F1 /* LogPaymentIntent.swift */,
 				5EPAY00200000000000000F1 /* IncomingPaymentRouter.swift */,
 				5E8EB3A92FD2F9070037E1F3 /* FXRatesService.swift */,
@@ -838,10 +897,12 @@
 				5E31E50D2FD16A0100FF83C8 /* Frameworks */,
 				5E31E50E2FD16A0100FF83C8 /* Resources */,
 				5EA9D90100000000000000B5 /* Embed Foundation Extensions */,
+				5EXINT0100000000000000B5 /* Embed ExtensionKit Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				5EXINT0100000000000000C2 /* PBXTargetDependency */,
 				5EA9D90100000000000000C2 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
@@ -922,6 +983,28 @@
 			productReference = 5EA9D90100000000000000A3 /* OshRatWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		5EXINT0100000000000000B1 /* OshRatIntents */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5EXINT0100000000000000C3 /* Build configuration list for PBXNativeTarget "OshRatIntents" */;
+			buildPhases = (
+				5EXINT0100000000000000B2 /* Sources */,
+				5EXINT0100000000000000B3 /* Frameworks */,
+				5EXINT0100000000000000B4 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				5EXINT0100000000000000A1 /* OshRatIntents */,
+			);
+			name = OshRatIntents;
+			packageProductDependencies = (
+			);
+			productName = OshRatIntents;
+			productReference = 5EXINT0100000000000000A3 /* OshRatIntents.appex */;
+			productType = "com.apple.product-type.extensionkit-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -946,6 +1029,9 @@
 					5EA9D90100000000000000B1 = {
 						CreatedOnToolsVersion = 26.5;
 					};
+					5EXINT0100000000000000B1 = {
+						CreatedOnToolsVersion = 26.5;
+					};
 				};
 			};
 			buildConfigurationList = 5E31E50B2FD16A0100FF83C8 /* Build configuration list for PBXProject "OshRat" */;
@@ -967,6 +1053,7 @@
 				5E31E5202FD16A0200FF83C8 /* OshRatTests */,
 				5E31E52A2FD16A0200FF83C8 /* OshRatUITests */,
 				5EA9D90100000000000000B1 /* OshRatWidget */,
+				5EXINT0100000000000000B1 /* OshRatIntents */,
 			);
 		};
 /* End PBXProject section */
@@ -1004,6 +1091,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5EXINT0100000000000000B4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -1011,6 +1105,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5EPPHIST01000000000000B1 /* PaymentPrefill+History.swift in Sources */,
+				5EPNPOST01000000000000B1 /* PaymentNotification.swift in Sources */,
+				5EPINBOX01000000000000B1 /* PaymentInbox.swift in Sources */,
 				5ESET00100000000000000B1 /* SettingsView.swift in Sources */,
 				5EPSTORE01000000000000B1 /* PersistentStore.swift in Sources */,
 				5ECLDACC01000000000000B1 /* CloudAccountService.swift in Sources */,
@@ -1155,6 +1252,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5EPPHIST01000000000000B2 /* PaymentPrefill+History.swift in Sources */,
+				5EPINBOX01000000000000B2 /* PaymentInbox.swift in Sources */,
 				5EPAY00200000000000000C1 /* IncomingPaymentRouter.swift in Sources */,
 				5EPAY00100000000000000C1 /* PaymentPrefill.swift in Sources */,
 				5EHSRC0200000000000000C1 /* TransactionSearchIndex.swift in Sources */,
@@ -1237,6 +1336,17 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5EXINT0100000000000000B2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5EPINBOX01000000000000B3 /* PaymentInbox.swift in Sources */,
+				5EPNPOST01000000000000B3 /* PaymentNotification.swift in Sources */,
+				5EXPPREF01000000000000B3 /* PaymentPrefill.swift in Sources */,
+				5EXLOGPI01000000000000B3 /* LogPaymentIntent.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -1255,12 +1365,18 @@
 			target = 5EA9D90100000000000000B1 /* OshRatWidget */;
 			targetProxy = 5EA9D90100000000000000C1 /* PBXContainerItemProxy */;
 		};
+		5EXINT0100000000000000C2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5EXINT0100000000000000B1 /* OshRatIntents */;
+			targetProxy = 5EXINT0100000000000000C1 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		5E31E5352FD16A0200FF83C8 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APP_GROUP = group.com.oshrat.app.dev;
 				APP_URL_SCHEME = "oshrat-dev";
 				ASSETCATALOG_COMPILER_APPICON_NAME = "AppIcon-Dev";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -1273,6 +1389,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = OshRat/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "עכבר עו״ש פיתוח";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_NSCameraUsageDescription = "כדי לצלם קבלות וחשבוניות ולצרף אותן לתנועות שלך. התמונות נשמרות במכשיר ובחשבון iCloud שלך.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -1300,6 +1417,7 @@
 		5E31E5362FD16A0200FF83C8 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				APP_GROUP = group.com.oshrat.app;
 				APP_URL_SCHEME = oshrat;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -1311,7 +1429,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = OshRat/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "עכבר עו״ש";
+				INFOPLIST_KEY_CFBundleDisplayName = "עכבר עו״ש פיתוח";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_NSCameraUsageDescription = "כדי לצלם קבלות וחשבוניות ולצרף אותן לתנועות שלך. התמונות נשמרות במכשיר ובחשבון iCloud שלך.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -1597,6 +1716,64 @@
 			};
 			name = Release;
 		};
+		5EXINT0100000000000000C4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APP_GROUP = group.com.oshrat.app.dev;
+				CODE_SIGN_ENTITLEMENTS = OshRatIntents/OshRatIntents.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = 2MS46CGTB3;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OshRatIntents/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "עכבר עו״ש פיתוח";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.oshrat.app.dev.intents;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		5EXINT0100000000000000C5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APP_GROUP = group.com.oshrat.app;
+				CODE_SIGN_ENTITLEMENTS = OshRatIntents/OshRatIntents.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = 2MS46CGTB3;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = OshRatIntents/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "עכבר עו״ש";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.oshrat.app.intents;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1641,6 +1818,15 @@
 			buildConfigurations = (
 				5EA9D90100000000000000C4 /* Debug */,
 				5EA9D90100000000000000C5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5EXINT0100000000000000C3 /* Build configuration list for PBXNativeTarget "OshRatIntents" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5EXINT0100000000000000C4 /* Debug */,
+				5EXINT0100000000000000C5 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -15,8 +15,17 @@ import Foundation
 /// the app forward, and on a real phone that failed with an error: the
 /// automation fires while the phone is usually still locked with the payment
 /// sheet on top, and iOS won't open an app then. Now it parks the payment
-/// (`IncomingPaymentRouter`, on disk) and posts "₪42.90 · Cafe Nero"
-/// (`PaymentNotifier`); a tap on that opens the pre-filled "תנועה חדשה".
+/// (`PaymentInbox`, in the App Group) and posts "₪42.90 · Cafe Nero"
+/// (`PaymentNotification`); a tap on that opens the pre-filled "תנועה חדשה".
+///
+/// **Compiled into the app and the App Intents extension** (`OshRatIntents`).
+/// The system runs it in the app when the app is already running and in the
+/// extension when it isn't — a small process with no SwiftUI, store or
+/// iCloud, so a cold tap at the till no longer means launching the whole app
+/// (which sometimes ran out of the time Shortcuts allows). Keeping it in the
+/// app too means the action keeps its identity, so automations users built
+/// before the extension existed still find it. Anything it touches must
+/// therefore compile in both: no models, no `IncomingPaymentRouter`.
 ///
 /// Every parameter is optional: which details reach the automation depends on
 /// the card issuer, and the sheet leaves whatever is missing blank.
@@ -54,27 +63,36 @@ struct LogPaymentIntent: AppIntent {
             cardName: card,
             rawAmount: amount
         )
-        IncomingPaymentRouter.shared.receive(payment)
+        // Without the shared container the app would never see a payment
+        // saved here (the extension's own defaults are private to it).
+        guard PaymentInbox.isShared else { throw LogPaymentError.notSaved }
+        PaymentInbox.append(payment)
         // The payment is saved either way. If its notification can't be
-        // shown (permission off), fail loudly: Shortcuts shows a thrown
-        // error's message as a banner, which beats a payment waiting where
-        // nobody knows to look.
-        guard await PaymentNotifier.notify(payment) else {
-            throw LogPaymentError.notificationsOff
+        // shown, fail loudly: Shortcuts shows a thrown error's message as a
+        // banner, which beats a payment waiting where nobody knows to look.
+        switch await PaymentNotification.post(payment) {
+        case .posted:     return .result()
+        case .notAllowed: throw LogPaymentError.notificationsOff
+        case .failed:     throw LogPaymentError.notificationFailed
         }
-        return .result()
     }
 }
 
 /// What `LogPaymentIntent` reports back to Shortcuts when it can't finish the
 /// job quietly. Shortcuts displays `localizedStringResource` to the user.
 enum LogPaymentError: Error, CustomLocalizedStringResourceConvertible {
+    case notSaved
     case notificationsOff
+    case notificationFailed
 
     var localizedStringResource: LocalizedStringResource {
         switch self {
+        case .notSaved:
+            "עכבר עו״ש לא הצליח לשמור את התשלום. פתחו את האפליקציה ורשמו אותו ידנית."
         case .notificationsOff:
             "התשלום נשמר, אבל ההתראות של עכבר עו״ש כבויות. פתחו את האפליקציה כדי לרשום אותו, ואפשרו התראות בהגדרות."
+        case .notificationFailed:
+            "התשלום נשמר, אבל לא הצלחנו להציג התראה. פתחו את עכבר עו״ש כדי לרשום אותו."
         }
     }
 }
