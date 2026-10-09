@@ -78,7 +78,7 @@ struct ApplePaySetupVideo: View {
         PlayerLayerView(player: player.queue)
             .aspectRatio(4 / 5, contentMode: .fit)
             .frame(maxWidth: .infinity)
-            .background(Color(hex: "1A2440"))
+            .background(Theme.Colors.videoBackdrop)
             .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
             .overlay(alignment: .bottomLeading) { playPauseButton }
             .onTapGesture { player.togglePlayback() }
@@ -177,23 +177,41 @@ enum PhoneLanguage: String, CaseIterable, Identifiable {
 // MARK: - Player
 
 /// A muted, looping player that reports which step is on screen.
+///
+/// `init` only stores the step times: SwiftUI evaluates a `@State`
+/// initialiser every time the parent rebuilds the view and throws all but the
+/// first result away, so the AVFoundation objects are made on first use
+/// (`queue`), on the one instance that survives.
 @Observable
 final class SetupVideoPlayer {
-    let queue = AVQueuePlayer()
     private(set) var isPlaying = false
     private(set) var currentStep = 0
 
     private let stepStarts: [Double]
-    private var looper: AVPlayerLooper?
-    private var timeObserver: Any?
-    private var loadedFile: String?
+    @ObservationIgnored private var player: AVQueuePlayer?
+    @ObservationIgnored private var looper: AVPlayerLooper?
+    @ObservationIgnored private var timeObserver: Any?
+    @ObservationIgnored private var loadedFile: String?
+    /// Bumped by every step jump; the time observer stays out of the caption
+    /// until the newest jump has landed. Without it, a tick reporting the
+    /// position *before* the jump set the old step back for a moment, and the
+    /// caption flickered.
+    @ObservationIgnored private var seekGeneration = 0
+    @ObservationIgnored private var isSeeking = false
 
     init(stepStarts: [Double]) {
         self.stepStarts = stepStarts
+    }
+
+    var queue: AVQueuePlayer {
+        if let player { return player }
+        let player = AVQueuePlayer()
         // The videos have no sound; muting as well keeps any future cut from
         // talking over the user's music.
-        queue.isMuted = true
-        queue.preventsDisplaySleepDuringVideoPlayback = false
+        player.isMuted = true
+        player.preventsDisplaySleepDuringVideoPlayback = false
+        self.player = player
+        return player
     }
 
     /// Swaps in a language's video, keeping the current position.
@@ -228,8 +246,17 @@ final class SetupVideoPlayer {
     func seek(toStep index: Int) {
         guard stepStarts.indices.contains(index) else { return }
         currentStep = index
+        seekGeneration += 1
+        let generation = seekGeneration
+        isSeeking = true
         let time = CMTime(seconds: stepStarts[index], preferredTimescale: 600)
-        queue.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero)
+        queue.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
+            DispatchQueue.main.async {
+                // A later jump owns the flag now; leave it to that one.
+                guard let self, generation == self.seekGeneration else { return }
+                self.isSeeking = false
+            }
+        }
         play()
     }
 
@@ -239,7 +266,7 @@ final class SetupVideoPlayer {
         let interval = CMTime(seconds: 0.25, preferredTimescale: 600)
         timeObserver = queue.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
             MainActor.assumeIsolated {
-                guard let self else { return }
+                guard let self, !self.isSeeking else { return }
                 let seconds = time.seconds
                 let step = self.stepStarts.lastIndex { $0 <= seconds + 0.05 } ?? 0
                 if step != self.currentStep { self.currentStep = step }

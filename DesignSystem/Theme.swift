@@ -58,6 +58,11 @@ enum Theme {
         static let tierBronze    = Color(light: Color(hex: "A0622D"), dark: Color(hex: "D08A4E"))
         static let tierSilver    = Color(light: Color(hex: "6F7B86"), dark: Color(hex: "B4BEC7"))
         static let tierGold      = Color(light: Color(hex: "9A7412"), dark: Color(hex: "E3B84A"))
+
+        /// The navy the Apple Pay setup video is rendered on, behind it while
+        /// it loads, so the frame doesn't flash a different colour. The same
+        /// in both modes, since the video itself doesn't change.
+        static let videoBackdrop = Color(hex: "1A2440")
     }
 
     // MARK: Spacing (use these instead of magic numbers)
