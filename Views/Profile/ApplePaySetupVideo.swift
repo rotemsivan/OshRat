@@ -19,11 +19,11 @@ import SwiftUI
 /// Dynamic Type, VoiceOver, and one source of truth with the check card's
 /// step numbers. Tapping a step's number jumps the video there.
 ///
-/// The videos are rendered from the Remotion project in
-/// claude-code-video-toolkit (`projects/oshrat-applepay-shortcut`,
-/// compositions `AppEmbed-he` / `AppEmbed-en`). `stepStarts` comes from that
-/// project's timeline (`node scripts/chapters.ts`) — re-render both videos and
-/// update it together if a step changes.
+/// The videos are rendered from a Remotion project kept in its own private
+/// repo, github.com/rotemsivan/oshrat-applepay-video (compositions
+/// `AppEmbed-he` / `AppEmbed-en`; its README has the export steps).
+/// `stepStarts` comes from that project's timeline (`node scripts/chapters.ts`)
+/// — re-render both videos and update it together if a step changes.
 struct ApplePaySetupVideo: View {
     /// `ApplePaySetupView.stepTexts` — one caption per step.
     let steps: [LocalizedStringKey]
