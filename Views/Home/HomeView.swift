@@ -1023,31 +1023,40 @@ struct HomeView: View {
         let calendar = Calendar.current
         let startOfToday = calendar.startOfDay(for: now)
         let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? now
+        let lookback = (LuxuryTrend.Rules.baselineWeeks + 1) * 7
+        let earliest = calendar.date(byAdding: .day, value: -lookback, to: startOfToday) ?? startOfToday
 
-        // The ledger is newest first: skip anything dated after today, stop at
-        // the first row before it.
-        var luxuries = 0
+        // Luxury spending over the trend's window and the usual before it, in
+        // the preferred currency (a row with no rate is left out). The ledger
+        // is newest first: skip anything dated after today, stop at the first
+        // row before the lookback.
+        var luxurySpends: [(date: Date, amount: Decimal)] = []
+        let fx = fxSnapshots.first
         for transaction in transactions {
             if transaction.date >= startOfTomorrow { continue }
-            if transaction.date < startOfToday { break }
-            if transaction.kind == .expense, !transaction.isTransfer, !transaction.isManualBalanceEdit,
-               transaction.category?.nature == .want {
-                luxuries += 1
-            }
+            if transaction.date < earliest { break }
+            guard transaction.kind == .expense, !transaction.isTransfer, !transaction.isManualBalanceEdit,
+                  transaction.category?.nature == .want else { continue }
+            let amount = transaction.currencyCode == preferredCurrencyCode
+                ? transaction.amount
+                : fx.flatMap { CurrencyConverter.convert(transaction.amount, from: transaction.currencyCode, to: preferredCurrencyCode, using: $0) }
+            if let amount { luxurySpends.append((transaction.date, amount)) }
         }
 
-        // Over budget now — and was it already before today's logging? Only
-        // worked out when it matters, since it's a second pass over the month.
-        let isOverBudget = monthlyBudgetReport.hasOverrun
-        var wentOverToday = false
-        if isOverBudget {
-            let before = BudgetVsActual(
-                budgetItems: budgetItems,
-                transactions: transactions.filter { ($0.createdAt ?? .distantPast) < startOfToday },
-                preferredCurrency: preferredCurrencyCode,
-                fxSnapshot: fxSnapshots.first
-            )
-            wentOverToday = !before.hasOverrun
+        let thisMonth = monthlyBudgetReport
+        let luxury = LuxuryTrend.make(
+            spends: luxurySpends,
+            historyStart: transactions.last?.date,
+            plannedMonthlyWants: thisMonth.wants.planned,
+            now: now,
+            calendar: calendar
+        )
+
+        // How last month closed — only worth a second pass when there's a plan.
+        var lastMonthKept: Bool?
+        if thisMonth.hasAnyBudget {
+            let lastMonth = report(for: AnalyticsPeriod.current(now).previous(calendar))
+            if lastMonth.totalPlannedExpense > 0 { lastMonthKept = !lastMonth.hasOverrun }
         }
 
         let progress = progressRows.first
@@ -1056,9 +1065,15 @@ struct HomeView: View {
             isReminderDay: DailyReminder.isReminderDay(now),
             hasActivityToday: progress.map { ProgressService.hasActivity(on: now, progress: $0) } ?? false,
             isQuietToday: progress.map { ProgressService.isQuietDay(now, progress: $0) } ?? false,
-            luxuriesToday: luxuries,
-            wentOverBudgetToday: wentOverToday,
-            isOverBudget: isOverBudget,
+            missedWorkingDays: MascotMood.missedWorkingDays(
+                before: now,
+                lastActivity: progress?.lastActivityDate,
+                quietDays: Set(progress?.quietDays ?? []),
+                calendar: calendar
+            ),
+            luxury: luxury,
+            isOverBudget: thisMonth.hasOverrun,
+            lastMonthKeptBudget: lastMonthKept,
             celebratedToday: progress?.lastCelebrationAt.map { calendar.isDate($0, inSameDayAs: now) } ?? false
         )
         return MascotMood.reading(for: facts)
