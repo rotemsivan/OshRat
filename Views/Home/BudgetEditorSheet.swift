@@ -6,9 +6,11 @@ import SwiftData
 /// fix categories, delete what no longer applies. Reachable from the
 /// pencil button on `BudgetVsActualCard`.
 ///
-/// Structure mirrors `BudgetStepView`: a single `List` with two
-/// sections (income → expenses), each row tap-to-edit, swipe-to-delete,
-/// and a trailing "+ הוסף" button. Editing reuses the same per-line
+/// A single `List`: income first, then the expenses nested the way a budget
+/// is read — צרכים / מותרות / אחר, each category a collapsible group (closed
+/// to start, so the list is short at a glance) with its monthly total, and
+/// its lines inside (`BudgetLineGroups`). Rows are tap-to-edit and
+/// swipe-to-delete, and each section ends with a "+ הוסף" button. Editing reuses the same per-line
 /// sheets as onboarding (`IncomeSourceEditorSheet`,
 /// `PlannedExpenseEditorSheet`) so behavior is identical between the
 /// two entry points — including validation rules like "income needs a
@@ -24,6 +26,7 @@ struct BudgetEditorSheet: View {
     @Query(sort: \BudgetItem.name) private var budgetItems: [BudgetItem]
     @Query(sort: \Category.name) private var categories: [Category]
     @Query(sort: \UserProfile.createdAt) private var profiles: [UserProfile]
+    @Query(sort: \FXRateSnapshot.fetchedAt, order: .reverse) private var fxSnapshots: [FXRateSnapshot]
 
     /// Selected income line being edited (or a fresh draft when adding).
     /// `pendingIncomeItem` tracks the SwiftData row the draft maps back
@@ -34,11 +37,15 @@ struct BudgetEditorSheet: View {
     @State private var editingExpense: PlannedExpenseDraft?
     @State private var pendingExpenseItem: BudgetItem?
 
+    /// The category groups the user has opened (`BudgetLineGroups.CategoryGroup.id`).
+    /// Empty to start: every category closed.
+    @State private var expandedCategories: Set<String> = []
+
     var body: some View {
         NavigationStack {
             List {
                 incomeSection
-                expensesSection
+                expenseSections
             }
             .scrollContentBackground(.hidden)
             .background(Theme.Colors.background)
@@ -115,43 +122,86 @@ struct BudgetEditorSheet: View {
         }
     }
 
-    private var expensesSection: some View {
-        Section {
-            if expenseItems.isEmpty {
+    /// One section per bucket (needs, wants, other), each category a
+    /// collapsible group. Drawn from value snapshots: a deleted line is gone
+    /// from the store at once, while its row is still animating out.
+    @ViewBuilder
+    private var expenseSections: some View {
+        let groups = expenseGroups
+        if groups.sections.isEmpty {
+            Section {
                 Text("עדיין לא הוגדרו הוצאות מתוכננות.")
                     .font(Theme.Typography.body)
                     .foregroundStyle(Theme.Colors.textSecondary)
-            } else {
-                ForEach(expenseItems) { item in
-                    Button {
-                        pendingExpenseItem = item
-                        editingExpense = PlannedExpenseDraft(from: item)
-                    } label: {
-                        ExpenseItemRow(item: item)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityHint(Text("הקש לעריכה"))
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            deleteExpense(item)
+                addExpenseButton
+            } header: {
+                Text("הוצאות מתוכננות")
+            }
+        } else {
+            ForEach(groups.sections) { section in
+                Section {
+                    ForEach(section.groups) { group in
+                        DisclosureGroup(isExpanded: expansion(of: group.id)) {
+                            ForEach(group.lines) { line in
+                                expenseLineRow(line)
+                            }
                         } label: {
-                            Image(systemName: "trash")
-                        }.tint(.red)
-                        .accessibilityLabel(Text("מחיקה"))
+                            CategoryGroupLabel(group: group, currencyCode: preferredCurrencyCode)
+                        }
+                    }
+                    // The add button closes the last section, as it did the
+                    // single expenses section before.
+                    if section.id == groups.sections.last?.id {
+                        addExpenseButton
+                    }
+                } header: {
+                    BucketHeader(bucket: section.bucket, total: section.monthlyTotal, currencyCode: preferredCurrencyCode)
+                } footer: {
+                    if section.id == groups.sections.last?.id, groups.fxUnavailable {
+                        Text("חלק מהסכומים לא נספרו — אין שער חליפין עדכני.")
                     }
                 }
             }
-
-            Button {
-                pendingExpenseItem = nil
-                editingExpense = PlannedExpenseDraft(currencyCode: preferredCurrencyCode)
-            } label: {
-                Label("הוספת הוצאה מתוכננת", systemImage: "plus.circle.fill")
-                    .foregroundStyle(Theme.Colors.accent)
-            }
-        } header: {
-            Text("הוצאות מתוכננות")
         }
+    }
+
+    private func expenseLineRow(_ line: BudgetLineGroups.Line) -> some View {
+        Button {
+            guard let item = budgetItem(line.id) else { return }
+            pendingExpenseItem = item
+            editingExpense = PlannedExpenseDraft(from: item)
+        } label: {
+            ExpenseLineRow(line: line)
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint(Text("הקש לעריכה"))
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                if let item = budgetItem(line.id) { deleteExpense(item) }
+            } label: {
+                Image(systemName: "trash")
+            }.tint(.red)
+            .accessibilityLabel(Text("מחיקה"))
+        }
+    }
+
+    private var addExpenseButton: some View {
+        Button {
+            pendingExpenseItem = nil
+            editingExpense = PlannedExpenseDraft(currencyCode: preferredCurrencyCode)
+        } label: {
+            Label("הוספת הוצאה מתוכננת", systemImage: "plus.circle.fill")
+                .foregroundStyle(Theme.Colors.accent)
+        }
+    }
+
+    private func expansion(of groupID: String) -> Binding<Bool> {
+        Binding(
+            get: { expandedCategories.contains(groupID) },
+            set: { isOpen in
+                if isOpen { expandedCategories.insert(groupID) } else { expandedCategories.remove(groupID) }
+            }
+        )
     }
 
     // MARK: - Derived data
@@ -160,8 +210,13 @@ struct BudgetEditorSheet: View {
         budgetItems.filter { $0.kind == .income }
     }
 
-    private var expenseItems: [BudgetItem] {
-        budgetItems.filter { $0.kind == .expense }
+    private var expenseGroups: BudgetLineGroups {
+        BudgetLineGroups(items: budgetItems, preferredCurrency: preferredCurrencyCode, fxSnapshot: fxSnapshots.first)
+    }
+
+    /// The live model behind a snapshot row, looked up only when acting on it.
+    private func budgetItem(_ id: PersistentIdentifier) -> BudgetItem? {
+        budgetItems.first { $0.persistentModelID == id }
     }
 
     private var preferredCurrencyCode: String {
@@ -187,16 +242,26 @@ struct BudgetEditorSheet: View {
     }
 
     private func saveExpense(_ draft: PlannedExpenseDraft) {
+        var saved: BudgetItem?
         BudgetCommitmentService.change(in: modelContext) {
             if let existing = pendingExpenseItem {
                 draft.apply(to: existing)
+                saved = existing
             } else {
                 let item = BudgetItem(kind: .expense)
                 draft.apply(to: item)
                 modelContext.insert(item)
+                saved = item
             }
         }
         pendingExpenseItem = nil
+        // Open the line's category, so a new line — or one moved to another
+        // category — is in view where it landed rather than in a closed group.
+        if let saved, let groupID = BudgetLineGroups(
+            items: [saved], preferredCurrency: preferredCurrencyCode, fxSnapshot: nil
+        ).groupID(containing: saved.persistentModelID) {
+            expandedCategories.insert(groupID)
+        }
     }
 
     private func deleteIncome(_ item: BudgetItem) {
@@ -260,23 +325,80 @@ private struct IncomeItemRow: View {
     }
 }
 
-/// Expense line row — coloured dot (need/want), category + optional
-/// note, amount with a monthly-equivalent caption for non-monthly
-/// cadences. Mirrors `PlannedExpenseRow` in `BudgetStepView`.
-private struct ExpenseItemRow: View {
-    let item: BudgetItem
+/// A bucket's header: its name, and its monthly total on the trailing edge.
+private struct BucketHeader: View {
+    let bucket: BudgetLineGroups.Bucket
+    let total: Decimal
+    let currencyCode: String
+
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer()
+            if total > 0 {
+                Text("\(total.formatted(.currency(code: currencyCode).precision(.fractionLength(0)))) לחודש")
+                    .monospacedDigit()
+            }
+        }
+    }
+
+    private var title: LocalizedStringKey {
+        switch bucket {
+        case .needs: return "צרכים"
+        case .wants: return "מותרות"
+        case .other: return "אחר"
+        }
+    }
+}
+
+/// A category's row: its glyph in its colour, name, how many lines, and the
+/// monthly total. The `DisclosureGroup` around it adds the chevron.
+private struct CategoryGroupLabel: View {
+    let group: BudgetLineGroups.CategoryGroup
+    let currencyCode: String
 
     var body: some View {
         HStack(spacing: Theme.Spacing.sm) {
-            Circle()
-                .fill(badgeColor)
-                .frame(width: 10, height: 10)
+            Image(systemName: group.symbolName)
+                .foregroundStyle(Color(hex: group.colorHex))
+                .frame(width: 28)
+            Text(group.name ?? String(localized: "ללא קטגוריה"))
+                .font(Theme.Typography.body)
+                .foregroundStyle(Theme.Colors.textPrimary)
+            // A badge rather than "· N": a separator glyph beside a number
+            // lands on the wrong side of it in right-to-left text.
+            Text(group.lines.count, format: .number)
+                .font(Theme.Typography.caption.weight(.semibold))
+                .foregroundStyle(Theme.Colors.textSecondary)
+                .monospacedDigit()
+                .padding(.horizontal, 7)
+                .padding(.vertical, 1)
+                .background(Capsule().fill(Theme.Colors.separator))
+                .accessibilityLabel(Text("\(group.lines.count) פריטים"))
+            Spacer()
+            if group.monthlyTotal > 0 {
+                Text(group.monthlyTotal.formatted(.currency(code: currencyCode).precision(.fractionLength(0))))
+                    .font(Theme.Typography.amount)
+                    .foregroundStyle(Theme.Colors.textPrimary)
+                    .monospacedDigit()
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
 
+/// One budget line inside its category: its note (or schedule), the schedule
+/// underneath, and the amount with a monthly figure for sub-monthly cadences.
+private struct ExpenseLineRow: View {
+    let line: BudgetLineGroups.Line
+
+    var body: some View {
+        HStack(spacing: Theme.Spacing.sm) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text(line.title)
                     .font(Theme.Typography.body)
                     .foregroundStyle(Theme.Colors.textPrimary)
-                if !subtitle.isEmpty {
+                if let subtitle = line.subtitle {
                     Text(subtitle)
                         .font(Theme.Typography.caption)
                         .foregroundStyle(Theme.Colors.textSecondary)
@@ -286,37 +408,18 @@ private struct ExpenseItemRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text(item.plannedAmount.formatted(.currency(code: item.currencyCode)))
+                Text(line.amount.formatted(.currency(code: line.currencyCode)))
                     .font(Theme.Typography.amount)
                     .foregroundStyle(Theme.Colors.textPrimary)
                     .monospacedDigit()
-                if !item.isOneTime, item.recurrenceUnit.isAveraged {
-                    Text("~\(item.monthlyEquivalent.formatted(.currency(code: item.currencyCode))) חודשי")
+                if let monthly = line.averagedMonthly {
+                    Text("~\(monthly.formatted(.currency(code: line.currencyCode))) חודשי")
                         .font(Theme.Typography.caption)
                         .foregroundStyle(Theme.Colors.textSecondary)
                         .monospacedDigit()
                 }
             }
         }
-    }
-
-    private var badgeColor: Color {
-        switch item.category?.nature {
-        case .need:    return Theme.Colors.expense
-        case .want:    return Theme.Colors.wants
-        case .neutral: return Theme.Colors.separator
-        case .none:    return Theme.Colors.separator
-        }
-    }
-
-    private var title: String {
-        let categoryName = item.category?.name ?? "ללא קטגוריה"
-        let note = item.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        return note.isEmpty ? categoryName : "\(categoryName) — \(note)"
-    }
-
-    private var subtitle: String {
-        item.scheduleDescription
     }
 }
 

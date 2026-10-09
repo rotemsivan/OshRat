@@ -81,6 +81,8 @@
 		5EBCSERV01000000000000B1 /* BudgetCommitmentService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBCSERV01000000000000F1 /* BudgetCommitmentService.swift */; };
 		5EBD610100000000000000B1 /* BudgetScheduleSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBD610100000000000000F1 /* BudgetScheduleSection.swift */; };
 		5EBD610100000000000000B2 /* BudgetCalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBD610100000000000000F2 /* BudgetCalendarView.swift */; };
+		5EBLGRP100000000000000B1 /* BudgetLineGroups.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBLGRP100000000000000F1 /* BudgetLineGroups.swift */; };
+		5EBLGRP100000000000000C1 /* BudgetLineGroups.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBLGRP100000000000000F1 /* BudgetLineGroups.swift */; };
 		5EBMCOMM01000000000000B1 /* BudgetMonthCommitment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBMCOMM01000000000000F1 /* BudgetMonthCommitment.swift */; };
 		5EBRANDH01000000000000B1 /* BrandHeroLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBRANDH01000000000000F1 /* BrandHeroLayout.swift */; };
 		5EBREM0100000000000000B1 /* BudgetReminder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBREM0100000000000000F1 /* BudgetReminder.swift */; };
@@ -343,6 +345,7 @@
 		5EBCSERV01000000000000F1 /* BudgetCommitmentService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetCommitmentService.swift; sourceTree = "<group>"; };
 		5EBD610100000000000000F1 /* BudgetScheduleSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetScheduleSection.swift; sourceTree = "<group>"; };
 		5EBD610100000000000000F2 /* BudgetCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetCalendarView.swift; sourceTree = "<group>"; };
+		5EBLGRP100000000000000F1 /* BudgetLineGroups.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetLineGroups.swift; sourceTree = "<group>"; };
 		5EBMCOMM01000000000000F1 /* BudgetMonthCommitment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetMonthCommitment.swift; sourceTree = "<group>"; };
 		5EBRANDH01000000000000F1 /* BrandHeroLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandHeroLayout.swift; sourceTree = "<group>"; };
 		5EBREM0100000000000000F1 /* BudgetReminder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetReminder.swift; sourceTree = "<group>"; };
@@ -558,6 +561,7 @@
 				5EONB00100000000000000F1 /* OnboardingProgress.swift */,
 				5E2626C02FD1821F00180F49 /* OnboardingViewModel.swift */,
 				5EFILT0100000000000000F1 /* TransactionFilters.swift */,
+				5EBLGRP100000000000000F1 /* BudgetLineGroups.swift */,
 				5EHSRC0200000000000000F1 /* TransactionSearchIndex.swift */,
 				5EHSRC0100000000000000F1 /* HebrewSearch.swift */,
 			);
@@ -1189,6 +1193,7 @@
 				5E2626CA2FD1846400180F49 /* OnboardingFlowView.swift in Sources */,
 				5E2626CB2FD1846400180F49 /* OnboardingViewModel.swift in Sources */,
 				5EFILT0100000000000000B1 /* TransactionFilters.swift in Sources */,
+				5EBLGRP100000000000000B1 /* BudgetLineGroups.swift in Sources */,
 				5E2626CC2FD1846400180F49 /* PersonalDetailsStepView.swift in Sources */,
 				5ED3E0F32FD1BEB4003083F0 /* BudgetVsActual.swift in Sources */,
 				5E2626CD2FD1846400180F49 /* AccountEditorSheet.swift in Sources */,
@@ -1290,6 +1295,7 @@
 				5EWARD0100000000000000C1 /* WardrobeItem.swift in Sources */,
 				5EACHV0200000000000000C1 /* AchievementEvaluator.swift in Sources */,
 				5EFILT0100000000000000C1 /* TransactionFilters.swift in Sources */,
+				5EBLGRP100000000000000C1 /* BudgetLineGroups.swift in Sources */,
 				5ETRSH0100000000000000C1 /* TrashService.swift in Sources */,
 				5EGAMUP0100000000000C1 /* UserProgress.swift in Sources */,
 				5E17150100000000000000C1 /* CurrencyConverter.swift in Sources */,
