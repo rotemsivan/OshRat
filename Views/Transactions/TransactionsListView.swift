@@ -2015,7 +2015,7 @@ private struct FiltersSheet: View {
 /// Adaptive columns with a *scaled* minimum width: at larger text sizes each
 /// button needs more room, so the grid drops to fewer columns rather than
 /// truncating labels like "החודש שעבר".
-private struct DatePresetGrid: View {
+struct DatePresetGrid: View {
     let selection: DateRangeFilter
     let onSelect: (DateRangeFilter) -> Void
 

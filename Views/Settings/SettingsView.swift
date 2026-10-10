@@ -320,6 +320,11 @@ private struct SettingsForm: View {
             } label: {
                 Label("נמחקו לאחרונה", systemImage: "trash")
             }
+            NavigationLink {
+                ExportView()
+            } label: {
+                Label("ייצוא נתונים", systemImage: "square.and.arrow.up")
+            }
         } header: {
             Text("ניהול")
         }
@@ -361,7 +366,7 @@ private enum FXRefreshState {
 /// Borderless so that inside a `Form` row it takes only its own taps (a
 /// plain button would claim the whole row), and each owns its popover flag
 /// so the bubble anchors to the icon that was tapped.
-private struct InfoButton: View {
+struct InfoButton: View {
     let text: LocalizedStringKey
     @State private var isShowing = false
 

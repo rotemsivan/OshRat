@@ -125,6 +125,17 @@
 		5EDEP00700000000000000C1 /* DepositLadder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00700000000000000F1 /* DepositLadder.swift */; };
 		5EDEP00700000000000000C2 /* DepositLadder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDEP00700000000000000F1 /* DepositLadder.swift */; };
 		5EDLROUT01000000000000B1 /* DeepLinkRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EDLROUT01000000000000F1 /* DeepLinkRouter.swift */; };
+		5EEXP00100000000000000B1 /* TransactionExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EEXP00100000000000000F1 /* TransactionExport.swift */; };
+		5EEXP00100000000000000B2 /* TransactionExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EEXP00100000000000000F1 /* TransactionExport.swift */; };
+		5EEXP00100000000000000B3 /* TransactionExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EEXP00100000000000000F1 /* TransactionExport.swift */; };
+		5EEXP00200000000000000B1 /* ZipArchiveWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EEXP00200000000000000F1 /* ZipArchiveWriter.swift */; };
+		5EEXP00200000000000000B2 /* ZipArchiveWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EEXP00200000000000000F1 /* ZipArchiveWriter.swift */; };
+		5EEXP00300000000000000B1 /* XLSXWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EEXP00300000000000000F1 /* XLSXWriter.swift */; };
+		5EEXP00300000000000000B2 /* XLSXWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EEXP00300000000000000F1 /* XLSXWriter.swift */; };
+		5EEXP00400000000000000B1 /* CSVWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EEXP00400000000000000F1 /* CSVWriter.swift */; };
+		5EEXP00400000000000000B2 /* CSVWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EEXP00400000000000000F1 /* CSVWriter.swift */; };
+		5EEXP00500000000000000B1 /* ExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EEXP00500000000000000F1 /* ExportService.swift */; };
+		5EEXP00600000000000000B1 /* ExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EEXP00600000000000000F1 /* ExportView.swift */; };
 		5EFACE0100000000000000A1 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
 		5EFACE0100000000000000A2 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
 		5EFACE0100000000000000A3 /* TransactionAttachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EFACE0100000000000000F1 /* TransactionAttachment.swift */; };
@@ -377,6 +388,12 @@
 		5EDEP00600000000000000F1 /* DepositTranche.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositTranche.swift; sourceTree = "<group>"; };
 		5EDEP00700000000000000F1 /* DepositLadder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepositLadder.swift; sourceTree = "<group>"; };
 		5EDLROUT01000000000000F1 /* DeepLinkRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkRouter.swift; sourceTree = "<group>"; };
+		5EEXP00100000000000000F1 /* TransactionExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionExport.swift; sourceTree = "<group>"; };
+		5EEXP00200000000000000F1 /* ZipArchiveWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZipArchiveWriter.swift; sourceTree = "<group>"; };
+		5EEXP00300000000000000F1 /* XLSXWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XLSXWriter.swift; sourceTree = "<group>"; };
+		5EEXP00400000000000000F1 /* CSVWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CSVWriter.swift; sourceTree = "<group>"; };
+		5EEXP00500000000000000F1 /* ExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportService.swift; sourceTree = "<group>"; };
+		5EEXP00600000000000000F1 /* ExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportView.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F1 /* TransactionAttachment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionAttachment.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F2 /* TransactionInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionInsights.swift; sourceTree = "<group>"; };
 		5EFACE0100000000000000F3 /* TransactionAttachments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionAttachments.swift; sourceTree = "<group>"; };
@@ -644,6 +661,7 @@
 		5E31E5412FD16B4400FF83C8 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				5EEXP00100000000000000F1 /* TransactionExport.swift */,
 				5EPPHIST01000000000000F1 /* PaymentPrefill+History.swift */,
 				5EPAY00100000000000000F1 /* PaymentPrefill.swift */,
 				5E31E5422FD16B6D00FF83C8 /* Account.swift */,
@@ -715,6 +733,10 @@
 		5E8EB3A82FD2F9070037E1F3 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				5EEXP00200000000000000F1 /* ZipArchiveWriter.swift */,
+				5EEXP00300000000000000F1 /* XLSXWriter.swift */,
+				5EEXP00400000000000000F1 /* CSVWriter.swift */,
+				5EEXP00500000000000000F1 /* ExportService.swift */,
 				5EPNPOST01000000000000F1 /* PaymentNotification.swift */,
 				5EPINBOX01000000000000F1 /* PaymentInbox.swift */,
 				5EPAY00300000000000000F1 /* LogPaymentIntent.swift */,
@@ -860,6 +882,7 @@
 		5ESET00000000000000000A1 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				5EEXP00600000000000000F1 /* ExportView.swift */,
 				5ESET00100000000000000F1 /* SettingsView.swift */,
 			);
 			path = Settings;
@@ -1112,6 +1135,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5EEXP00100000000000000B1 /* TransactionExport.swift in Sources */,
+				5EEXP00200000000000000B1 /* ZipArchiveWriter.swift in Sources */,
+				5EEXP00300000000000000B1 /* XLSXWriter.swift in Sources */,
+				5EEXP00400000000000000B1 /* CSVWriter.swift in Sources */,
+				5EEXP00500000000000000B1 /* ExportService.swift in Sources */,
+				5EEXP00600000000000000B1 /* ExportView.swift in Sources */,
 				5EPPHIST01000000000000B1 /* PaymentPrefill+History.swift in Sources */,
 				5EPNPOST01000000000000B1 /* PaymentNotification.swift in Sources */,
 				5EPINBOX01000000000000B1 /* PaymentInbox.swift in Sources */,
@@ -1261,6 +1290,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5EEXP00100000000000000B2 /* TransactionExport.swift in Sources */,
+				5EEXP00200000000000000B2 /* ZipArchiveWriter.swift in Sources */,
+				5EEXP00300000000000000B2 /* XLSXWriter.swift in Sources */,
+				5EEXP00400000000000000B2 /* CSVWriter.swift in Sources */,
 				5EPPHIST01000000000000B2 /* PaymentPrefill+History.swift in Sources */,
 				5EPINBOX01000000000000B2 /* PaymentInbox.swift in Sources */,
 				5EPAY00200000000000000C1 /* IncomingPaymentRouter.swift in Sources */,
@@ -1307,6 +1340,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5EEXP00100000000000000B3 /* TransactionExport.swift in Sources */,
 				5E31E5542FD16B6D00FF83C8 /* UserProfile.swift in Sources */,
 				5ED3E0EA2FD1BB4D003083F0 /* Holding.swift in Sources */,
 				5E31E5552FD16B6D00FF83C8 /* BudgetItem.swift in Sources */,
